@@ -9,6 +9,7 @@ import random
 import os
 import config
 from discord import Role
+from typing import List, Optional
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -29,6 +30,7 @@ SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly']
 
 ROLES = ["Team 1", "Team 2", "Team 3", "Team 4", "Team 5", "Team 6"]
 TEAM_CAPTAIN_ROLES = ["Team 1 Captain", "Team 2 Captain", "Team 3 Captain", "Team 4 Captain", "Team 5 Captain", "Team 6 Captain"]
+DEFAULT_CHANNELS = ["chat", "bingo-card", "dice-roll", "photo-dump", "voice-chat"]
 
 default_settings_dict = {
     'tiles': {
@@ -38,34 +40,40 @@ default_settings_dict = {
     },
     "teams": {
         "Team 1" : {
-            "current": 1,
+            "current": 0,
             "prev": None,
-            "reroll": True
+            "reroll": True,
+            "roll_history": []
         },
         "Team 2" : {
-            "current": 1,
+            "current": 0,
             "prev": None,
-            "reroll": True
+            "reroll": True,
+            "roll_history": []
         },
         "Team 3" : {
-            "current": 1,
+            "current": 0,
             "prev": None,
-            "reroll": True
+            "reroll": True,
+            "roll_history": []
         },
         "Team 4" : {
-            "current": 1,
+            "current": 0,
             "prev": None,
-            "reroll": True
+            "reroll": True,
+            "roll_history": []
         },
         "Team 5" : {
-            "current": 1,
+            "current": 0,
             "prev": None,
-            "reroll": True
+            "reroll": True,
+            "roll_history": []
         },
         "Team 6" : {
-            "current": 1,
+            "current": 0,
             "prev": None,
-            "reroll": True
+            "reroll": True,
+            "roll_history": []
         }
     }
 }
@@ -76,8 +84,8 @@ mod_channel = 'bot-commands'
 thumb = '\N{THUMBS UP SIGN}'
 thumbs_down = '\N{THUMBS DOWN SIGN}'
 
-def roll_dice():
-    return random.randint(1, 6)
+def roll_dice(num=4):
+    return random.randint(1, num)
 
 def create_discord_friendly_name(text):
     return text.lower().replace(' ', '-')
@@ -112,7 +120,7 @@ def update_settings_json(contents: dict, *, tiles: str = None) -> dict:
         save_settings_json(contents)
         # print(updates, contents, spreadsheet_id)
     else:
-        print(contents['teams'])
+        # print(contents['teams'])
         save_settings_json(contents)
         updates = 'Updated Team turn information'
     return updates, contents
@@ -123,13 +131,15 @@ def format_item_list(contents, tile_list: list) -> list:
         if i == 0:
             # skip header
             continue
-        name, desc, img_url, wiki_url = item
+        tile_num, name, short_desc, desc, sabotage, item_names, diff = item
         frmt_item = {
             i : {
+                "tile_num": tile_num,
                 "name": name,
+                "short_desc": short_desc,
                 "desc": desc,
-                "img_url": img_url,
-                "wiki_url": wiki_url,
+                "sabotage": sabotage,
+                "item_names": item_names,
                 "discord_name": f'{i}. {name} - {desc}'
             }
         }
@@ -169,7 +179,6 @@ def load_sheet(SAMPLE_SPREADSHEET_ID, RANGE="A1:Z100"):
             print('No data found.')
             return
 
-        
         for row in values:
             print(row)
         return values
@@ -178,11 +187,9 @@ def load_sheet(SAMPLE_SPREADSHEET_ID, RANGE="A1:Z100"):
         print(err)
 
 
-async def clear_team_roles(message):
-    print(f'{message.guild.roles=}')
-    roles = [discord.utils.get(message.guild.roles, name=rl) for rl in ROLES]
-    print(roles)
-    for member in message.guild.members:
+async def clear_team_roles(interaction):
+    roles = [discord.utils.get(interaction.guild.roles, name=rl) for rl in ROLES]
+    for member in interaction.guild.members:
         await member.remove_roles(*roles)
     print('Removed Team Roles from All Members')
 
@@ -209,9 +216,10 @@ def team_overwrites():
     return discord.PermissionOverwrite(
         view_channel=True,
         manage_channels=False,
+        manage_messages=False,
         manage_permissions=False,
         manage_webhooks=False,
-        create_invite=False,
+        create_instant_invite=False,
         send_messages=True,
         connect=True
     )
@@ -220,21 +228,74 @@ def spectator_overwrites():
     return discord.PermissionOverwrite(
         view_channel=True,
         manage_channels=False,
+        manage_messages=False,
         manage_permissions=False,
         manage_webhooks=False,
-        create_invite=False,
-        send_messages=True,
+        create_instant_invite=False,
+        send_messages=False,
         connect=True
     )
 
+def bingo_bot_overwrites():
+    return discord.PermissionOverwrite(
+        view_channel=True,
+        manage_channels=True,
+        manage_permissions=True,
+        manage_webhooks=True,
+        send_messages=True,
+        send_messages_in_threads=True,
+        create_public_threads=True,
+        create_private_threads=True,
+        embed_links=True,
+        attach_files=True,
+        add_reactions=True,
+        read_message_history=True
+    )
+
+
+
 def everyone_overwrites():
-    pass
+    return discord.PermissionOverwrite(
+        view_channel=False,
+        create_instant_invite=False,
+        send_messages=False
+    )
 
 
 # ========= Bot Commands ================
 
 settings = load_settings_json()
 total_tiles = len(settings['items'])
+
+async def team_autocomplete(
+    interaction: discord.Interaction,
+    current: str
+    ) -> List[app_commands.Choice[str]]:
+        commands = [
+            "Create",
+            "Set Team Name",
+            "Set Tile",
+            "Set Prev Tile",
+            "Set Reroll",
+            # "Members",
+            # "Captain",
+            "Spectators"
+        ]
+        return [
+            app_commands.Choice(name=command, value=command)
+            for command in commands if current.lower() in command.lower()
+        ]
+
+async def team_names_autocomplete(
+    interaction: discord.Interaction,
+    current: str
+    ) -> List[app_commands.Choice[str]]:
+        team_names = settings['teams'].keys()
+        return [
+            app_commands.Choice(name=team_name, value=team_name)
+            for team_name in team_names if current.lower() in team_name.lower()
+        ]
+
 
 @bot.event
 async def on_ready():
@@ -253,14 +314,14 @@ async def roll(interaction: discord.Interaction):
     # put a check for has role in here
     team_name = interaction.channel.category.name
     role_name = discord.utils.get(interaction.guild.roles, name=team_name)
-    if not role_name in interaction.user.roles or interaction.channel.name != roll_channel:
+    if not role_name in interaction.user.roles or not roll_channel in interaction.channel.name:
         await interaction.response.send_message(f"Please ensure you have approriate Team Role and are within your Team's #{roll_channel}")
         return
     else:
         await interaction.channel.typing()
         roll = roll_dice()
         # create function to handle updating settings points
-
+        settings['teams'][team_name]['roll_history'].append(roll)
         settings['teams'][team_name]['prev'] = settings['teams'][team_name]['current']
         settings['teams'][team_name]['current'] += roll
         if settings['teams'][team_name]['current'] > total_tiles:
@@ -287,12 +348,7 @@ async def roll(interaction: discord.Interaction):
 async def reroll(interaction: discord.Interaction):
     team_name = interaction.channel.category.name
     role_name = discord.utils.get(interaction.guild.roles, name=team_name)
-    print(team_name)
-    print(role_name)
-    print(interaction.user.roles)
-    print(not role_name.name in interaction.user.roles)
-    print(interaction.channel.name != roll_channel)
-    if not role_name in interaction.user.roles or interaction.channel.name != roll_channel:
+    if not role_name in interaction.user.roles or not roll_channel in interaction.channel.name:
         await interaction.response.send_message(f"Please ensure you have approriate Team Role and are within your Team's #{roll_channel}")
         return
     else:
@@ -310,6 +366,8 @@ async def reroll(interaction: discord.Interaction):
                 await interaction.response.send_message(f'Unable to clean up channel <#{discord.utils.get(interaction.guild.channels, name=name).id}> pinging {discord.utils.get(interaction.guild.roles, name="Bingo Moderator").mention}')
                 return
             roll = roll_dice()
+            settings['teams'][team_name]['roll_history'].append("reroll")
+            settings['teams'][team_name]['roll_history'].append(roll)
             settings['teams'][team_name]['current'] = settings['teams'][team_name]['prev'] + roll
             settings['teams'][team_name]['reroll'] = False
             update_settings_json(settings)
@@ -330,18 +388,261 @@ async def set_tiles(interaction: discord.Interaction, sheet_link: str):
         return
     # await interaction.response.edit_message(suppress=True)
     await interaction.channel.typing()
+    settings = load_settings_json()
     processed, settings = update_settings_json(settings, tiles=sheet_link)
     await interaction.response.send_message(f"{processed}")
-    embed = discord.Embed(
-        title="Tile List",
-        color=discord.Color.blue(),
-        description='\n'.join([itm['discord_name'] for itm in settings['items'].values()])
-        )
+    # embed = discord.Embed(
+    #     title="Tile List",
+    #     color=discord.Color.blue(),
+    #     description='\n'.join([itm['discord_name'] for itm in settings['items'].values()])
+    #     )
     # await interaction.reply(embed=embed)
     # post in #tile-list
     tile_list_channel = discord.utils.get(interaction.guild.channels, name="tile-list")
-    await tile_list_channel.send(embed=embed)
+    # await tile_list_channel.send(embed=embed)
 
+@app_commands.autocomplete(team_name=team_names_autocomplete)
+@has_role("Bingo Moderator")
+@bot.tree.command(name="disband", description=f"Clear Team <#> Role from all players assigned")
+async def disband(interaction: discord.Interaction, team_name: str):
+    team_names = [x for x in settings['teams'].keys()]
+    await interaction.channel.typing()
+    if not team_name in team_names:
+        await interaction.response.send_message(f"Team Name: {team_name} is not found in {team_names}\nPlease Try again")
+        return
+    else:
+        team_number = team_names.index(team_name) + 1
+        try:
+            users_processed = 0
+            for user in interaction.guild.members:
+                current_role = discord.utils.get(user.roles, name=f"Team {team_number}")
+                if current_role:
+                    await user.remove_roles(current_role)
+                    users_processed += 1
+                else:
+                    print(f'No Role found | "Team {team_number}" | Team Name: "{team_name}"')
+            if not users_processed:
+                raise ValueError
+            await interaction.response.send_message(f'Disbanded Team: {team_name} Role: "Team {team_number}" removing the role from {users_processed} users')
+        except ValueError:
+            await interaction.response.send_message(f'We ran into issues disbanding Discord Role: "Team {team_number}" OR there are no members in that that role')
+
+@has_role("Bingo Moderator")
+@bot.tree.command(name="spectators", description=f"Assign Spectator Role to Discord Members")
+async def spectators(interaction: discord.Interaction,
+                    members: str,
+                    unassign: bool = False):
+    await interaction.channel.typing()
+    spectator_role = discord.utils.get(interaction.guild.roles, name="spectator")
+    roles = [discord.utils.get(interaction.guild.roles, name=rl) for rl in ROLES]
+    roles.append(spectator_role)
+    members = members.split()
+    if members[0] == '@everyone':
+        members = interaction.guild.members
+        await interaction.response.defer(thinking=True)
+        for m in members:
+            await m.remove_roles(*roles)
+            if not unassign:
+                await m.add_roles(spectator_role)
+        await interaction.followup.send(f'Role "spectator" {"added" if not unassign else "removed"} to all server members')
+    elif len(members) == 0:
+        await interaction.response.send_message(f'Please add @ each member to add them too team')
+    else:
+        await interaction.response.defer(thinking=True)
+        for m in members:
+            m_id = int(m.replace('<', '').replace('>', '').replace('@', ''))
+            mem = await interaction.guild.fetch_member(m_id)
+            await mem.remove_roles(*roles)
+            if not unassign:
+                await mem.add_roles(spectator_role)
+        await interaction.followup.send(f'Role "spectator" {"added" if not unassign else "removed"} to {len(members)} members')
+
+    # elif option == "Captain":
+    #     if len(interaction.message.mentions) == 0:
+    #         await interaction.response.send_message(f'Please add @ member to add Team {team_number} Captain Role')
+    #     else:
+    #         current_role = discord.utils.get(interaction.guild.roles, name=f"Team {team_number}")
+    #         captain_role = discord.utils.get(interaction.guild.roles, name=f"Team {team_number} Captain")
+    #         roles = [discord.utils.get(interaction.guild.roles, name=rl) for rl in ROLES]
+    #         spectator_role = discord.utils.get(interaction.guild.roles, name="spectator")
+    #         roles.append(spectator_role)
+    #         captain_roles = [discord.utils.get(interaction.guild.roles, name=rl) for rl in TEAM_CAPTAIN_ROLES]
+    #         for i in range(len(interaction.message.mentions)):
+    #             await interaction.message.mentions[i].remove_roles(*[*roles, *captain_roles])
+    #             await interaction.message.mentions[i].add_roles(*[current_role, captain_role])
+    #     await interaction.response.send_message(f'Role "Team {team_number} Captain" added to {len(interaction.message.mentions)} members')
+
+
+@app_commands.autocomplete(team_name=team_names_autocomplete)
+@has_role("Bingo Moderator")
+@bot.tree.command(name="members", description=f"Assign Team <#> Role to Discord Members")
+async def members(interaction: discord.Interaction,
+                team_name: str,    
+                members: str):
+    team_names = [x for x in settings['teams'].keys()]
+    team_number = team_names.index(team_name) + 1
+    await interaction.channel.typing()
+    await interaction.response.defer(thinking=True)
+    current_role = discord.utils.get(interaction.guild.roles, name=f"Team {team_number}")
+    roles = [discord.utils.get(interaction.guild.roles, name=rl) for rl in ROLES]
+    members = members.split()
+    for m in members:
+        m_id = int(m.replace('<', '').replace('>', '').replace('@', ''))
+        mem = await interaction.guild.fetch_member(m_id)
+        await mem.remove_roles(*roles)
+        await mem.add_roles(current_role)
+    await interaction.followup.send(f'Role "Team {team_number}" added to {len(members)} members')
+
+
+async def reroll(interaction: discord.Interaction, option: str, team_name: str):
+    
+    class Reroll(discord.ui.View):
+        def __init__(self, *, timeout: Optional[float] = 180):
+            super().__init__(timeout=timeout)
+        @discord.ui.button(label='Revoke', style=discord.ButtonStyle.danger)
+        async def revoke_reroll(self, interaction: discord.Interaction, Button: discord.ui.Button):
+            if not settings['teams'][team_name]['reroll']:
+                await interaction.response.send_message(content='Reroll has already been used for that team.')
+            else:
+                settings['teams'][team_name]['reroll'] = False
+                update_settings_json(settings)
+                await interaction.response.send_message('Reroll has been disabled for that team.')
+        @discord.ui.button(label='Give', style=discord.ButtonStyle.green)
+        async def give_reroll(self, interaction: discord.Interaction, Button: discord.ui.Button):
+            if settings['teams'][team_name]['reroll']:
+                await interaction.response.send_message(content='Reroll is unused for that team.')
+            else:
+                settings['teams'][team_name]['reroll'] = True
+                update_settings_json(settings)
+                await interaction.response.send_message(content='Reroll is reenabled for that team.')
+
+    await interaction.response.send_message('Choose an option for Reroll:', view=Reroll())
+
+# @has_role("Bingo Moderator")
+@app_commands.autocomplete(team_name=team_names_autocomplete)
+@app_commands.autocomplete(option=team_autocomplete)
+@bot.tree.command(name="team", description=f"Configure teams")
+async def team(interaction: discord.Interaction,
+               option: str,
+               team_name: str,
+               tile: str = None,
+               role: discord.Role = None,
+               new_team_name: str = None,
+               members: str = None
+               ):
+    team_names = [x for x in settings['teams'].keys()]
+    team_number = team_names.index(team_name) + 1
+    await interaction.channel.typing()
+    if not interaction.channel.category.name.lower() == 'admin':
+        await interaction.response.send_message(f"Use this command in {mod_channel} and ADMIN section")
+        return
+    elif not team_name in team_names:
+        await interaction.response.send_message(f"Team Name: {team_name} is not found in {team_names}\nPlease Try again")
+        return
+    elif option == "Create":
+        everyone_role = discord.utils.get(interaction.guild.roles, name="@everyone")
+        spectator_role = discord.utils.get(interaction.guild.roles, name="spectator")
+        bingo_bot_role = discord.utils.get(interaction.guild.roles, name="Bingo Bot")
+        team_role = discord.utils.get(interaction.guild.roles, name=f"Team {team_number}")
+        
+        cat = await interaction.guild.create_category(name=team_name)
+
+        overwrites_with_spectator = {
+            interaction.guild.default_role: discord.PermissionOverwrite(read_messages=False, connect=False),
+            bingo_bot_role: bingo_bot_overwrites(),
+            interaction.guild.me: bingo_bot_overwrites(),
+            spectator_role: spectator_overwrites(),
+            team_role: team_overwrites(),
+            everyone_role: everyone_overwrites()
+            }
+        overwrites_w_out_spectator = {
+            interaction.guild.default_role: discord.PermissionOverwrite(read_messages=False, connect=False),
+            bingo_bot_role: bingo_bot_overwrites(),
+            interaction.guild.me: bingo_bot_overwrites(),
+            team_role: team_overwrites(),
+            everyone_role: everyone_overwrites()
+            }
+
+        await cat.edit(overwrites=overwrites_with_spectator)
+        # Create Default Channels
+        # all_channels = []
+        for channel in DEFAULT_CHANNELS:
+            channel_name = f"team-{team_number}-{channel}"
+            if channel_name == f"team-{team_number}-chat":
+                overwrites = overwrites_w_out_spectator
+            else:
+                overwrites = overwrites_with_spectator
+            if "voice" in channel_name:
+                chan = await interaction.guild.create_voice_channel(name=channel_name, category=cat, overwrites=overwrites)
+            else:
+                chan = await interaction.guild.create_text_channel(name=channel_name, category=cat, overwrites=overwrites)
+                if channel == 'photo-dump':
+                    webhook = await chan.create_webhook(name=channel_name)
+                    await chan.send(f"Here are instructions for adding Discord Rare Drop Notification to Runelite\n\nDownload the Plugin from Plugin Hub\nCopy this Webhook URL to this channel into the Plugin(Accessed via the settings)")
+                    await chan.send(f"{webhook.url}\n")
+                    await chan.send(f"Copy in this Tile List to ensure that ALL potential items are captured")
+                    await chan.send(f"{','.join([x['name'] for x in settings['items'].values()])}")
+            # all_channels.append(chan)
+        await interaction.response.send_message(f'Channels created for "{team_name}"')
+
+    elif option == "Set Team Name":
+        # Update Settings
+        if not new_team_name:
+            await interaction.response.send_message(f'No "new_team_name" provided')
+        teams_index = dict(zip(settings['teams'].keys(), range(len(settings['teams'].keys()))))
+        team_idx = teams_index[team_name]
+        new_teams = {}
+        for i, pair in enumerate(settings['teams'].items()):
+            k, v = pair
+            if i == team_idx:
+                new_teams.update({new_team_name: v})
+            else:
+                new_teams.update({k: v})
+        settings['teams'] = new_teams
+        save_settings_json(settings)
+        # Update Category
+        team_cat = discord.utils.get(interaction.guild.categories, name=team_name)
+        await team_cat.edit(name=new_team_name)
+        await interaction.response.send_message(f'Changed Team "{team_name}" to "{new_team_name}"')
+    elif option == "Set Tile":
+        try:
+            tile = int(tile)
+        except ValueError:
+            await interaction.response.send_message(f'Unable to process tile "tile": {tile} - Ensure it is a number')
+            return
+        if tile < 1:
+            tile = 1
+        settings['teams'][team_name]['current'] = tile
+        await interaction.response.send_message(f'Updated tile for Team: {team_name} to {tile}')
+        update_settings_json(settings)
+    elif option == "Set Prev Tile":
+        try:
+            tile = int(tile)
+        except ValueError:
+            await interaction.response.send_message(f'Unable to process prev tile "tile": {tile} - Ensure it is a number')
+            return
+        if tile < 1:
+            tile = None
+        settings['teams'][team_name]['prev'] = tile
+        await interaction.response.send_message(f'Updated prev tile for Team: {team_name} to {tile}')
+        update_settings_json(settings)
+    elif option == "Set Reroll":
+        await reroll(interaction=interaction, option=option, team_name=team_name)
+
+
+    # processed, settings = update_settings_json(settings, tiles=sheet_link)
+    # await interaction.response.send_message(f"{processed}")
+    # embed = discord.Embed(
+    #     title="Tile List",
+    #     color=discord.Color.blue(),
+    #     description='\n'.join([itm['discord_name'] for itm in settings['items'].values()])
+    #     )
+    # # await interaction.reply(embed=embed)
+    # # post in #tile-list
+    # tile_list_channel = discord.utils.get(interaction.guild.channels, name="tile-list")
+    # await tile_list_channel.send(embed=embed)
+    else:
+        await interaction.response.send_message(f'Unable to proccess: {interaction.data}\nPlease Try again or contact Administrator.')
 
 
 bot.run(config.DISCORD_BOT_TOKEN)
