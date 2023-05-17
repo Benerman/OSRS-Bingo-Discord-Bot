@@ -665,7 +665,10 @@ async def team(interaction: discord.Interaction,
                     await chan.send(f"Copy in this Tile List to ensure that ALL potential items are captured")
                     list_of_item_names = [x['item_names'] for x in settings['items'].values()]
                     list_of_item_names = [x.replace("*", "\*") for x in list_of_item_names]
-                    await chan.send(f"{''.join([x for x in filter(None, list_of_item_names)])}")
+                    embed = discord.Embed(
+                        description=f"{''.join([x.lower() for x in filter(None, list_of_item_names)])}"
+                        )
+                    await chan.send(embed=embed)
             # all_channels.append(chan)
         await interaction.response.send_message(f'Channels created for "{team_name}"')
 
