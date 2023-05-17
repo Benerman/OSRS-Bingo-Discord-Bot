@@ -68,13 +68,14 @@ default_settings_dict = {
             "prev": None,
             "reroll": True,
             "roll_history": []
-        },
-        "Team 6" : {
-            "current": 0,
-            "prev": None,
-            "reroll": True,
-            "roll_history": []
         }
+        # },
+        # "Team 6" : {
+        #     "current": 0,
+        #     "prev": None,
+        #     "reroll": True,
+        #     "roll_history": []
+        # }
     }
 }
 
@@ -196,20 +197,20 @@ async def clear_team_roles(interaction):
 
 def create_tile_embed(tiles: dict, tile_number: str) -> discord.Embed:
     itm = tiles[tile_number]
-    multi_wiki_urls = itm['wiki_url'].split(',')
-    multi_img_urls = itm['img_url'].split(',')
+    # multi_wiki_urls = itm['wiki_url'].split(',')
+    # multi_img_urls = itm['img_url'].split(',')
     # if len(multi_img_urls) > 1:
-    img_url = multi_img_urls[0]
+    # img_url = multi_img_urls[0]
     embed = discord.Embed(
-        title=itm['name'],
+        title=f"{itm['name']} - {itm['short_desc']}",
         description=itm['desc'],
-        color=0xf7e302,
-        url=multi_wiki_urls[0]
+        color=0xf7e302
+        # url=multi_wiki_urls[0]
     )
-    embed.set_image(url=img_url)
-    for wiki_url in multi_wiki_urls:
-        name = wiki_url.split('/')[-1].replace('_', " ")
-        embed.add_field(name=name, value=f"[{name}]({wiki_url})", inline=False)
+    # embed.set_image(url=img_url)
+    # for wiki_url in multi_wiki_urls:
+    #     name = wiki_url.split('/')[-1].replace('_', " ")
+    #     embed.add_field(name=name, value=f"[{name}]({wiki_url})", inline=False)
     return embed
 
 def team_overwrites():
@@ -262,6 +263,50 @@ def everyone_overwrites():
     )
 
 
+async def update_team_bingo_card_channel(interaction: discord.Interaction, team_name, roll, settings, reroll=False):
+    for ch in interaction.channel.category.channels:
+        if ch.name.endswith('bingo-card'):
+            await ch.send(f"{'Rerolling ' if reroll else ''}Dice roll: {roll} for team: {team_name}\nNew tile: {settings['teams'][team_name]['current']} << Old tile: {settings['teams'][team_name]['prev']}")
+
+async def update_server_score_board_channel(interaction: discord.Interaction, team_name, settings):
+    score_card_ch = discord.utils.get(interaction.guild.channels , name="score-board")
+    if settings['posts']['score-board']['id']:
+        msg_id = int(settings['posts']['score-board']['id'])
+    else:
+        # ch_id = 1108133466350030858
+        async for msg in score_card_ch.history(oldest_first=True):
+            print(msg)
+            if msg.author == bot.user:
+                msg_id = msg.id
+                print(f"{msg_id =}")
+                msg_webhook = msg.webhook_id
+                print(f"{msg_webhook =}")
+    try:
+        message = await score_card_ch.fetch_message(msg_id)
+    except discord.errors.NotFound as e:
+        msg = await score_card_ch.send(content=settings['posts']['score-board']['content'])
+        msg_id = msg.id
+        message = await score_card_ch.fetch_message(msg_id)
+    print(message.embeds)
+    print(message.content)
+    if message.content != settings['posts']['score-board']['content']:
+        print("score is out of sync")
+    teams_names = [x for x in settings['teams'].keys()]
+    teams_scores = [x['current'] for x in settings['teams'].values()]
+    print(f'{teams_names = }')
+    print(f'{teams_scores = }')
+    score_text = message.content.split('\n')
+    content_text = []
+    for i in range(len(teams_names)):
+        row = f"{teams_names[i]}: {teams_scores[i]}"
+        content_text.append(row)
+    settings['posts']['score-board']['id'] = msg_id
+    settings['posts']['score-board']['content'] = '\n'.join(content_text)
+    update_settings_json(settings)
+    await message.edit(content='\n'.join(content_text))
+
+
+
 # ========= Bot Commands ================
 
 settings = load_settings_json()
@@ -276,10 +321,10 @@ async def team_autocomplete(
             "Set Team Name",
             "Set Tile",
             "Set Prev Tile",
-            "Set Reroll",
+            "Set Reroll"
             # "Members",
             # "Captain",
-            "Spectators"
+            # "Spectators"
         ]
         return [
             app_commands.Choice(name=command, value=command)
@@ -324,6 +369,8 @@ async def roll(interaction: discord.Interaction):
         settings['teams'][team_name]['roll_history'].append(roll)
         settings['teams'][team_name]['prev'] = settings['teams'][team_name]['current']
         settings['teams'][team_name]['current'] += roll
+        roll_info = settings['items'][str(settings['teams'][team_name]['current'])]
+        print(f"{roll_info = }")
         if settings['teams'][team_name]['current'] > total_tiles:
             # This makes the last tile mandatory
             settings['teams'][team_name]['current'] = total_tiles
@@ -334,10 +381,28 @@ async def roll(interaction: discord.Interaction):
         update_settings_json(settings)
         roll_text = f"Rolling Dice: {roll} for team: {team_name}\nCongrats, your new tile is: {settings['teams'][team_name]['current']} and old tile was: {settings['teams'][team_name]['prev']}\n{settings['items'][str(settings['teams'][team_name]['current'])]['discord_name']}"
         await interaction.response.send_message(content=roll_text)
+        
+            # # Check if Sabotage Tile
+            # if sabotage := settings['items'][str(settings['teams'][team_name]['current'])]['sabotage']:
+            #     if "-" in sabotage:
+            #         settings['teams'][team_name]['prev'] = settings['teams'][team_name]['current']
+            #         settings['teams'][team_name]['current'] += int(sabotage)
+            #     elif "reroll" in sabotage:
+            #         pass
+            #     else:
+            #         pass
+
         name = create_discord_friendly_name(settings['items'][str(settings['teams'][team_name]['current'])]['name'])
         ch = await interaction.channel.clone(name=name)
         embed = create_tile_embed(tiles=settings['items'], tile_number=str(settings['teams'][team_name]['current']))
         await ch.send(embed=embed)
+        # Add updating the TEAMS bingo card channel
+        await update_team_bingo_card_channel(interaction, team_name, roll, settings)
+        
+        # Add updating the Server's Bingo card Channel
+        await update_server_score_board_channel(interaction, team_name, settings)
+        
+
         # await msg.edit(
         #     content=f"{roll_text}\nCreated new channel <#{discord.utils.get(interaction.guild.channels, name=name).id}> for {discord.utils.get(interaction.guild.roles, name=team_name).mention}",
         #     wait=True
@@ -369,13 +434,30 @@ async def reroll(interaction: discord.Interaction):
             settings['teams'][team_name]['roll_history'].append("reroll")
             settings['teams'][team_name]['roll_history'].append(roll)
             settings['teams'][team_name]['current'] = settings['teams'][team_name]['prev'] + roll
-            settings['teams'][team_name]['reroll'] = False
+            settings['teams'][team_name]['reroll'] = False                   
+
             update_settings_json(settings)
             await interaction.response.send_message(f"ReRolling Dice: {roll} for team: {team_name}\nCongrats, your new tile is: {settings['teams'][team_name]['current']} and old tile was: {settings['teams'][team_name]['prev']}\n{settings['items'][str(settings['teams'][team_name]['current'])]['discord_name']}")
+            
+            # # Check if Sabotage Tile
+            # if sabotage := settings['items'][str(settings['teams'][team_name]['current'])]['sabotage']:
+            #     if "-" in sabotage:
+            #         settings['teams'][team_name]['prev'] = settings['teams'][team_name]['current']
+            #         settings['teams'][team_name]['current'] += int(sabotage)
+            #     elif "reroll" in sabotage:
+            #         pass
+            #     else:
+            #         pass
+
             name = create_discord_friendly_name(settings['items'][str(settings['teams'][team_name]['current'])]['name'])
             ch = await interaction.channel.clone(name=name)
             embed = create_tile_embed(tiles=settings['items'], tile_number=str(settings['teams'][team_name]['current']))
             await ch.send(embed=embed)
+            # Add updating the TEAMS bingo card channel
+            await update_team_bingo_card_channel(interaction, team_name, roll, settings, reroll=True)
+            # Add updating the Server's Bingo card Channel
+            await update_server_score_board_channel(interaction, team_name, settings)
+
             # await roll_reply.edit(content=f"{roll_reply.content}\nCreated new channel <#{discord.utils.get(interaction.guild.channels, name=name).id}> for {discord.utils.get(interaction.guild.roles, name=team_name).mention}")
         else:
             await interaction.response.send_message(f'NO MORE REROLLS MFER!')
@@ -581,7 +663,9 @@ async def team(interaction: discord.Interaction,
                     await chan.send(f"Here are instructions for adding Discord Rare Drop Notification to Runelite\n\nDownload the Plugin from Plugin Hub\nCopy this Webhook URL to this channel into the Plugin(Accessed via the settings)")
                     await chan.send(f"{webhook.url}\n")
                     await chan.send(f"Copy in this Tile List to ensure that ALL potential items are captured")
-                    await chan.send(f"{','.join([x['name'] for x in settings['items'].values()])}")
+                    list_of_item_names = [x['item_names'] for x in settings['items'].values()]
+                    list_of_item_names = [x.replace("*", "\*") for x in list_of_item_names]
+                    await chan.send(f"{''.join([x for x in filter(None, list_of_item_names)])}")
             # all_channels.append(chan)
         await interaction.response.send_message(f'Channels created for "{team_name}"')
 
