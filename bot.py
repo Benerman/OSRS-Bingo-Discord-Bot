@@ -24,7 +24,7 @@ intents.members = True
 
 bot = commands.Bot(command_prefix="/", intents=intents)
 
-DICE_SIDES = 6
+DICE_SIDES = 8
 
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly']
 
@@ -68,14 +68,19 @@ default_settings_dict = {
             "prev": None,
             "reroll": True,
             "roll_history": []
+        },
+        "Team 6" : {
+            "current": 0,
+            "prev": None,
+            "reroll": True,
+            "roll_history": []
+        },
+        "Team 7" : {
+            "current": 0,
+            "prev": None,
+            "reroll": True,
+            "roll_history": []
         }
-        # },
-        # "Team 6" : {
-        #     "current": 0,
-        #     "prev": None,
-        #     "reroll": True,
-        #     "roll_history": []
-        # }
     }
 }
 
@@ -102,12 +107,12 @@ def load_settings_json():
         create_settings_json()
     with open('settings.json') as f:
         settings = json.load(f)
-        print('loaded settings.json file')
+        # print('loaded settings.json file')
         return settings
 
 def save_settings_json(contents: dict) -> None:
     with open('settings.json', 'w') as f:
-        print('saved settings.json file')
+        # print('saved settings.json file')
         json.dump(contents, f, indent=4)
 
 def update_settings_json(contents: dict, *, tiles: str = None) -> dict:
@@ -325,8 +330,8 @@ def formatted_title(settings, team_name):
 
 # ========= Bot Commands ================
 
-settings = load_settings_json()
-total_tiles = len(settings['items'])
+# settings = load_settings_json()
+# total_tiles = len(settings['items'])
 
 async def team_autocomplete(
     interaction: discord.Interaction,
@@ -351,6 +356,7 @@ async def team_names_autocomplete(
     interaction: discord.Interaction,
     current: str
     ) -> List[app_commands.Choice[str]]:
+        settings = load_settings_json()
         team_names = settings['teams'].keys()
         return [
             app_commands.Choice(name=team_name, value=team_name)
@@ -371,7 +377,7 @@ async def on_ready():
 
 @bot.tree.command(name="roll", description=f"Roll a d{DICE_SIDES} in your teams {roll_channel} channel. Creates new channel for the newly rolled tile.")
 async def roll(interaction: discord.Interaction):
-
+    settings = load_settings_json()
     # put a check for has role in here
     team_name = interaction.channel.category.name
     role_name = discord.utils.get(interaction.guild.roles, name=team_name)
@@ -379,6 +385,9 @@ async def roll(interaction: discord.Interaction):
         await interaction.response.send_message(f"Please ensure you have approriate Team Role and are within your Team's #{roll_channel}")
         return
     else:
+        if settings['running'] == False:
+            await interaction.response.send_message("Rolling is not enabled, either wait till Start time or message @ Bingo Moderator if receiving this message in error.")
+            return
         await interaction.channel.typing()
         roll = roll_dice()
         # create function to handle updating settings points
@@ -391,6 +400,7 @@ async def roll(interaction: discord.Interaction):
             current=settings['teams'][team_name]['current']+roll
             )
         # TODO
+        total_tiles = len(settings['items'])
         if settings['teams'][team_name]['prev'] == total_tiles:
             # Checks if last prev tile was the last tile of the bingo
             # await message.add_reaction("\n{TADA}")
@@ -475,6 +485,10 @@ async def reroll(interaction: discord.Interaction):
         await interaction.response.send_message(f"Please ensure you have approriate Team Role and are within your Team's #{roll_channel}")
         return
     else:
+        settings = load_settings_json()
+        if settings['running'] == False:
+            await interaction.response.send_message("Rolling is not enabled, either wait till Start time or message @ Bingo Moderator if receiving this message in error.")
+            return
         await interaction.channel.typing()
         settings = load_settings_json()
         team_name = interaction.channel.category.name
@@ -482,7 +496,7 @@ async def reroll(interaction: discord.Interaction):
             # clear existing channel
             name = create_discord_friendly_name(f"{settings['teams'][team_name]['current']}-{settings['items'][str(settings['teams'][team_name]['current'])]['name']}")
             print(f"{name = }")
-            prev_ch = discord.utils.get(interaction.guild.channels, name=name)
+            prev_ch = discord.utils.get(interaction.channel.category.channels, name=name)
             messages = [x async for x in prev_ch.history(limit=2)]
             if prev_ch and len(messages) == 1:
                 await prev_ch.delete()
@@ -500,6 +514,7 @@ async def reroll(interaction: discord.Interaction):
                 reroll=True
                 )
             settings['teams'][team_name]['reroll'] -= 1
+            total_tiles = len(settings['items'])
             if settings['teams'][team_name]['prev'] == total_tiles:
                 # Checks if last prev tile was the last tile of the bingo
                 # await message.add_reaction("\n{TADA}")
@@ -596,6 +611,7 @@ async def set_tiles(interaction: discord.Interaction, sheet_link: str):
 @has_role("Bingo Moderator")
 @bot.tree.command(name="disband", description=f"Clear Team <#> Role from all players assigned")
 async def disband(interaction: discord.Interaction, team_name: str):
+    settings = load_settings_json()
     team_names = [x for x in settings['teams'].keys()]
     await interaction.channel.typing()
     if not team_name in team_names:
@@ -670,6 +686,7 @@ async def spectators(interaction: discord.Interaction,
 async def members(interaction: discord.Interaction,
                 team_name: str,    
                 members: str):
+    settings = load_settings_json()
     team_names = [x for x in settings['teams'].keys()]
     team_number = team_names.index(team_name) + 1
     await interaction.channel.typing()
@@ -692,6 +709,7 @@ async def reroll(interaction: discord.Interaction, option: str, team_name: str):
             super().__init__(timeout=timeout)
         @discord.ui.button(label='Revoke', style=discord.ButtonStyle.danger)
         async def revoke_reroll(self, interaction: discord.Interaction, Button: discord.ui.Button):
+            settings = load_settings_json()
             if settings['teams'][team_name]['reroll'] == 0:
                 await interaction.response.send_message(content='No Rerolls exist for that team.')
             else:
@@ -705,6 +723,7 @@ async def reroll(interaction: discord.Interaction, option: str, team_name: str):
 
         @discord.ui.button(label='Give', style=discord.ButtonStyle.green)
         async def give_reroll(self, interaction: discord.Interaction, Button: discord.ui.Button):
+            settings = load_settings_json()
             settings['teams'][team_name]['reroll'] += 1
             update_settings_json(settings)
             await interaction.response.send_message(content='1 Reroll is added to that team.')
@@ -727,6 +746,7 @@ async def team(interaction: discord.Interaction,
                new_team_name: str = None,
                members: str = None
                ):
+    settings = load_settings_json()
     team_names = [x for x in settings['teams'].keys()]
     team_number = team_names.index(team_name) + 1
     await interaction.channel.typing()
@@ -813,7 +833,7 @@ async def team(interaction: discord.Interaction,
         except ValueError:
             await interaction.response.send_message(f'Unable to process tile "tile": {tile} - Ensure it is a number')
             return
-        if tile < 1:
+        if tile < 0:
             tile = 1
         settings['teams'][team_name]['current'] = tile
         await interaction.response.send_message(f'Updated tile for Team: {team_name} to {tile}')
@@ -824,7 +844,7 @@ async def team(interaction: discord.Interaction,
         except ValueError:
             await interaction.response.send_message(f'Unable to process prev tile "tile": {tile} - Ensure it is a number')
             return
-        if tile < 1:
+        if tile < 0:
             tile = None
         settings['teams'][team_name]['prev'] = tile
         await interaction.response.send_message(f'Updated prev tile for Team: {team_name} to {tile}')
@@ -853,5 +873,57 @@ async def update_score(interaction: discord.Interaction):
     settings = load_settings_json()
     await update_server_score_board_channel(interaction=interaction, settings=settings)
     await interaction.response.send_message('Updated!')
+
+@has_role("Bingo Moderator")
+@bot.tree.command(name="post_tiles", description=f"Post all the tiles to #tile-list channel")
+async def post_tiles(interaction: discord.Interaction):
+    await interaction.response.defer(thinking=True)
+    settings = load_settings_json()
+    tile_list_ch = discord.utils.get(interaction.guild.channels, name="tile-list")
+    item_list = []
+    for tile in settings['items'].values():
+        num = tile['tile_num']
+        name = tile['name']
+        # tile['short_desc']
+        desc = tile['desc']
+        item_list.append(f"{num} - {name}\n{desc}")
+    if len('\n'.join(item_list)) > 4096:
+        embed1 = discord.Embed(
+                title="All Tiles - 1 of 2",
+                description='\n\n'.join(item_list[:len(item_list)//2]),
+            )
+        await tile_list_ch.send(embed=embed1)    
+        embed2 = discord.Embed(
+                title="All Tiles - 2 of 2",
+                description='\n\n'.join(item_list[len(item_list)//2:]),
+            )
+        await tile_list_ch.send(embed=embed2)    
+    else:
+
+        embed = discord.Embed(
+                title="All Tiles",
+                description='\n\n'.join(item_list),
+            )
+        await tile_list_ch.send(embed=embed)    
+    await interaction.followup.send(f"Posted {len(settings['items'])} tiles to channel {tile_list_ch.mention}")
+
+@has_role("Bingo Moderator")
+@bot.tree.command(name="enable_roll", description=f"Enable or Disable the ability to roll dice. If enabled, it disables. Run again to enable.")
+async def enable_roll(interaction: discord.Interaction):
+    settings = load_settings_json()
+    print(f"{settings['running'] = }")
+    if settings['running'] == True:
+        settings['running'] = False
+    else:
+        settings['running'] = True
+    save_settings_json(settings)
+    await interaction.response.send_message(f"Rolling has been: {'ENABLED' if settings['running'] == True else 'DISABLED'}")
+
+@has_role("Bingo Moderator")
+@bot.tree.command(name="check_roll_enabled", description=f"Checks if the rolling is Disabled or Enabled. Does not update/change anything.")
+async def check_roll_enabled(interaction: discord.Interaction):
+    settings = load_settings_json()
+    await interaction.response.send_message(f"Rolling is currently: {'ENABLED' if settings['running'] == True else 'DISABLED'}")
+
 
 bot.run(config.DISCORD_BOT_TOKEN)
