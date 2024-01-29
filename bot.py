@@ -28,11 +28,15 @@ DICE_SIDES = 8
 
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly']
 
-ROLES = ["Team 1", "Team 2", "Team 3", "Team 4", "Team 5", "Team 6"]
-TEAM_CAPTAIN_ROLES = ["Team 1 Captain", "Team 2 Captain", "Team 3 Captain", "Team 4 Captain", "Team 5 Captain", "Team 6 Captain"]
+ROLES = ["Team 1", "Team 2", "Team 3", "Team 4", "Team 5", "Team 6", "Team 7"]
+TEAM_CAPTAIN_ROLES = ["Team 1 Captain", "Team 2 Captain", "Team 3 Captain", "Team 4 Captain", "Team 5 Captain", "Team 6 Captain", "Team 7 Captain"]
 DEFAULT_CHANNELS = ["chat", "bingo-card", "dice-roll", "photo-dump", "voice-chat"]
 
 default_settings_dict = {
+    "bot_mode": {
+        "bot_options": ["candyland", "normal"],
+        "current": "candyland"
+    },
     'tiles': {
         "url": "",
         "spreadsheet_id": "",
@@ -342,7 +346,8 @@ async def team_autocomplete(
             "Set Team Name",
             "Set Tile",
             "Set Prev Tile",
-            "Set Reroll"
+            "Set Reroll",
+            "Delete Channels"
             # "Members",
             # "Captain",
             # "Spectators"
@@ -496,14 +501,14 @@ async def reroll(interaction: discord.Interaction):
             # clear existing channel
             name = create_discord_friendly_name(f"{settings['teams'][team_name]['current']}-{settings['items'][str(settings['teams'][team_name]['current'])]['name']}")
             print(f"{name = }")
-            prev_ch = discord.utils.get(interaction.channel.category.channels, name=name)
-            messages = [x async for x in prev_ch.history(limit=2)]
-            if prev_ch and len(messages) == 1:
-                await prev_ch.delete()
-                print(f'Deleted Channel {name} after a successful reroll')
-            elif prev_ch:
-                await interaction.response.send_message(f'Unable to clean up channel <#{discord.utils.get(interaction.guild.channels, name=name).id}> pinging {discord.utils.get(interaction.guild.roles, name="Bingo Moderator").mention}')
-                return
+            # prev_ch = discord.utils.get(interaction.channel.category.channels, name=name)
+            # messages = [x async for x in prev_ch.history(limit=2)]
+            # if prev_ch and len(messages) == 1:
+            #     await prev_ch.delete()
+            #     print(f'Deleted Channel {name} after a successful reroll')
+            # elif prev_ch:
+            #     await interaction.response.send_message(f'Unable to clean up channel <#{discord.utils.get(interaction.guild.channels, name=name).id}> pinging {discord.utils.get(interaction.guild.roles, name="Bingo Moderator").mention}')
+                # return #TODO re-enable this line
             roll = roll_dice()
             settings = update_roll_settings(
                 roll,
@@ -689,7 +694,6 @@ async def members(interaction: discord.Interaction,
     settings = load_settings_json()
     team_names = [x for x in settings['teams'].keys()]
     team_number = team_names.index(team_name) + 1
-    await interaction.channel.typing()
     await interaction.response.defer(thinking=True)
     current_role = discord.utils.get(interaction.guild.roles, name=f"Team {team_number}")
     roles = [discord.utils.get(interaction.guild.roles, name=rl) for rl in ROLES]
@@ -852,6 +856,24 @@ async def team(interaction: discord.Interaction,
     elif option == "Set Reroll":
         await reroll(interaction=interaction, option=option, team_name=team_name)
 
+    elif option == "Delete Channels":
+        print('Deleting...')
+        await interaction.response.defer(thinking=True)
+        num_deleted = 0
+        cats = interaction.guild.categories
+        for cat in cats:
+            if cat.name == team_name:
+                for ch in cat.channels:
+                    print(ch)
+                    num_deleted += 1
+                    await ch.delete()
+                await cat.delete()
+                if num_deleted > 0:
+                    await interaction.followup.send(f"Deleted {team_name}'s channels. {num_deleted} channel(s) deleted.")
+        else:
+            if num_deleted == 0:
+                await interaction.followup.send(f"{team_name}: No ({num_deleted}) Channels Deleted")
+        print(f"Deleted {num_deleted} Channels")
 
     # processed, settings = update_settings_json(settings, tiles=sheet_link)
     # await interaction.response.send_message(f"{processed}")
@@ -925,5 +947,27 @@ async def check_roll_enabled(interaction: discord.Interaction):
     settings = load_settings_json()
     await interaction.response.send_message(f"Rolling is currently: {'ENABLED' if settings['running'] == True else 'DISABLED'}")
 
+@has_role("Bingo Moderator")
+@bot.tree.command(name="tile_completed", description=f"Marks a channel's tile as completed(Normal)")
+async def check_roll_enabled(interaction: discord.Interaction):
+    settings = load_settings_json()
+    # Check tile is completed.
+    # Update settings or however this is tracked.
+    # Update score in settings
+    # Update score in scoreboard channel
+    await interaction.response.send_message(f"Tile is: {'COMPLETED' if settings['running'] == True else 'CHANGED TO INCOMPLETE'}\nScore will be updated accordingly")
+
+@has_role("Bingo Moderator")
+@bot.tree.command(name="delete", description=f"Checks if the rolling is Disabled or Enabled. Does not update/change anything.")
+async def check_roll_enabled(interaction: discord.Interaction):
+    settings = load_settings_json()
+    await interaction.response.send_message(f"Rolling is currently: {'ENABLED' if settings['running'] == True else 'DISABLED'}")
+
+@has_role("Bingo Moderator")
+@bot.tree.command(name="style", description=f"Change the Bot's Bingo Style.")
+async def check_roll_enabled(interaction: discord.Interaction):
+    settings = load_settings_json()
+    # TODO Update this to change the settings
+    await interaction.response.send_message(f"Bingo Bot Style is: '{settings['bot_mode']['current']}', Update this, currently only displays current")
 
 bot.run(config.DISCORD_BOT_TOKEN)

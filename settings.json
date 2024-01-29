@@ -1,4 +1,11 @@
 {
+    "bot_mode": {
+        "bot_options": [
+            "candyland",
+            "normal"
+        ],
+        "current": "candyland"
+    },
     "tiles": {
         "url": "https://docs.google.com/spreadsheets/d/1kEQPfESjqR5OQaMJmxAHg9lMkEUssB68AefC9-giSPs/edit#gid=84493556",
         "spreadsheet_id": "1kEQPfESjqR5OQaMJmxAHg9lMkEUssB68AefC9-giSPs",
@@ -6,10 +13,10 @@
     },
     "running": true,
     "teams": {
-        "Team 1": {
-            "current": 22,
-            "prev": 21,
-            "reroll": 1,
+        "null": {
+            "current": 62,
+            "prev": 57,
+            "reroll": 0,
             "roll_history": [
                 6,
                 5,
@@ -19,13 +26,33 @@
                 8,
                 1,
                 6,
-                1
+                1,
+                "reroll",
+                1,
+                3,
+                7,
+                4,
+                4,
+                4,
+                1,
+                5,
+                5,
+                3,
+                7,
+                7,
+                6,
+                3,
+                2,
+                6,
+                6,
+                8,
+                6
             ]
         },
         "Team 2": {
-            "current": 38,
-            "prev": 34,
-            "reroll": 1,
+            "current": 62,
+            "prev": 56,
+            "reroll": 0,
             "roll_history": [
                 4,
                 5,
@@ -37,12 +64,19 @@
                 2,
                 3,
                 4,
-                4
+                4,
+                7,
+                2,
+                "reroll",
+                5,
+                3,
+                3,
+                6
             ]
         },
         "Team 3": {
-            "current": 19,
-            "prev": 18,
+            "current": 62,
+            "prev": 55,
             "reroll": 0,
             "roll_history": [
                 7,
@@ -52,12 +86,24 @@
                 3,
                 5,
                 "reroll",
-                1
+                1,
+                4,
+                "reroll",
+                4,
+                "reroll",
+                7,
+                6,
+                1,
+                6,
+                5,
+                7,
+                4,
+                7
             ]
         },
         "Team 4": {
-            "current": 42,
-            "prev": 34,
+            "current": 62,
+            "prev": 58,
             "reroll": 1,
             "roll_history": [
                 7,
@@ -69,13 +115,18 @@
                 1,
                 5,
                 3,
-                8
+                8,
+                3,
+                4,
+                2,
+                7,
+                7
             ]
         },
         "Team 5": {
-            "current": 13,
-            "prev": 5,
-            "reroll": 1,
+            "current": 62,
+            "prev": 57,
+            "reroll": 0,
             "roll_history": [
                 8,
                 8,
@@ -83,12 +134,30 @@
                 3,
                 7,
                 "reroll",
+                8,
+                "reroll",
+                7,
+                "reroll",
+                8,
+                8,
+                5,
+                2,
+                5,
+                2,
+                5,
+                8,
+                8,
+                3,
+                3,
+                2,
+                3,
+                3,
                 8
             ]
         },
         "Team 6": {
-            "current": 46,
-            "prev": 45,
+            "current": 62,
+            "prev": 54,
             "reroll": 1,
             "roll_history": [
                 7,
@@ -110,13 +179,16 @@
                 8,
                 8,
                 2,
-                1
+                1,
+                5,
+                3,
+                8
             ]
         },
         "Team 7": {
-            "current": 32,
-            "prev": 31,
-            "reroll": 2,
+            "current": 30,
+            "prev": 26,
+            "reroll": 0,
             "roll_history": [
                 3,
                 3,
@@ -129,7 +201,14 @@
                 "reroll",
                 2,
                 5,
-                1
+                1,
+                "reroll",
+                2,
+                "reroll",
+                2,
+                3,
+                3,
+                4
             ]
         }
     },
@@ -696,7 +775,7 @@
     "posts": {
         "score-board": {
             "id": 1108217595167002694,
-            "content": "Team 1: 22 - Rerolls remain: 1\nTeam 2: 38 - Rerolls remain: 1\nTeam 3: 19 - Rerolls remain: 0\nTeam 4: 42 - Rerolls remain: 1\nTeam 5: 13 - Rerolls remain: 1\nTeam 6: 46 - Rerolls remain: 1\nTeam 7: 32 - Rerolls remain: 2"
+            "content": "Team 1: 62 - Rerolls remain: 0\nTeam 2: 62 - Rerolls remain: 0\nTeam 3: 62 - Rerolls remain: 0\nTeam 4: 62 - Rerolls remain: 1\nTeam 5: 62 - Rerolls remain: 0\nTeam 6: 62 - Rerolls remain: 1\nTeam 7: 30 - Rerolls remain: 0"
         }
     }
 }
