@@ -2,6 +2,7 @@ venv/
 config.py
 credentials.json
 token.json
+token*.json
 __pycache__/
 Include/
 Lib/

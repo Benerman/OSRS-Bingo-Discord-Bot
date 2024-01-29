@@ -30,7 +30,9 @@ SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly']
 
 ROLES = ["Team 1", "Team 2", "Team 3", "Team 4", "Team 5", "Team 6", "Team 7"]
 TEAM_CAPTAIN_ROLES = ["Team 1 Captain", "Team 2 Captain", "Team 3 Captain", "Team 4 Captain", "Team 5 Captain", "Team 6 Captain", "Team 7 Captain"]
-DEFAULT_CHANNELS = ["chat", "bingo-card", "dice-roll", "photo-dump", "voice-chat"]
+
+DEFAULT_CHANNELS = ["chat", "bingo-card", "drop-spam", "voice-chat"]
+CANDYLAND_DEFAULT_CHANNELS = ["chat", "bingo-card", "dice-roll", "photo-dump", "voice-chat"]
 
 default_settings_dict = {
     "bot_mode": {
@@ -119,16 +121,24 @@ def save_settings_json(contents: dict) -> None:
         # print('saved settings.json file')
         json.dump(contents, f, indent=4)
 
-def update_settings_json(contents: dict, *, tiles: str = None) -> dict:
-    if tiles:
-        contents['tiles']['url'] = tiles
-        spreadsheet_id = tiles.split('https://docs.google.com/spreadsheets/d/')[-1].split("/")[0]
-        contents['tiles']['spreadsheet_id'] = spreadsheet_id
+def update_tiles_url(contents: dict, url: str, *, process_sheet: bool = False) -> dict:
+    contents['tiles']['url'] = url
+    spreadsheet_id = url.split('https://docs.google.com/spreadsheets/d/')[-1].split("/")[0]
+    contents['tiles']['spreadsheet_id'] = spreadsheet_id
+    if process_sheet:
         items = load_sheet(spreadsheet_id)
         contents = format_item_list(contents, items)
+    save_settings_json(contents)
+    # print(updates, contents, spreadsheet_id)
+    return contents
+
+def update_settings_json(contents: dict, *, url: str = None, process_sheet: bool = False) -> (str, dict):
+    if process_sheet and url:
+        contents = update_tiles_url(contents, url, process_sheet=True)
         updates = 'Updated tiles "url", "items", and "spreadsheet_id"'
-        save_settings_json(contents)
-        # print(updates, contents, spreadsheet_id)
+    elif url:
+        contents = update_tiles_url(contents, url, process_sheet=False)
+        updates = 'Updated "url" and "spreadsheet_id"'
     else:
         # print(contents['teams'])
         save_settings_json(contents)
@@ -141,18 +151,28 @@ def format_item_list(contents, tile_list: list) -> list:
         if i == 0:
             # skip header
             continue
-        tile_num, name, short_desc, desc, sabotage, item_names, diff = item
-        frmt_item = {
-            i : {
-                "tile_num": tile_num,
-                "name": name,
-                "short_desc": short_desc,
-                "desc": desc,
-                "sabotage": sabotage,
-                "item_names": item_names,
-                "discord_name": f'{i}. {name} - {desc}'
+        if contents['bot_mode']['current'] == 'candyland':
+            tile_num, name, short_desc, desc, sabotage, item_names, diff = item
+            frmt_item = {
+                i : {
+                    "tile_num": tile_num,
+                    "name": name,
+                    "short_desc": short_desc,
+                    "desc": desc,
+                    "sabotage": sabotage,
+                    "item_names": item_names,
+                    "discord_name": f'{i}. {name} - {desc}'
+                }
             }
-        }
+        else:
+            name, desc = item
+            frmt_item = {
+                i : {
+                    "name": name,
+                    "desc": desc,
+                    "discord_name": f'{name} - {desc}'
+                }
+            }
         items.update(frmt_item)
     contents['items'] = items
     return contents
@@ -222,12 +242,33 @@ def create_tile_embed(tiles: dict, tile_number: str) -> discord.Embed:
     #     embed.add_field(name=name, value=f"[{name}]({wiki_url})", inline=False)
     return embed
 
+async def get_default_channels(interaction: discord.Interaction):
+    settings = load_settings_json()
+    if settings['bot_mode']['current'] == 'candyland':
+        return CANDYLAND_DEFAULT_CHANNELS
+    else:
+        # using the discord.Interaction object to prompt initial sender for text input
+        if settings['items']:
+            discord_safe_names = [{"name": name, "description": ""} for name in DEFAULT_CHANNELS]
+            discord_safe_names += [{"name": create_discord_friendly_name(itm['name']), "description": itm['desc']} for itm in settings['items'].values()]  
+            return discord_safe_names
+        else:
+            await interaction.followup.send('Tile information is missing. Please update with /set_tiles <google sheet link>', ephemeral=True)
+        # process response
+        # return respons
+        
+
 def team_overwrites():
     return discord.PermissionOverwrite(
         view_channel=True,
         manage_channels=False,
         manage_messages=False,
+        embed_links=True,
+        attach_files=True,
         manage_permissions=False,
+        speak=True,
+        deafen_members=True,
+        move_members=True,
         manage_webhooks=False,
         create_instant_invite=False,
         send_messages=True,
@@ -237,6 +278,7 @@ def team_overwrites():
 def spectator_overwrites():
     return discord.PermissionOverwrite(
         view_channel=True,
+        speak=True,
         manage_channels=False,
         manage_messages=False,
         manage_permissions=False,
@@ -270,6 +312,15 @@ def everyone_overwrites():
         send_messages=False
     )
 
+def general_chat_restrict_overwrites():
+    return discord.PermissionOverwrite(
+        view_channel=False,
+        manage_channels=False,
+        manage_messages=False,
+        manage_permissions=False,
+        manage_webhooks=False,
+        send_messages=False
+    )
 
 async def update_team_bingo_card_channel(interaction: discord.Interaction, team_name, roll, settings, reroll=False):
     for ch in interaction.channel.category.channels:
@@ -367,7 +418,15 @@ async def team_names_autocomplete(
             app_commands.Choice(name=team_name, value=team_name)
             for team_name in team_names if current.lower() in team_name.lower()
         ]
-
+        
+async def process_sheet_autocomplete(
+    interaction: discord.Interaction,
+    current: str
+    ) -> List[app_commands.Choice[str]]:
+        return [
+            app_commands.Choice(name="Don't Process", value=False),
+            app_commands.Choice(name="Process Sheet", value=True)
+        ]
 
 @bot.event
 async def on_ready():
@@ -591,16 +650,16 @@ async def reroll(interaction: discord.Interaction):
         else:
             await interaction.response.send_message(f'NO MORE REROLLS MFER!')
 
-# @has_role("Bingo Moderator")
+@has_role("Bingo Moderator")
 @bot.tree.command(name="set_tiles", description=f"Sets the Bingo Tiles from a Public Google Sheet doc, processes, and formats them.")
-async def set_tiles(interaction: discord.Interaction, sheet_link: str):
+async def set_tiles(interaction: discord.Interaction, sheet_link: str, process_sheet: bool = False):
     if not interaction.channel.category.name.lower() == 'admin':
         await interaction.response.send_message(f"Use this command in {mod_channel} and ADMIN section")
         return
     # await interaction.response.edit_message(suppress=True)
     await interaction.response.defer(thinking=True)
     settings = load_settings_json()
-    processed, settings = update_settings_json(settings, tiles=sheet_link)
+    processed, settings = update_settings_json(settings, url=sheet_link, process_sheet=process_sheet)
     await interaction.followup.send(f"{processed}")
     # embed = discord.Embed(
     #     title="Tile List",
@@ -788,27 +847,42 @@ async def team(interaction: discord.Interaction,
         await cat.edit(overwrites=overwrites_with_spectator)
         # Create Default Channels
         # all_channels = []
-        for channel in DEFAULT_CHANNELS:
-            channel_name = f"team-{team_number}-{channel}"
-            if channel_name == f"team-{team_number}-chat":
-                overwrites = overwrites_w_out_spectator
+        channels = await get_default_channels(interaction)
+        for channel in channels:
+            settings = load_settings_json()
+            if settings['bot_mode']['current'] == 'candyland':
+                channel_name = f"team-{team_number}-{channel}"
+                if channel_name == f"team-{team_number}-chat":
+                    overwrites = overwrites_w_out_spectator
+                else:
+                    overwrites = overwrites_with_spectator
             else:
-                overwrites = overwrites_with_spectator
+                channel_name = channel['name']
+                if channel_name == "chat":
+                    # TODO update this
+                    # raise Exception("This is not implemented yet, update proper perms")
+                    overwrites = overwrites_w_out_spectator
+                else:
+                    # raise Exception("This is not implemented yet, update proper perms")
+                    overwrites = overwrites_with_spectator
             if "voice" in channel_name:
                 chan = await interaction.guild.create_voice_channel(name=channel_name, category=cat, overwrites=overwrites)
             else:
-                chan = await interaction.guild.create_text_channel(name=channel_name, category=cat, overwrites=overwrites)
-                if channel == 'photo-dump':
+                chan = await interaction.guild.create_text_channel(name=channel_name, topic=channel['description'],
+                                                                   category=cat, overwrites=overwrites)
+                chan.send(f"{channel['description']}")
+                if channel_name == 'photo-dump' or channel_name == 'drop-spam':
                     webhook = await chan.create_webhook(name=channel_name)
                     await chan.send(f"Here are instructions for adding Discord Rare Drop Notification to Runelite\n\nDownload the Plugin from Plugin Hub\nCopy this Webhook URL to this channel into the Plugin(Accessed via the settings)")
-                    await chan.send(f"{webhook.url}\n")
-                    await chan.send(f"Copy in this Tile List to ensure that ALL potential items are captured")
-                    list_of_item_names = [x['item_names'] for x in settings['items'].values()]
-                    list_of_item_names = [x.replace("*", "\*") for x in list_of_item_names]
-                    embed = discord.Embed(
-                        description=f"{''.join([x.lower() for x in filter(None, list_of_item_names)])}"
-                        )
-                    await chan.send(embed=embed)
+                    await chan.send(f"```{webhook.url}```")
+                    if settings['bot_mode']['current'] == 'candyland':
+                        await chan.send(f"Copy in this Tile List to ensure that ALL potential items are captured")
+                        list_of_item_names = [x['item_names'] for x in settings['items'].values()]
+                        list_of_item_names = [x.replace("*", "\*") for x in list_of_item_names]
+                        embed = discord.Embed(
+                            description=f"{''.join([x.lower() for x in filter(None, list_of_item_names)])}"
+                            )
+                        await chan.send(embed=embed)
             # all_channels.append(chan)
         await interaction.followup.send(f'Channels created for "{team_name}"')
 
@@ -861,8 +935,9 @@ async def team(interaction: discord.Interaction,
         await interaction.response.defer(thinking=True)
         num_deleted = 0
         cats = interaction.guild.categories
+        print([c.name for c in cats])
         for cat in cats:
-            if cat.name == team_name:
+            if cat.name.lower() == team_name.lower():
                 for ch in cat.channels:
                     print(ch)
                     num_deleted += 1
@@ -870,6 +945,9 @@ async def team(interaction: discord.Interaction,
                 await cat.delete()
                 if num_deleted > 0:
                     await interaction.followup.send(f"Deleted {team_name}'s channels. {num_deleted} channel(s) deleted.")
+            else:
+                print(f"Skipping {cat.name}\t{team_name}\t{cat.name.lower() == team_name.lower()}")
+                
         else:
             if num_deleted == 0:
                 await interaction.followup.send(f"{team_name}: No ({num_deleted}) Channels Deleted")
@@ -968,6 +1046,9 @@ async def check_roll_enabled(interaction: discord.Interaction):
 async def check_roll_enabled(interaction: discord.Interaction):
     settings = load_settings_json()
     # TODO Update this to change the settings
+    settings['bot_mode']['current'] = "normal"
+    save_settings_json(settings)
+    
     await interaction.response.send_message(f"Bingo Bot Style is: '{settings['bot_mode']['current']}', Update this, currently only displays current")
 
 bot.run(config.DISCORD_BOT_TOKEN)
