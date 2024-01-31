@@ -10,6 +10,7 @@ import os
 import config
 from discord import Role
 from typing import List, Optional
+from PIL import Image, ImageDraw
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -256,8 +257,101 @@ async def get_default_channels(interaction: discord.Interaction):
             await interaction.followup.send('Tile information is missing. Please update with /set_tiles <google sheet link>', ephemeral=True)
         # process response
         # return respons
-        
 
+def mark_on_image_tile_complete(team_name: str, row: int, column: int) -> None:
+    # Open the image
+    settings = load_settings_json()
+    image_path = os.path.abspath(settings['teams'][team_name]['image'])
+    image_bounds = settings['teams'][team_name]['image_bounds']
+    img = Image.open(image_path)
+    x_offset = image_bounds['x_offset'] if image_bounds['x_offset'] else 0
+    y_offset = image_bounds['y_offset'] if image_bounds['y_offset'] else 0
+    if image_bounds['x'] == 0 and image_bounds['y'] == 0:
+        width, height = img.size
+        width = width - 2 * x_offset
+        height = height - 2 * y_offset
+    else:
+        width = image_bounds['x']
+        height = image_bounds['y']
+
+    line_width = int(width * 0.01 / 2)
+    
+    # Calculate the dimensions of each bingo tile
+    tile_width = width // 5  # Assuming a 5x5 bingo board
+    tile_height = height // 5
+
+    # Adjust the row and column to be zero-indexed
+    row -= 1
+    column -= 1
+
+    # Calculate the coordinates of the specified bingo tile
+    x1 = column * tile_width + x_offset
+    y1 = row * tile_height + y_offset
+    x2 = (column + 1) * tile_width + x_offset
+    y2 = (row + 1) * tile_height + y_offset 
+
+    # Create a drawing object
+    draw = ImageDraw.Draw(img)
+
+    # Draw a red square on the specified bingo tile
+    draw.rectangle([x1, y1, x2, y2], outline="red", width=line_width)
+
+    # Draw an X on the square
+    draw.line([(x1, y1), (x2, y2)], fill="red", width=line_width)
+    draw.line([(x1, y2), (x2, y1)], fill="red", width=line_width)
+
+    # Save the modified image
+    img_name = f"{team_name}-{row+1}-{column+1}.png"
+    new_image_path = os.path.join(os.path.dirname(image_path), img_name)
+    img.save(new_image_path)
+    settings['teams'][team_name]['image'] = new_image_path
+    update_settings_json(settings)
+    return settings
+
+async def post_bingo_card(interaction: discord.Interaction, settings: dict, team_name: str, *, update: bool = False, row: int = None, column: int = None) -> None:
+    for cat in interaction.guild.categories:
+        if cat.name == team_name:
+            print(cat.name)
+            bingo_card_chan = [x for x in cat.channels if x.name == 'bingo-card'][0]
+            print(settings['teams'][team_name]['image'])
+            processed = False
+            async for message in bingo_card_chan.history(limit=1):
+                if message.author == bot.user:
+                    if update and row and column:
+                        settings = mark_on_image_tile_complete(team_name, row=row, column=column)
+                        img = discord.File(settings['teams'][team_name]['image'])
+                    else:
+                        img = discord.File(settings['teams'][team_name]['image'])
+                    # embed = discord.Embed(
+                    #     title=f"{team_name} Bingo Card",
+                    #     color=0xf7e302,
+                    #     url=settings['teams'][team_name]['image']
+                    # )
+                    # embed.set_image(url=f"attachment://{settings['teams'][team_name]['image']}")
+                    processed = True
+                    # await message.remove_attachments(message.attachments)
+                    # await message.add_files(img)
+                    await message.edit(attachments=[img])
+                    print(f'Updated {team_name} Bingo Card Image')
+            else:
+                if not processed:
+                    print('image didnt exist, posting new image')
+                    print(settings['teams'][team_name]['image'])
+                    if update and row and column:
+                        settings = mark_on_image_tile_complete(team_name, row=row, column=column)
+                        img = discord.File(settings['teams'][team_name]['image'])
+                    else:
+                        img = discord.File(settings['teams'][team_name]['image'])
+                    embed = discord.Embed(
+                        title=f"{team_name} Bingo Card",
+                        color=0xf7e302,
+                    )
+                    embed.set_image(url=f"attachment://{settings['teams'][team_name]['image']}")
+                    await bingo_card_chan.send(embed=embed, file=img)
+                else:
+                    print('image was already posted')
+
+    
 def team_overwrites():
     return discord.PermissionOverwrite(
         view_channel=True,
@@ -398,7 +492,8 @@ async def team_autocomplete(
             "Set Tile",
             "Set Prev Tile",
             "Set Reroll",
-            "Delete Channels"
+            "Delete Channels",
+            "Update Tiles"
             # "Members",
             # "Captain",
             # "Spectators"
@@ -870,7 +965,8 @@ async def team(interaction: discord.Interaction,
             else:
                 chan = await interaction.guild.create_text_channel(name=channel_name, topic=channel['description'],
                                                                    category=cat, overwrites=overwrites)
-                chan.send(f"{channel['description']}")
+                if channel['description']:
+                    await chan.send(f"{channel['description']}")
                 if channel_name == 'photo-dump' or channel_name == 'drop-spam':
                     webhook = await chan.create_webhook(name=channel_name)
                     await chan.send(f"Here are instructions for adding Discord Rare Drop Notification to Runelite\n\nDownload the Plugin from Plugin Hub\nCopy this Webhook URL to this channel into the Plugin(Accessed via the settings)")
@@ -947,12 +1043,31 @@ async def team(interaction: discord.Interaction,
                     await interaction.followup.send(f"Deleted {team_name}'s channels. {num_deleted} channel(s) deleted.")
             else:
                 print(f"Skipping {cat.name}\t{team_name}\t{cat.name.lower() == team_name.lower()}")
-                
+      
         else:
             if num_deleted == 0:
                 await interaction.followup.send(f"{team_name}: No ({num_deleted}) Channels Deleted")
         print(f"Deleted {num_deleted} Channels")
-
+    elif option == "Update Tiles":
+        await interaction.response.defer(thinking=True)
+        cats = interaction.guild.categories
+        print([c.name for c in cats])
+        channels = await get_default_channels(interaction)
+        updated_num = 0
+        for cat in cats:
+            if cat.name.lower() == team_name.lower():
+                for ch in cat.channels:
+                    # look for first message in channel and update it
+                    if ch.type == discord.ChannelType.text and ch.name in [x['name'] for x in channels]:
+                        channel_details = [x for x in channels if x['name'] == ch.name][0]
+                        async for message in ch.history(limit=1):
+                            if message.author == bot.user:
+                                if channel_details['description'] != message.content:
+                                    if channel_details['description'] != "":
+                                        await ch.edit(topic=channel_details['description'])
+                                        await message.edit(content=f"{channel_details['description']}")
+                                        updated_num += 1            
+        await interaction.followup.send(f"Updated {team_name}'s channels Tiles. {updated_num} channel(s) tiles updated.")
     # processed, settings = update_settings_json(settings, tiles=sheet_link)
     # await interaction.response.send_message(f"{processed}")
     # embed = discord.Embed(
@@ -1051,4 +1166,23 @@ async def check_roll_enabled(interaction: discord.Interaction):
     
     await interaction.response.send_message(f"Bingo Bot Style is: '{settings['bot_mode']['current']}', Update this, currently only displays current")
 
+@has_role("Bingo Moderator")
+@app_commands.autocomplete(team_name=team_names_autocomplete)
+@bot.tree.command(name="mark_tile_completed", description=f"Mark a tile as completed on the bingo board, Row 1-5. Column 1-5.")
+async def mark_tile_completed(interaction: discord.Interaction, team_name: str, row: int, col: int):
+    settings = load_settings_json()
+    team_names = [x for x in settings['teams'].keys()]
+    team_number = team_names.index(team_name) + 1
+    await interaction.response.defer(thinking=True)
+    settings['teams'][team_name]['tiles_completed'].append([row, col])
+    update_settings_json(settings)
+    if row == 0 or col == 0:
+        update = False
+    else:
+        update = True
+    await post_bingo_card(interaction, settings, team_name, update=update, row=row, column=col)
+    await interaction.followup.send(f'Team: {team_name}\'s tile has been marked as completed and updated in the Bingo Card Channel')
+    
+
+    
 bot.run(config.DISCORD_BOT_TOKEN)

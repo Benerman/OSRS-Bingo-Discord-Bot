@@ -7,7 +7,7 @@
         "current": "normal"
     },
     "tiles": {
-        "url": "https://docs.google.com/spreadsheets/d/1Jbfh3gvRWVBbW3nzDn10hP-CUXVlQDKFOlnGU1nPexM/edit?usp=sharing",
+        "url": "https://docs.google.com/spreadsheets/d/1Jbfh3gvRWVBbW3nzDn10hP-CUXVlQDKFOlnGU1nPexM/edit#gid=0",
         "spreadsheet_id": "1Jbfh3gvRWVBbW3nzDn10hP-CUXVlQDKFOlnGU1nPexM",
         "items": {}
     },
@@ -17,51 +17,139 @@
             "current": 62,
             "prev": 57,
             "reroll": 0,
-            "roll_history": []
+            "roll_history": [],
+            "image": "C:\\Users\\ADINN-II\\Documents\\Bingo Discord Bot\\images\\Team 1-3-1.png",
+            "image_bounds": {
+                "x_offset": 700,
+                "y_offset": 700,
+                "x": 0,
+                "y": 0
+            },
+            "tiles_completed": [
+                [
+                    1,
+                    1
+                ],
+                [
+                    1,
+                    1
+                ],
+                [
+                    1,
+                    1
+                ],
+                [
+                    1,
+                    1
+                ],
+                [
+                    1,
+                    1
+                ],
+                [
+                    2,
+                    1
+                ],
+                [
+                    2,
+                    1
+                ],
+                [
+                    3,
+                    1
+                ]
+            ]
         },
         "Team 2": {
             "current": 62,
             "prev": 56,
             "reroll": 0,
-            "roll_history": [
-            ]
+            "roll_history": [],
+            "image": "C:\\Users\\ADINN-II\\Documents\\Bingo Discord Bot\\images\\NOVEMBER_2023_BINGO.png",
+            "image_bounds": {
+                "x_offset": 0,
+                "y_offset": 0,
+                "x": 0,
+                "y": 0
+            },
+            "tiles_completed": []
         },
         "Team 3": {
             "current": 62,
             "prev": 55,
             "reroll": 0,
-            "roll_history": []
+            "roll_history": [],
+            "image": "C:\\Users\\ADINN-II\\Documents\\Bingo Discord Bot\\images\\NOVEMBER_2023_BINGO.png",
+            "image_bounds": {
+                "x_offset": 0,
+                "y_offset": 0,
+                "x": 0,
+                "y": 0
+            },
+            "tiles_completed": []
         },
         "Team 4": {
             "current": 62,
             "prev": 58,
             "reroll": 1,
-            "roll_history": []
+            "roll_history": [],
+            "image": "C:\\Users\\ADINN-II\\Documents\\Bingo Discord Bot\\images\\NOVEMBER_2023_BINGO.png",
+            "image_bounds": {
+                "x_offset": 0,
+                "y_offset": 0,
+                "x": 0,
+                "y": 0
+            },
+            "tiles_completed": []
         },
         "Team 5": {
             "current": 62,
             "prev": 57,
             "reroll": 0,
-            "roll_history": []
+            "roll_history": [],
+            "image": "C:\\Users\\ADINN-II\\Documents\\Bingo Discord Bot\\images\\NOVEMBER_2023_BINGO.png",
+            "image_bounds": {
+                "x_offset": 0,
+                "y_offset": 0,
+                "x": 0,
+                "y": 0
+            },
+            "tiles_completed": []
         },
         "Team 6": {
             "current": 62,
             "prev": 54,
             "reroll": 1,
-            "roll_history": []
+            "roll_history": [],
+            "image": "C:\\Users\\ADINN-II\\Documents\\Bingo Discord Bot\\images\\NOVEMBER_2023_BINGO.png",
+            "image_bounds": {
+                "x_offset": 0,
+                "y_offset": 0,
+                "x": 0,
+                "y": 0
+            },
+            "tiles_completed": []
         },
         "Team 7": {
             "current": 30,
             "prev": 26,
             "reroll": 0,
-            "roll_history": []
+            "roll_history": [],
+            "image": "C:\\Users\\ADINN-II\\Documents\\Bingo Discord Bot\\images\\NOVEMBER_2023_BINGO.png",
+            "image_bounds": {
+                "x_offset": 0,
+                "y_offset": 0,
+                "x": 0,
+                "y": 0
+            },
+            "tiles_completed": []
         }
     },
     "items": {
         "1": {
             "name": "Lunch Lady Land",
-            "desc": "a piece of Sandwich Lady outfit",
-            "discord_name": "Lunch Lady Land - a piece of Sandwich Lady outfit"
+            "desc": "1 piece of Sandwich Lady outfit",
+            "discord_name": "Lunch Lady Land - 1 piece of Sandwich Lady outfit"
         },
         "2": {
             "name": "I'd rather be PVMing",
@@ -70,8 +158,8 @@
         },
         "3": {
             "name": "Barrel When?",
-            "desc": "tackle Box or fish Barrel from Temp, if receive 25 soaked pages, screenshot log and soaked pages in chat box",
-            "discord_name": "Barrel When? - tackle Box or fish Barrel from Temp, if receive 25 soaked pages, screenshot log and soaked pages in chat box"
+            "desc": "Tackle Box or Fish Barrel from Temp, if receive 25 soaked pages, screenshot log and soaked pages in chat box",
+            "discord_name": "Barrel When? - Tackle Box or Fish Barrel from Temp, if receive 25 soaked pages, screenshot log and soaked pages in chat box"
         },
         "4": {
             "name": "Spoiled Soul",
@@ -100,8 +188,8 @@
         },
         "9": {
             "name": "Deep Seeded",
-            "desc": "3 of any Seeds",
-            "discord_name": "Deep Seeded - 3 of any Seeds"
+            "desc": "3 of any Seeds from Gauntlet",
+            "discord_name": "Deep Seeded - 3 of any Seeds from Gauntlet"
         },
         "10": {
             "name": "Let Me Simmer",
@@ -115,8 +203,8 @@
         },
         "12": {
             "name": "Swamp Ass",
-            "desc": "get both Fangs from Zulrah, Magic and Tanz",
-            "discord_name": "Swamp Ass - get both Fangs from Zulrah, Magic and Tanz"
+            "desc": "Get both Fangs from Zulrah, Magic and Tanz",
+            "discord_name": "Swamp Ass - Get both Fangs from Zulrah, Magic and Tanz"
         },
         "13": {
             "name": "Getting Hot in here",
@@ -125,18 +213,18 @@
         },
         "14": {
             "name": "Grave Danger",
-            "desc": "get 1 completed set of Barrows Brothers armor and weapon",
-            "discord_name": "Grave Danger - get 1 completed set of Barrows Brothers armor and weapon"
+            "desc": "Get 1 completed set of Barrows Brothers armor and weapon(1 Helm, 1 Torso, 1 Legs, 1 Weapon from same brother)",
+            "discord_name": "Grave Danger - Get 1 completed set of Barrows Brothers armor and weapon(1 Helm, 1 Torso, 1 Legs, 1 Weapon from same brother)"
         },
         "15": {
             "name": "Muy Mass Importante",
-            "desc": "complete 5 Mass Raid of 15+ people",
-            "discord_name": "Muy Mass Importante - complete 5 Mass Raid of 15+ people"
+            "desc": "Complete 5(Five) Mass Raid of 15+ people. Bingo Mass is encouraged. GLHF!",
+            "discord_name": "Muy Mass Importante - Complete 5(Five) Mass Raid of 15+ people. Bingo Mass is encouraged. GLHF!"
         },
         "16": {
             "name": "Back 2 School fit",
-            "desc": "get any 2 wearable raid Armor pieces(Dupes are ok). Head, Body, or Leg",
-            "discord_name": "Back 2 School fit - get any 2 wearable raid Armor pieces(Dupes are ok). Head, Body, or Leg"
+            "desc": "Get any 2 wearable Raid armor pieces(Dupes are ok). Head, Body, or Leg",
+            "discord_name": "Back 2 School fit - Get any 2 wearable Raid armor pieces(Dupes are ok). Head, Body, or Leg"
         },
         "17": {
             "name": "Moosey Poosey",
@@ -145,8 +233,8 @@
         },
         "18": {
             "name": "Getting Hilted",
-            "desc": "any GWD Hilt(all 5 count)",
-            "discord_name": "Getting Hilted - any GWD Hilt(all 5 count)"
+            "desc": "Any GWD Hilt(all 5 count)",
+            "discord_name": "Getting Hilted - Any GWD Hilt(all 5 count)"
         },
         "19": {
             "name": "Obby warrior",
@@ -160,13 +248,13 @@
         },
         "21": {
             "name": "Hammered",
-            "desc": "get Dragon War Hammer",
-            "discord_name": "Hammered - get Dragon War Hammer"
+            "desc": "Get Dragon War Hammer",
+            "discord_name": "Hammered - Get Dragon War Hammer"
         },
         "22": {
             "name": "25miller",
-            "desc": "get a drop worth 25 million GP",
-            "discord_name": "25miller - get a drop worth 25 million GP"
+            "desc": "Get a drop worth 25 million GP",
+            "discord_name": "25miller - Get a drop worth 25 million GP"
         },
         "23": {
             "name": "Bird Feathers",
@@ -175,13 +263,13 @@
         },
         "24": {
             "name": "Volunteer Dreaming",
-            "desc": "Nightmare Drop, Slepey Tablet, or parasitic egg",
-            "discord_name": "Volunteer Dreaming - Nightmare Drop, Slepey Tablet, or parasitic egg"
+            "desc": "A Nightmare Drop. (Exlcudes Slepey Tablet, or parasitic egg)",
+            "discord_name": "Volunteer Dreaming - A Nightmare Drop. (Exlcudes Slepey Tablet, or parasitic egg)"
         },
         "25": {
-            "name": "Surely 2/3",
+            "name": "Surely 2 outta 3",
             "desc": "Axe piece or Vestige from DT2 Boss",
-            "discord_name": "Surely 2/3 - Axe piece or Vestige from DT2 Boss"
+            "discord_name": "Surely 2 outta 3 - Axe piece or Vestige from DT2 Boss"
         }
     },
     "posts": {
