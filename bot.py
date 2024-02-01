@@ -32,7 +32,7 @@ SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly']
 ROLES = ["Team 1", "Team 2", "Team 3", "Team 4", "Team 5", "Team 6", "Team 7"]
 TEAM_CAPTAIN_ROLES = ["Team 1 Captain", "Team 2 Captain", "Team 3 Captain", "Team 4 Captain", "Team 5 Captain", "Team 6 Captain", "Team 7 Captain"]
 
-DEFAULT_CHANNELS = ["chat", "bingo-card", "drop-spam", "voice-chat"]
+DEFAULT_CHANNELS = ["chat", "bingo-card", "drop-spam", "pets", "voice-chat"]
 CANDYLAND_DEFAULT_CHANNELS = ["chat", "bingo-card", "dice-roll", "photo-dump", "voice-chat"]
 
 default_settings_dict = {
@@ -266,10 +266,13 @@ def mark_on_image_tile_complete(team_name: str, row: int, column: int) -> None:
     img = Image.open(image_path)
     x_offset = image_bounds['x_offset'] if image_bounds['x_offset'] else 0
     y_offset = image_bounds['y_offset'] if image_bounds['y_offset'] else 0
+    x_right_offset = image_bounds['x_right_offset'] if image_bounds['x_right_offset'] else 0
+    y_bottom_offset = image_bounds['y_bottom_offset'] if image_bounds['y_bottom_offset'] else 0
+    gutter = image_bounds['gutter'] if image_bounds['gutter'] else 0
     if image_bounds['x'] == 0 and image_bounds['y'] == 0:
         width, height = img.size
-        width = width - 2 * x_offset
-        height = height - 2 * y_offset
+        width = width - (x_offset + x_right_offset)
+        height = height - (y_offset + y_bottom_offset)
     else:
         width = image_bounds['x']
         height = image_bounds['y']
@@ -285,10 +288,10 @@ def mark_on_image_tile_complete(team_name: str, row: int, column: int) -> None:
     column -= 1
 
     # Calculate the coordinates of the specified bingo tile
-    x1 = column * tile_width + x_offset
-    y1 = row * tile_height + y_offset
-    x2 = (column + 1) * tile_width + x_offset
-    y2 = (row + 1) * tile_height + y_offset 
+    x1 = (column * tile_width) + x_offset 
+    y1 = (row * tile_height) + y_offset
+    x2 = ((column + 1) * tile_width) + x_offset
+    y2 = ((row + 1) * tile_height) + y_offset 
 
     # Create a drawing object
     draw = ImageDraw.Draw(img)
@@ -356,7 +359,8 @@ def team_overwrites():
     return discord.PermissionOverwrite(
         view_channel=True,
         manage_channels=False,
-        manage_messages=False,
+        manage_messages=True,
+        read_message_history=True,
         embed_links=True,
         attach_files=True,
         manage_permissions=False,
@@ -453,7 +457,10 @@ async def update_server_score_board_channel(interaction: discord.Interaction, se
     teams_rerolls = [x['reroll'] for x in settings['teams'].values()]
     content_text = []
     for i in range(len(teams_names)):
-        row = f"{teams_names[i]}: {teams_scores[i]} - Rerolls remain: {teams_rerolls[i]}"
+        if settings['bot_mode']['current'] == 'candyland':
+            row = f"{teams_names[i]}: {teams_scores[i]} - Rerolls remain: {teams_rerolls[i]}"
+        else:
+            row = f"{teams_names[i]}: {teams_scores[i]}"
         content_text.append(row)
     settings['posts']['score-board']['id'] = msg_id
     settings['posts']['score-board']['content'] = '\n'.join(content_text)
@@ -956,11 +963,13 @@ async def team(interaction: discord.Interaction,
                 if channel_name == "chat":
                     # TODO update this
                     # raise Exception("This is not implemented yet, update proper perms")
+                    channel_name = f"{team_number}-general-{channel_name}"
                     overwrites = overwrites_w_out_spectator
                 else:
                     # raise Exception("This is not implemented yet, update proper perms")
                     overwrites = overwrites_with_spectator
             if "voice" in channel_name:
+                channel_name = f"{team_number}-{channel_name}"
                 chan = await interaction.guild.create_voice_channel(name=channel_name, category=cat, overwrites=overwrites)
             else:
                 chan = await interaction.guild.create_text_channel(name=channel_name, topic=channel['description'],
@@ -1097,11 +1106,18 @@ async def post_tiles(interaction: discord.Interaction):
     tile_list_ch = discord.utils.get(interaction.guild.channels, name="tile-list")
     item_list = []
     for tile in settings['items'].values():
-        num = tile['tile_num']
-        name = tile['name']
-        # tile['short_desc']
-        desc = tile['desc']
-        item_list.append(f"{num} - {name}\n{desc}")
+        if settings['bot_mode']['current'] == 'candyland':
+            num = tile['tile_num']
+            name = tile['name']
+            # tile['short_desc']
+            desc = tile['desc']
+            item_list.append(f"## {num} - {name}\n{desc}")
+        else:
+            name = tile['name']
+            # tile['short_desc']
+            desc = tile['desc']
+            item_list.append(f"## {name}\n{desc}")
+            
     if len('\n'.join(item_list)) > 4096:
         embed1 = discord.Embed(
                 title="All Tiles - 1 of 2",
