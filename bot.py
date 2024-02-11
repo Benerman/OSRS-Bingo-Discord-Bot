@@ -1008,6 +1008,8 @@ async def team(interaction: discord.Interaction,
         save_settings_json(settings)
         # Update Category
         team_cat = discord.utils.get(interaction.guild.categories, name=team_name)
+        if not team_cat:
+            await interaction.response.send_message(f'No Category found for "{team_name}"')
         await team_cat.edit(name=new_team_name)
         await interaction.response.send_message(f'Changed Team "{team_name}" to "{new_team_name}"')
     elif option == "Set Tile":
@@ -1190,12 +1192,12 @@ async def mark_tile_completed(interaction: discord.Interaction, team_name: str, 
     team_names = [x for x in settings['teams'].keys()]
     team_number = team_names.index(team_name) + 1
     await interaction.response.defer(thinking=True)
-    settings['teams'][team_name]['tiles_completed'].append([row, col])
-    update_settings_json(settings)
     if row == 0 or col == 0:
         update = False
     else:
         update = True
+        settings['teams'][team_name]['tiles_completed'].append([row, col])
+    update_settings_json(settings)
     await post_bingo_card(interaction, settings, team_name, update=update, row=row, column=col)
     await interaction.followup.send(f'Team: {team_name}\'s tile has been marked as completed and updated in the Bingo Card Channel')
     

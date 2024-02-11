@@ -13,12 +13,12 @@
     },
     "running": true,
     "teams": {
-        "Team 1": {
-            "current": 0,
+        "The Screen Team": {
+            "current": 19,
             "prev": 0,
             "reroll": 0,
             "roll_history": [],
-            "image": "C:\\Users\\ADINN-II\\Documents\\Bingo Discord Bot\\images\\BINGO_BOARD_FEBRUARY_2024.png",
+            "image": "C:\\Users\\ADINN-II\\Documents\\Bingo Discord Bot\\images\\The Screen Team-3-1.png",
             "image_bounds": {
                 "x_offset": 50,
                 "y_offset": 35,
@@ -30,17 +30,81 @@
             },
             "tiles_completed": [
                 [
-                    0,
-                    0
+                    5,
+                    2
+                ],
+                [
+                    1,
+                    2
+                ],
+                [
+                    5,
+                    1
+                ],
+                [
+                    2,
+                    5
+                ],
+                [
+                    4,
+                    4
+                ],
+                [
+                    3,
+                    5
+                ],
+                [
+                    5,
+                    4
+                ],
+                [
+                    4,
+                    5
+                ],
+                [
+                    2,
+                    3
+                ],
+                [
+                    2,
+                    4
+                ],
+                [
+                    4,
+                    1
+                ],
+                [
+                    1,
+                    4
+                ],
+                [
+                    1,
+                    3
+                ],
+                [
+                    4,
+                    3
+                ],
+                [
+                    4,
+                    2
+                ],
+                [
+                    3,
+                    4
+                ],
+                [
+                    3,
+                    1
                 ]
             ]
         },
-        "Team 2": {
-            "current": 0,
+        "Hunners and Gatherers": {
+            "current": 13,
             "prev": 0,
             "reroll": 0,
             "roll_history": [],
-            "image": "C:\\Users\\ADINN-II\\Documents\\Bingo Discord Bot\\images\\BINGO_BOARD_FEBRUARY_2024.png",
+            "image": "C:\\Users\\ADINN-II\\Documents\\Bingo Discord Bot\\images\\Hunners and Gatherers-4-3.png",
             "image_bounds": {
                 "x_offset": 50,
                 "y_offset": 35,
@@ -52,17 +116,65 @@
             },
             "tiles_completed": [
                 [
-                    0,
-                    0
+                    4,
+                    1
+                ],
+                [
+                    5,
+                    5
+                ],
+                [
+                    4,
+                    2
+                ],
+                [
+                    1,
+                    4
+                ],
+                [
+                    5,
+                    3
+                ],
+                [
+                    4,
+                    4
+                ],
+                [
+                    5,
+                    1
+                ],
+                [
+                    4,
+                    5
+                ],
+                [
+                    3,
+                    4
+                ],
+                [
+                    2,
+                    2
+                ],
+                [
+                    2,
+                    3
+                ],
+                [
+                    5,
+                    4
+                ],
+                [
+                    4,
+                    3
                 ]
             ]
         },
-        "Team 3": {
-            "current": 0,
+        "Loony Looters": {
+            "current": 4,
             "prev": 0,
             "reroll": 0,
             "roll_history": [],
-            "image": "C:\\Users\\ADINN-II\\Documents\\Bingo Discord Bot\\images\\BINGO_BOARD_FEBRUARY_2024.png",
+            "image": "C:\\Users\\ADINN-II\\Documents\\Bingo Discord Bot\\images\\Loony Looters-3-1.png",
             "image_bounds": {
                 "x_offset": 50,
                 "y_offset": 35,
@@ -74,17 +186,33 @@
             },
             "tiles_completed": [
                 [
-                    0,
-                    0
+                    4,
+                    5
+                ],
+                [
+                    4,
+                    4
+                ],
+                [
+                    1,
+                    2
+                ],
+                [
+                    5,
+                    1
+                ],
+                [
+                    3,
+                    1
                 ]
             ]
         },
-        "Team 4": {
-            "current": 0,
+        "Whalecum": {
+            "current": 17,
             "prev": 0,
             "reroll": 0,
             "roll_history": [],
-            "image": "C:\\Users\\ADINN-II\\Documents\\Bingo Discord Bot\\images\\BINGO_BOARD_FEBRUARY_2024.png",
+            "image": "C:\\Users\\ADINN-II\\Documents\\Bingo Discord Bot\\images\\Whalecum-4-5.png",
             "image_bounds": {
                 "x_offset": 50,
                 "y_offset": 35,
@@ -96,8 +224,80 @@
             },
             "tiles_completed": [
                 [
-                    0,
-                    0
+                    4,
+                    4
+                ],
+                [
+                    1,
+                    2
+                ],
+                [
+                    3,
+                    1
+                ],
+                [
+                    5,
+                    3
+                ],
+                [
+                    5,
+                    4
+                ],
+                [
+                    5,
+                    4
+                ],
+                [
+                    5,
+                    4
+                ],
+                [
+                    5,
+                    1
+                ],
+                [
+                    5,
+                    5
+                ],
+                [
+                    1,
+                    3
+                ],
+                [
+                    4,
+                    2
+                ],
+                [
+                    2,
+                    3
+                ],
+                [
+                    2,
+                    4
+                ],
+                [
+                    2,
+                    5
+                ],
+                [
+                    1,
+                    5
+                ],
+                [
+                    3,
+                    5
+                ],
+                [
+                    4,
+                    3
+                ],
+                [
+                    3,
+                    4
+                ],
+                [
+                    4,
+                    5
                 ]
             ]
         },
@@ -116,12 +316,7 @@
                 "y": 0,
                 "gutter": 18
             },
-            "tiles_completed": [
-                [
-                    0,
-                    0
-                ]
-            ]
+            "tiles_completed": []
         },
         "Team 6": {
             "current": 0,
@@ -138,12 +333,7 @@
                 "y": 0,
                 "gutter": 18
             },
-            "tiles_completed": [
-                [
-                    0,
-                    0
-                ]
-            ]
+            "tiles_completed": []
         },
         "Team 7": {
             "current": 0,
@@ -160,12 +350,7 @@
                 "y": 0,
                 "gutter": 18
             },
-            "tiles_completed": [
-                [
-                    0,
-                    0
-                ]
-            ]
+            "tiles_completed": []
         }
     },
     "items": {
@@ -298,7 +483,7 @@
     "posts": {
         "score-board": {
             "id": 1202440269165887520,
-            "content": "Team 1: 30\nTeam 2: 0\nTeam 3: 0\nTeam 4: 0\nTeam 5: 0\nTeam 6: 0\nTeam 7: 0"
+            "content": "The Screen Team: 19\nHunners and Gatherers: 13\nLoony Looters: 4\nWhalecum: 17\nTeam 5: 0\nTeam 6: 0\nTeam 7: 0"
         }
     }
 }
