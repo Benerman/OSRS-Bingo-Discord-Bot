@@ -29,6 +29,8 @@ DICE_SIDES = 8
 
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly']
 
+IMAGE_PATH = os.path.join(os.getcwd(), 'images')
+
 ROLES = ["Team 1", "Team 2", "Team 3", "Team 4", "Team 5", "Team 6", "Team 7"]
 TEAM_CAPTAIN_ROLES = ["Team 1 Captain", "Team 2 Captain", "Team 3 Captain", "Team 4 Captain", "Team 5 Captain", "Team 6 Captain", "Team 7 Captain"]
 
@@ -1201,6 +1203,31 @@ async def mark_tile_completed(interaction: discord.Interaction, team_name: str, 
     await post_bingo_card(interaction, settings, team_name, update=update, row=row, column=col)
     await interaction.followup.send(f'Team: {team_name}\'s tile has been marked as completed and updated in the Bingo Card Channel')
     
+@has_role("Bingo Moderator")
+@app_commands.autocomplete(team_name=team_names_autocomplete)
+@bot.tree.command(name="set_default_bingo_image", description=f"Attach and upload image to be used as the default Bingo Card Image. This will be apply to all teams and overwrite the existing images.")
+async def set_default_bingo_image(interaction: discord.Interaction):
+    settings = load_settings_json()
+    team_names = [x for x in settings['teams'].keys()]
+    await interaction.response.defer(thinking=True)
+    if len(interaction.message.attachments) == 0:
+        await interaction.response.send_message(f'Please attach an image to set as the default Bingo Card Image')
+        return
+    else:
+        # download attachment
+        bingo_image_path = os.path.join(IMAGE_PATH, 'bingo_card_image.png')
+        with open(bingo_image_path, 'wb') as f:
+            await interaction.message.attachments[0].save(f)
+        # update all settings['teams'][team_name]['image']
+        for team_name in team_names:
+            settings['teams'][team_name]['image'] = bingo_image_path
+        update_settings_json(settings)
+        await interaction.followup.send(f'Default Bingo Card Image has been updated')
+    update_settings_json(settings)
+    await post_bingo_card(interaction, settings, team_name, update=update, row=row, column=col)
+    await interaction.followup.send(f'Team: {team_name}\'s tile has been marked as completed and updated in the Bingo Card Channel')
+    
+
 
     
 bot.run(config.DISCORD_BOT_TOKEN)
