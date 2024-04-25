@@ -1204,7 +1204,6 @@ async def mark_tile_completed(interaction: discord.Interaction, team_name: str, 
     await interaction.followup.send(f'Team: {team_name}\'s tile has been marked as completed and updated in the Bingo Card Channel')
     
 @has_role("Bingo Moderator")
-@app_commands.autocomplete(team_name=team_names_autocomplete)
 @bot.tree.command(name="set_default_bingo_image", description=f"Attach and upload image to be used as the default Bingo Card Image. This will be apply to all teams and overwrite the existing images.")
 async def set_default_bingo_image(interaction: discord.Interaction):
     settings = load_settings_json()
