@@ -1162,7 +1162,7 @@ async def check_roll_enabled(interaction: discord.Interaction):
 
 @has_role("Bingo Moderator")
 @bot.tree.command(name="tile_completed", description=f"Marks a channel's tile as completed(Normal)")
-async def check_roll_enabled(interaction: discord.Interaction):
+async def tile_completed(interaction: discord.Interaction):
     settings = load_settings_json()
     # Check tile is completed.
     # Update settings or however this is tracked.
@@ -1172,13 +1172,13 @@ async def check_roll_enabled(interaction: discord.Interaction):
 
 @has_role("Bingo Moderator")
 @bot.tree.command(name="delete", description=f"Checks if the rolling is Disabled or Enabled. Does not update/change anything.")
-async def check_roll_enabled(interaction: discord.Interaction):
+async def delete(interaction: discord.Interaction):
     settings = load_settings_json()
     await interaction.response.send_message(f"Rolling is currently: {'ENABLED' if settings['running'] == True else 'DISABLED'}")
 
 @has_role("Bingo Moderator")
 @bot.tree.command(name="style", description=f"Change the Bot's Bingo Style.")
-async def check_roll_enabled(interaction: discord.Interaction):
+async def style(interaction: discord.Interaction):
     settings = load_settings_json()
     # TODO Update this to change the settings
     settings['bot_mode']['current'] = "normal"
@@ -1204,8 +1204,8 @@ async def mark_tile_completed(interaction: discord.Interaction, team_name: str, 
     await interaction.followup.send(f'Team: {team_name}\'s tile has been marked as completed and updated in the Bingo Card Channel')
     
 @has_role("Bingo Moderator")
-@bot.tree.command(name="set_default_bingo_image", description=f"Attach and upload image to be used as the default Bingo Card Image. This will be apply to all teams and overwrite the existing images.")
-async def set_default_bingo_image(interaction: discord.Interaction):
+@bot.tree.command(name="set_board_image", description=f"Attach and upload image as the default Bingo Card Image. Overwrites all teams existing images.")
+async def set_board_image(interaction: discord.Interaction):
     settings = load_settings_json()
     team_names = [x for x in settings['teams'].keys()]
     await interaction.response.defer(thinking=True)
@@ -1223,7 +1223,7 @@ async def set_default_bingo_image(interaction: discord.Interaction):
         update_settings_json(settings)
         await interaction.followup.send(f'Default Bingo Card Image has been updated')
     update_settings_json(settings)
-    await post_bingo_card(interaction, settings, team_name, update=update, row=row, column=col)
+    # await post_bingo_card(interaction, settings, team_name, update=update, row=row, column=col)
     await interaction.followup.send(f'Team: {team_name}\'s tile has been marked as completed and updated in the Bingo Card Channel')
     
 
