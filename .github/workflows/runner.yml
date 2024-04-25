@@ -15,5 +15,5 @@ jobs:
       - name: Run Container
         run: docker-compose -f /opt/discord-compose.yml up -d --build
 
-      - name: Cleanup Unused Images
-        run: docker image prune -f
+#      - name: Cleanup Unused Images
+#        run: docker image prune -f
