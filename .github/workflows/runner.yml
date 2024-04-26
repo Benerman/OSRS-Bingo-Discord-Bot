@@ -11,9 +11,9 @@ jobs:
 
     steps:
       - name: Get directory
-        run: ls
+        run: ls -la
         
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v2
 
       - name: Run Container
         run: docker-compose -f /opt/discord-compose.yml up -d --build
