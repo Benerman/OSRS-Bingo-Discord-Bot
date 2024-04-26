@@ -1222,10 +1222,7 @@ async def set_board_image(interaction: discord.Interaction, file: discord.Attach
             settings['teams'][team_name]['image'] = bingo_image_path
         update_settings_json(settings)
         await interaction.followup.send(f'Default Bingo Card Image has been updated')
-    update_settings_json(settings)
-    # await post_bingo_card(interaction, settings, team_name, update=update, row=row, column=col)
-    await interaction.followup.send(f'Team: {team_name}\'s tile has been marked as completed and updated in the Bingo Card Channel')
-    
+        update_settings_json(settings)    
 
 
     
