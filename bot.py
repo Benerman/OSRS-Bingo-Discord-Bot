@@ -1205,18 +1205,18 @@ async def mark_tile_completed(interaction: discord.Interaction, team_name: str, 
     
 @has_role("Bingo Moderator")
 @bot.tree.command(name="set_board_image", description=f"Attach and upload image as the default Bingo Card Image. Overwrites all teams existing images.")
-async def set_board_image(interaction: discord.Interaction):
+async def set_board_image(interaction: discord.Interaction, file: discord.Attachment):
     settings = load_settings_json()
     team_names = [x for x in settings['teams'].keys()]
     await interaction.response.defer(thinking=True)
-    if len(interaction.message.attachments) == 0:
+    if not file:
         await interaction.response.send_message(f'Please attach an image to set as the default Bingo Card Image')
         return
     else:
         # download attachment
         bingo_image_path = os.path.join(IMAGE_PATH, 'bingo_card_image.png')
         with open(bingo_image_path, 'wb') as f:
-            await interaction.message.attachments[0].save(f)
+            await file.save(f)
         # update all settings['teams'][team_name]['image']
         for team_name in team_names:
             settings['teams'][team_name]['image'] = bingo_image_path
