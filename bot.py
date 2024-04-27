@@ -1224,6 +1224,40 @@ async def set_board_image(interaction: discord.Interaction, file: discord.Attach
         await interaction.followup.send(f'Default Bingo Card Image has been updated')
         update_settings_json(settings)    
 
+    
+@has_role("Bingo Moderator")
+@bot.tree.command(name="set_image_bounds", description=f"Set the bounds for the bingo card to be auto marked as completed by bot. Overwrites all teams existing")
+async def set_image_bounds(interaction: discord.Interaction,
+            x_offset: int,
+            y_offset: int,
+            x_right_offset: int,
+            y_bottom_offset: int,
+            x: int,
+            y: int,
+            gutter: int
+        ):
+    settings = load_settings_json()
+    team_names = [x for x in settings['teams'].keys()]
+    await interaction.response.defer(thinking=True)
+    if not x_offset or not y_offset or not x_right_offset or not y_bottom_offset or not x or not y or not gutter:
+        await interaction.followup.send(f'Please provide all the required values')
+        return
+    else:
+        # update all settings['teams'][team_name]['image']
+        for team_name in team_names:
+            settings['teams'][team_name]['image_bounds'] =  {
+                'x_offset': x_offset,
+                'y_offset': y_offset,
+                'x_right_offset': x_right_offset,
+                'y_bottom_offset': y_bottom_offset,
+                'x': x,
+                'y': y,
+                'gutter': gutter
+            }
+        update_settings_json(settings)
+        await interaction.followup.send(f'Image bounds for each team have been updated')
+        update_settings_json(settings)    
+
 
     
 bot.run(config.DISCORD_BOT_TOKEN)
