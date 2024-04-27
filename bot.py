@@ -30,6 +30,7 @@ DICE_SIDES = 8
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly']
 
 IMAGE_PATH = os.path.join(os.getcwd(), 'images')
+print(IMAGE_PATH)
 
 ROLES = ["Team 1", "Team 2", "Team 3", "Team 4", "Team 5", "Team 6", "Team 7"]
 TEAM_CAPTAIN_ROLES = ["Team 1 Captain", "Team 2 Captain", "Team 3 Captain", "Team 4 Captain", "Team 5 Captain", "Team 6 Captain", "Team 7 Captain"]
