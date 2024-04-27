@@ -1266,5 +1266,5 @@ async def sync(interaction: discord.Interaction):
     await bot.tree.sync()
     await interaction.followup.send('Command tree synced.')
 
-    
+print('About to log in with bot')
 bot.run(config.DISCORD_BOT_TOKEN)
