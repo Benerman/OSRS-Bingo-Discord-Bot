@@ -1258,6 +1258,13 @@ async def set_image_bounds(interaction: discord.Interaction,
         await interaction.followup.send(f'Image bounds for each team have been updated')
         update_settings_json(settings)    
 
+@has_role("Bingo Moderator")
+@bot.tree.command(name="sync", description=f"Sync the command tree with the current settings.")
+async def sync(interaction: discord.Interaction):
+    print("sync command")
+    await interaction.response.defer(thinking=True)
+    await bot.tree.sync()
+    await interaction.followup.send('Command tree synced.')
 
     
 bot.run(config.DISCORD_BOT_TOKEN)
