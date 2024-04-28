@@ -30,7 +30,7 @@ DICE_SIDES = 8
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly']
 
 IMAGE_PATH = os.path.join(os.getcwd(), 'images')
-print(IMAGE_PATH)
+print(f'{IMAGE_PATH = }')
 
 ROLES = ["Team 1", "Team 2", "Team 3", "Team 4", "Team 5", "Team 6", "Team 7"]
 TEAM_CAPTAIN_ROLES = ["Team 1 Captain", "Team 2 Captain", "Team 3 Captain", "Team 4 Captain", "Team 5 Captain", "Team 6 Captain", "Team 7 Captain"]
@@ -1240,7 +1240,7 @@ async def set_image_bounds(interaction: discord.Interaction,
     settings = load_settings_json()
     team_names = [x for x in settings['teams'].keys()]
     await interaction.response.defer(thinking=True)
-    if not x_offset or not y_offset or not x_right_offset or not y_bottom_offset or not x or not y or not gutter:
+    if x_offset == '' or y_offset == '' or x_right_offset == '' or y_bottom_offset == '' or x == '' or y == '' or gutter == '':
         await interaction.followup.send(f'Please provide all the required values')
         return
     else:
