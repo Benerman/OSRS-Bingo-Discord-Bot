@@ -1227,7 +1227,7 @@ async def set_board_image(interaction: discord.Interaction, file: discord.Attach
 
     
 @has_role("Bingo Moderator")
-@bot.tree.command(name="set_image_bounds", description=f"Set the bounds for the bingo card to be auto marked as completed by bot. Overwrites all teams existing")
+@bot.tree.command(name="set_image_bounds", description=f"Set the bounds for the bingo card to be auto marked as completed by bot.")
 async def set_image_bounds(interaction: discord.Interaction,
             x_offset: int,
             y_offset: int,
