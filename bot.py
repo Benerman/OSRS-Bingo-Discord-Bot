@@ -498,11 +498,11 @@ async def team_autocomplete(
     ) -> List[app_commands.Choice[str]]:
         commands = [
             "Create",
-            "Set Team Name",
+            # "Set Team Name",
             "Set Tile",
             "Set Prev Tile",
             "Set Reroll",
-            "Delete Channels",
+            # "Delete Channels",
             "Update Tiles"
             # "Members",
             # "Captain",
@@ -870,7 +870,7 @@ async def members(interaction: discord.Interaction,
     await interaction.followup.send(f'Role "Team {team_number}" added to {len(members)} members')
 
 
-async def reroll(interaction: discord.Interaction, option: str, team_name: str):
+async def reroll(interaction: discord.Interaction, team_name: str):
     
     class Reroll(discord.ui.View):
         def __init__(self, *, timeout: Optional[float] = 180):
@@ -902,186 +902,186 @@ async def reroll(interaction: discord.Interaction, option: str, team_name: str):
 
     await interaction.response.send_message('Choose an option for Reroll:', view=Reroll())
 
-# @has_role("Bingo Moderator")
-@app_commands.autocomplete(team_name=team_names_autocomplete)
-@app_commands.autocomplete(option=team_autocomplete)
-@bot.tree.command(name="team", description=f"Configure teams")
-async def team(interaction: discord.Interaction,
-               option: str,
-               team_name: str,
-               tile: str = None,
-               role: discord.Role = None,
-               new_team_name: str = None,
-               members: str = None
-               ):
-    settings = load_settings_json()
-    team_names = [x for x in settings['teams'].keys()]
-    team_number = team_names.index(team_name) + 1
-    await interaction.channel.typing()
-    if not interaction.channel.category.name.lower() == 'admin':
-        await interaction.response.send_message(f"Use this command in {mod_channel} and ADMIN section")
-        return
-    elif not team_name in team_names:
-        await interaction.response.send_message(f"Team Name: {team_name} is not found in {team_names}\nPlease Try again")
-        return
-    elif option == "Create":
-        everyone_role = discord.utils.get(interaction.guild.roles, name="@everyone")
-        spectator_role = discord.utils.get(interaction.guild.roles, name="spectator")
-        bingo_bot_role = discord.utils.get(interaction.guild.roles, name="Bingo Bot")
-        team_role = discord.utils.get(interaction.guild.roles, name=f"Team {team_number}")
+# # @has_role("Bingo Moderator")
+# @app_commands.autocomplete(team_name=team_names_autocomplete)
+# @app_commands.autocomplete(option=team_autocomplete)
+# @bot.tree.command(name="team", description=f"Configure teams")
+# async def team(interaction: discord.Interaction,
+#                option: str,
+#                team_name: str,
+#                tile: str = None,
+#                role: discord.Role = None,
+#                new_team_name: str = None,
+#                members: str = None
+#                ):
+#     settings = load_settings_json()
+#     team_names = [x for x in settings['teams'].keys()]
+#     team_number = team_names.index(team_name) + 1
+#     await interaction.channel.typing()
+#     if not interaction.channel.category.name.lower() == 'admin':
+#         await interaction.response.send_message(f"Use this command in {mod_channel} and ADMIN section")
+#         return
+#     elif not team_name in team_names:
+#         await interaction.response.send_message(f"Team Name: {team_name} is not found in {team_names}\nPlease Try again")
+#         return
+    # elif option == "Create":
+    #     everyone_role = discord.utils.get(interaction.guild.roles, name="@everyone")
+    #     spectator_role = discord.utils.get(interaction.guild.roles, name="spectator")
+    #     bingo_bot_role = discord.utils.get(interaction.guild.roles, name="Bingo Bot")
+    #     team_role = discord.utils.get(interaction.guild.roles, name=f"Team {team_number}")
         
-        cat = await interaction.guild.create_category(name=team_name)
+    #     cat = await interaction.guild.create_category(name=team_name)
 
-        overwrites_with_spectator = {
-            interaction.guild.default_role: discord.PermissionOverwrite(read_messages=False, connect=False),
-            bingo_bot_role: bingo_bot_overwrites(),
-            interaction.guild.me: bingo_bot_overwrites(),
-            spectator_role: spectator_overwrites(),
-            team_role: team_overwrites(),
-            everyone_role: everyone_overwrites()
-            }
-        overwrites_w_out_spectator = {
-            interaction.guild.default_role: discord.PermissionOverwrite(read_messages=False, connect=False),
-            bingo_bot_role: bingo_bot_overwrites(),
-            interaction.guild.me: bingo_bot_overwrites(),
-            team_role: team_overwrites(),
-            everyone_role: everyone_overwrites()
-            }
+    #     overwrites_with_spectator = {
+    #         interaction.guild.default_role: discord.PermissionOverwrite(read_messages=False, connect=False),
+    #         bingo_bot_role: bingo_bot_overwrites(),
+    #         interaction.guild.me: bingo_bot_overwrites(),
+    #         spectator_role: spectator_overwrites(),
+    #         team_role: team_overwrites(),
+    #         everyone_role: everyone_overwrites()
+    #         }
+    #     overwrites_w_out_spectator = {
+    #         interaction.guild.default_role: discord.PermissionOverwrite(read_messages=False, connect=False),
+    #         bingo_bot_role: bingo_bot_overwrites(),
+    #         interaction.guild.me: bingo_bot_overwrites(),
+    #         team_role: team_overwrites(),
+    #         everyone_role: everyone_overwrites()
+    #         }
 
-        await interaction.response.defer(thinking=True)
-        await cat.edit(overwrites=overwrites_with_spectator)
-        # Create Default Channels
-        # all_channels = []
-        channels = await get_default_channels(interaction)
-        for channel in channels:
-            settings = load_settings_json()
-            if settings['bot_mode']['current'] == 'candyland':
-                channel_name = f"team-{team_number}-{channel}"
-                if channel_name == f"team-{team_number}-chat":
-                    overwrites = overwrites_w_out_spectator
-                else:
-                    overwrites = overwrites_with_spectator
-            else:
-                channel_name = channel['name']
-                if channel_name == "chat":
-                    # TODO update this
-                    # raise Exception("This is not implemented yet, update proper perms")
-                    channel_name = f"{team_number}-general-{channel_name}"
-                    overwrites = overwrites_w_out_spectator
-                else:
-                    # raise Exception("This is not implemented yet, update proper perms")
-                    overwrites = overwrites_with_spectator
-            if "voice" in channel_name:
-                channel_name = f"{team_number}-{channel_name}"
-                chan = await interaction.guild.create_voice_channel(name=channel_name, category=cat, overwrites=overwrites)
-            else:
-                chan = await interaction.guild.create_text_channel(name=channel_name, topic=channel['description'],
-                                                                   category=cat, overwrites=overwrites)
-                if channel['description']:
-                    await chan.send(f"{channel['description']}")
-                if channel_name == 'photo-dump' or channel_name == 'drop-spam':
-                    webhook = await chan.create_webhook(name=channel_name)
-                    await chan.send(f"Here are instructions for adding Discord Rare Drop Notification to Runelite\n\nDownload the Plugin from Plugin Hub\nCopy this Webhook URL to this channel into the Plugin(Accessed via the settings)")
-                    await chan.send(f"```{webhook.url}```")
-                    if settings['bot_mode']['current'] == 'candyland':
-                        await chan.send(f"Copy in this Tile List to ensure that ALL potential items are captured")
-                        list_of_item_names = [x['item_names'] for x in settings['items'].values()]
-                        list_of_item_names = [x.replace("*", "\*") for x in list_of_item_names]
-                        embed = discord.Embed(
-                            description=f"{''.join([x.lower() for x in filter(None, list_of_item_names)])}"
-                            )
-                        await chan.send(embed=embed)
-            # all_channels.append(chan)
-        await interaction.followup.send(f'Channels created for "{team_name}"')
+    #     await interaction.response.defer(thinking=True)
+    #     await cat.edit(overwrites=overwrites_with_spectator)
+    #     # Create Default Channels
+    #     # all_channels = []
+    #     channels = await get_default_channels(interaction)
+    #     for channel in channels:
+    #         settings = load_settings_json()
+    #         if settings['bot_mode']['current'] == 'candyland':
+    #             channel_name = f"team-{team_number}-{channel}"
+    #             if channel_name == f"team-{team_number}-chat":
+    #                 overwrites = overwrites_w_out_spectator
+    #             else:
+    #                 overwrites = overwrites_with_spectator
+    #         else:
+    #             channel_name = channel['name']
+    #             if channel_name == "chat":
+    #                 # TODO update this
+    #                 # raise Exception("This is not implemented yet, update proper perms")
+    #                 channel_name = f"{team_number}-general-{channel_name}"
+    #                 overwrites = overwrites_w_out_spectator
+    #             else:
+    #                 # raise Exception("This is not implemented yet, update proper perms")
+    #                 overwrites = overwrites_with_spectator
+    #         if "voice" in channel_name:
+    #             channel_name = f"{team_number}-{channel_name}"
+    #             chan = await interaction.guild.create_voice_channel(name=channel_name, category=cat, overwrites=overwrites)
+    #         else:
+    #             chan = await interaction.guild.create_text_channel(name=channel_name, topic=channel['description'],
+    #                                                                category=cat, overwrites=overwrites)
+    #             if channel['description']:
+    #                 await chan.send(f"{channel['description']}")
+    #             if channel_name == 'photo-dump' or channel_name == 'drop-spam':
+    #                 webhook = await chan.create_webhook(name=channel_name)
+    #                 await chan.send(f"Here are instructions for adding Discord Rare Drop Notification to Runelite\n\nDownload the Plugin from Plugin Hub\nCopy this Webhook URL to this channel into the Plugin(Accessed via the settings)")
+    #                 await chan.send(f"```{webhook.url}```")
+    #                 if settings['bot_mode']['current'] == 'candyland':
+    #                     await chan.send(f"Copy in this Tile List to ensure that ALL potential items are captured")
+    #                     list_of_item_names = [x['item_names'] for x in settings['items'].values()]
+    #                     list_of_item_names = [x.replace("*", "\*") for x in list_of_item_names]
+    #                     embed = discord.Embed(
+    #                         description=f"{''.join([x.lower() for x in filter(None, list_of_item_names)])}"
+    #                         )
+    #                     await chan.send(embed=embed)
+    #         # all_channels.append(chan)
+    #     await interaction.followup.send(f'Channels created for "{team_name}"')
 
-    elif option == "Set Team Name":
-        # Update Settings
-        if not new_team_name:
-            await interaction.response.send_message(f'No "new_team_name" provided')
-        teams_index = dict(zip(settings['teams'].keys(), range(len(settings['teams'].keys()))))
-        team_idx = teams_index[team_name]
-        new_teams = {}
-        for i, pair in enumerate(settings['teams'].items()):
-            k, v = pair
-            if i == team_idx:
-                new_teams.update({new_team_name: v})
-            else:
-                new_teams.update({k: v})
-        settings['teams'] = new_teams
-        save_settings_json(settings)
-        # Update Category
-        team_cat = discord.utils.get(interaction.guild.categories, name=team_name)
-        if not team_cat:
-            await interaction.response.send_message(f'No Category found for "{team_name}"')
-        await team_cat.edit(name=new_team_name)
-        await interaction.response.send_message(f'Changed Team "{team_name}" to "{new_team_name}"')
-    elif option == "Set Tile":
-        try:
-            tile = int(tile)
-        except ValueError:
-            await interaction.response.send_message(f'Unable to process tile "tile": {tile} - Ensure it is a number')
-            return
-        if tile < 0:
-            tile = 1
-        settings['teams'][team_name]['current'] = tile
-        await interaction.response.send_message(f'Updated tile for Team: {team_name} to {tile}')
-        update_settings_json(settings)
-    elif option == "Set Prev Tile":
-        try:
-            tile = int(tile)
-        except ValueError:
-            await interaction.response.send_message(f'Unable to process prev tile "tile": {tile} - Ensure it is a number')
-            return
-        if tile < 0:
-            tile = None
-        settings['teams'][team_name]['prev'] = tile
-        await interaction.response.send_message(f'Updated prev tile for Team: {team_name} to {tile}')
-        update_settings_json(settings)
-    elif option == "Set Reroll":
-        await reroll(interaction=interaction, option=option, team_name=team_name)
+    # elif option == "Set Team Name":
+    #     # Update Settings
+    #     if not new_team_name:
+    #         await interaction.response.send_message(f'No "new_team_name" provided, Please try again')
+    #     teams_index = dict(zip(settings['teams'].keys(), range(len(settings['teams'].keys()))))
+    #     team_idx = teams_index[team_name]
+    #     new_teams = {}
+    #     for i, pair in enumerate(settings['teams'].items()):
+    #         k, v = pair
+    #         if i == team_idx:
+    #             new_teams.update({new_team_name: v})
+    #         else:
+    #             new_teams.update({k: v})
+    #     settings['teams'] = new_teams
+    #     save_settings_json(settings)
+    #     # Update Category
+    #     team_cat = discord.utils.get(interaction.guild.categories, name=team_name)
+    #     if not team_cat:
+    #         await interaction.response.send_message(f'No Category found for "{team_name}"')
+    #     await team_cat.edit(name=new_team_name)
+    #     await interaction.response.send_message(f'Changed Team "{team_name}" to "{new_team_name}"')
+    # elif option == "Set Tile":
+    #     try:
+    #         tile = int(tile)
+    #     except ValueError:
+    #         await interaction.response.send_message(f'Unable to process tile "tile": {tile} - Ensure it is a number')
+    #         return
+    #     if tile < 0:
+    #         tile = 1
+    #     settings['teams'][team_name]['current'] = tile
+    #     await interaction.response.send_message(f'Updated tile for Team: {team_name} to {tile}')
+    #     update_settings_json(settings)
+    # elif option == "Set Prev Tile":
+    #     try:
+    #         tile = int(tile)
+    #     except ValueError:
+    #         await interaction.response.send_message(f'Unable to process prev tile "tile": {tile} - Ensure it is a number')
+    #         return
+    #     if tile < 0:
+    #         tile = None
+    #     settings['teams'][team_name]['prev'] = tile
+    #     await interaction.response.send_message(f'Updated prev tile for Team: {team_name} to {tile}')
+    #     update_settings_json(settings)
+    # elif option == "Set Reroll":
+    #     await reroll(interaction=interaction, option=option, team_name=team_name)
 
-    elif option == "Delete Channels":
-        print('Deleting...')
-        await interaction.response.defer(thinking=True)
-        num_deleted = 0
-        cats = interaction.guild.categories
-        print([c.name for c in cats])
-        for cat in cats:
-            if cat.name.lower() == team_name.lower():
-                for ch in cat.channels:
-                    print(ch)
-                    num_deleted += 1
-                    await ch.delete()
-                await cat.delete()
-                if num_deleted > 0:
-                    await interaction.followup.send(f"Deleted {team_name}'s channels. {num_deleted} channel(s) deleted.")
-            else:
-                print(f"Skipping {cat.name}\t{team_name}\t{cat.name.lower() == team_name.lower()}")
+    # elif option == "Delete Channels":
+    #     print('Deleting...')
+    #     await interaction.response.defer(thinking=True)
+    #     num_deleted = 0
+    #     cats = interaction.guild.categories
+    #     print([c.name for c in cats])
+    #     for cat in cats:
+    #         if cat.name.lower() == team_name.lower():
+    #             for ch in cat.channels:
+    #                 print(ch)
+    #                 num_deleted += 1
+    #                 await ch.delete()
+    #             await cat.delete()
+    #             if num_deleted > 0:
+    #                 await interaction.followup.send(f"Deleted {team_name}'s channels. {num_deleted} channel(s) deleted.")
+    #         else:
+    #             print(f"Skipping {cat.name}\t{team_name}\t{cat.name.lower() == team_name.lower()}")
       
-        else:
-            if num_deleted == 0:
-                await interaction.followup.send(f"{team_name}: No ({num_deleted}) Channels Deleted")
-        print(f"Deleted {num_deleted} Channels")
-    elif option == "Update Tiles":
-        await interaction.response.defer(thinking=True)
-        cats = interaction.guild.categories
-        print([c.name for c in cats])
-        channels = await get_default_channels(interaction)
-        updated_num = 0
-        for cat in cats:
-            if cat.name.lower() == team_name.lower():
-                for ch in cat.channels:
-                    # look for first message in channel and update it
-                    if ch.type == discord.ChannelType.text and ch.name in [x['name'] for x in channels]:
-                        channel_details = [x for x in channels if x['name'] == ch.name][0]
-                        async for message in ch.history(limit=1):
-                            if message.author == bot.user:
-                                if channel_details['description'] != message.content:
-                                    if channel_details['description'] != "":
-                                        await ch.edit(topic=channel_details['description'])
-                                        await message.edit(content=f"{channel_details['description']}")
-                                        updated_num += 1            
-        await interaction.followup.send(f"Updated {team_name}'s channels Tiles. {updated_num} channel(s) tiles updated.")
+    #     else:
+    #         if num_deleted == 0:
+    #             await interaction.followup.send(f"{team_name}: No ({num_deleted}) Channels Deleted")
+    #     print(f"Deleted {num_deleted} Channels")
+    # elif option == "Update Tiles":
+    #     await interaction.response.defer(thinking=True)
+    #     cats = interaction.guild.categories
+    #     print([c.name for c in cats])
+    #     channels = await get_default_channels(interaction)
+    #     updated_num = 0
+    #     for cat in cats:
+    #         if cat.name.lower() == team_name.lower():
+    #             for ch in cat.channels:
+    #                 # look for first message in channel and update it
+    #                 if ch.type == discord.ChannelType.text and ch.name in [x['name'] for x in channels]:
+    #                     channel_details = [x for x in channels if x['name'] == ch.name][0]
+    #                     async for message in ch.history(limit=1):
+    #                         if message.author == bot.user:
+    #                             if channel_details['description'] != message.content:
+    #                                 if channel_details['description'] != "":
+    #                                     await ch.edit(topic=channel_details['description'])
+    #                                     await message.edit(content=f"{channel_details['description']}")
+    #                                     updated_num += 1            
+    #     await interaction.followup.send(f"Updated {team_name}'s channels Tiles. {updated_num} channel(s) tiles updated.")
     # processed, settings = update_settings_json(settings, tiles=sheet_link)
     # await interaction.response.send_message(f"{processed}")
     # embed = discord.Embed(
@@ -1093,10 +1093,291 @@ async def team(interaction: discord.Interaction,
     # # post in #tile-list
     # tile_list_channel = discord.utils.get(interaction.guild.channels, name="tile-list")
     # await tile_list_channel.send(embed=embed)
+    # else:
+    #     await interaction.response.send_message(f'Unable to proccess: {interaction.data}\nPlease Try again or contact Administrator.')
+
+@has_role("Bingo Moderator")
+@app_commands.autocomplete(team_name=team_names_autocomplete)
+@bot.tree.command(name="delete_channels", description=f"Delete all channels for a team and the team category.")
+async def delete_channels(interaction: discord.Interaction, team_name: str):
+    settings = load_settings_json()
+    team_names = [x for x in settings['teams'].keys()]
+    team_number = team_names.index(team_name) + 1
+    await interaction.response.defer(thinking=True)
+    if not interaction.channel.category.name.lower() == 'admin':
+        await interaction.response.send_message(f"Use this command in {mod_channel} and ADMIN section")
+        return
+    elif not team_name in team_names:
+        await interaction.response.send_message(f"Team Name: {team_name} is not found in {team_names}\nPlease Try again")
+        return
+    print('Deleting...')
+    num_deleted = 0
+    cats = interaction.guild.categories
+    print([c.name for c in cats])
+    for cat in cats:
+        if cat.name.lower() == team_name.lower():
+            for ch in cat.channels:
+                print(ch)
+                num_deleted += 1
+                await ch.delete()
+            await cat.delete()
+            if num_deleted > 0:
+                await interaction.followup.send(f"Deleted {team_name}'s channels. {num_deleted} channel(s) deleted.")
+        else:
+            print(f"Skipping {cat.name}\t{team_name}\t{cat.name.lower() == team_name.lower()}")
     else:
-        await interaction.response.send_message(f'Unable to proccess: {interaction.data}\nPlease Try again or contact Administrator.')
+        if num_deleted == 0:
+            await interaction.followup.send(f"{team_name}: No ({num_deleted}) Channels Deleted")
+    print(f"Deleted {num_deleted} Channels")
 
 
+@has_role("Bingo Moderator")
+@app_commands.autocomplete(team_name=team_names_autocomplete)
+@bot.tree.command(name="change_team_name", description=f"Change team name.")
+async def change_team_name(interaction: discord.Interaction, team_name: str, new_team_name: str):
+    settings = load_settings_json()
+    team_names = [x for x in settings['teams'].keys()]
+    team_number = team_names.index(team_name) + 1
+    await interaction.response.defer(thinking=True)
+    if not interaction.channel.category.name.lower() == 'admin':
+        await interaction.response.send_message(f"Use this command in {mod_channel} and ADMIN section")
+        return
+    elif not team_name in team_names:
+        await interaction.response.send_message(f"Team Name: {team_name} is not found in {team_names}\nPlease Try again")
+        return
+    # Update Settings
+    if not new_team_name:
+        await interaction.response.send_message(f'No "new_team_name" provided, Please try again')
+    teams_index = dict(zip(settings['teams'].keys(), range(len(settings['teams'].keys()))))
+    team_idx = teams_index[team_name]
+    new_teams = {}
+    for i, pair in enumerate(settings['teams'].items()):
+        k, v = pair
+        if i == team_idx:
+            new_teams.update({new_team_name: v})
+        else:
+            new_teams.update({k: v})
+    settings['teams'] = new_teams
+    # Update Category
+    team_cat = discord.utils.get(interaction.guild.categories, name=team_name)
+    if not team_cat:
+        await interaction.response.send_message(f'No Category found for "{team_name}"')
+        return
+    await team_cat.edit(name=new_team_name)
+    save_settings_json(settings)
+    await interaction.response.send_message(f'Changed Team "{team_name}" to "{new_team_name}"')
+
+
+@has_role("Bingo Moderator")
+@app_commands.autocomplete(team_name=team_names_autocomplete)
+@bot.tree.command(name="update_tiles_channels", description=f"Update the bingo tiles for a team. Useful for post start updates.")
+async def update_tiles_channels(interaction: discord.Interaction, team_name: str):
+    not_implemented = True
+    if not_implemented:
+        await interaction.followup.send(f"command not implemented yet.")
+
+        """========================== NOT IMPLEMENTED ============================="""
+
+        return
+    settings = load_settings_json()
+    team_names = [x for x in settings['teams'].keys()]
+    team_number = team_names.index(team_name) + 1
+    await interaction.response.defer(thinking=True)
+    if not interaction.channel.category.name.lower() == 'admin':
+        await interaction.response.send_message(f"Use this command in {mod_channel} and ADMIN section")
+        return
+    elif not team_name in team_names:
+        await interaction.response.send_message(f"Team Name: {team_name} is not found in {team_names}\nPlease Try again")
+        return
+    await interaction.response.defer(thinking=True)
+    cats = interaction.guild.categories
+    print([c.name for c in cats])
+    channels = await get_default_channels(interaction)
+    updated_num = 0
+    for cat in cats:
+        if cat.name.lower() == team_name.lower():
+            for ch in cat.channels:
+                # look for first message in channel and update it
+                if ch.type == discord.ChannelType.text and ch.name in [x['name'] for x in channels]:
+                    channel_details = [x for x in channels if x['name'] == ch.name][0]
+                    async for message in ch.history(limit=1):
+                        if message.author == bot.user:
+                            if channel_details['description'] != message.content:
+                                if channel_details['description'] != "":
+                                    await ch.edit(topic=channel_details['description'])
+                                    await message.edit(content=f"{channel_details['description']}")
+                                    updated_num += 1            
+    await interaction.followup.send(f"Updated {team_name}'s channels Tiles. {updated_num} channel(s) tiles updated.")
+
+
+@has_role("Bingo Moderator")
+@app_commands.autocomplete(team_name=team_names_autocomplete)
+@bot.tree.command(name="create_team_channels", description=f"Update the bingo tiles for a team. Useful for post start updates.")
+async def create_team_channels(interaction: discord.Interaction, team_name: str):
+    settings = load_settings_json()
+    team_names = [x for x in settings['teams'].keys()]
+    team_number = team_names.index(team_name) + 1
+    await interaction.response.defer(thinking=True)
+    if not interaction.channel.category.name.lower() == 'admin':
+        await interaction.response.send_message(f"Use this command in {mod_channel} and ADMIN section")
+        return
+    elif not team_name in team_names:
+        await interaction.response.send_message(f"Team Name: {team_name} is not found in {team_names}\nPlease Try again")
+        return
+    await interaction.response.defer(thinking=True)
+    everyone_role = discord.utils.get(interaction.guild.roles, name="@everyone")
+    spectator_role = discord.utils.get(interaction.guild.roles, name="spectator")
+    bingo_bot_role = discord.utils.get(interaction.guild.roles, name="Bingo Bot")
+    team_role = discord.utils.get(interaction.guild.roles, name=f"Team {team_number}")
+    cat = await interaction.guild.create_category(name=team_name)
+    overwrites_with_spectator = {
+        interaction.guild.default_role: discord.PermissionOverwrite(read_messages=False, connect=False),
+        bingo_bot_role: bingo_bot_overwrites(),
+        interaction.guild.me: bingo_bot_overwrites(),
+        spectator_role: spectator_overwrites(),
+        team_role: team_overwrites(),
+        everyone_role: everyone_overwrites()
+        }
+    overwrites_w_out_spectator = {
+        interaction.guild.default_role: discord.PermissionOverwrite(read_messages=False, connect=False),
+        bingo_bot_role: bingo_bot_overwrites(),
+        interaction.guild.me: bingo_bot_overwrites(),
+        team_role: team_overwrites(),
+        everyone_role: everyone_overwrites()
+        }
+
+    await interaction.response.defer(thinking=True)
+    await cat.edit(overwrites=overwrites_with_spectator)
+    # Create Default Channels
+    # all_channels = []
+    channels = await get_default_channels(interaction)
+    for channel in channels:
+        settings = load_settings_json()
+        if settings['bot_mode']['current'] == 'candyland':
+            channel_name = f"team-{team_number}-{channel}"
+            if channel_name == f"team-{team_number}-chat":
+                overwrites = overwrites_w_out_spectator
+            else:
+                overwrites = overwrites_with_spectator
+        else:
+            channel_name = channel['name']
+            if channel_name == "chat":
+                # TODO update this
+                # raise Exception("This is not implemented yet, update proper perms")
+                channel_name = f"{team_number}-general-{channel_name}"
+                overwrites = overwrites_w_out_spectator
+            else:
+                # raise Exception("This is not implemented yet, update proper perms")
+                overwrites = overwrites_with_spectator
+        if "voice" in channel_name:
+            channel_name = f"{team_number}-{channel_name}"
+            chan = await interaction.guild.create_voice_channel(name=channel_name, category=cat, overwrites=overwrites)
+        else:
+            chan = await interaction.guild.create_text_channel(name=channel_name, topic=channel['description'],
+                                                                category=cat, overwrites=overwrites)
+            if channel['description']:
+                await chan.send(f"{channel['description']}")
+            if channel_name == 'photo-dump' or channel_name == 'drop-spam':
+                webhook = await chan.create_webhook(name=channel_name)
+                await chan.send(f"Here are instructions for adding Discord Rare Drop Notification to Runelite\n\nDownload the Plugin from Plugin Hub\nCopy this Webhook URL to this channel into the Plugin(Accessed via the settings)")
+                await chan.send(f"```{webhook.url}```")
+                if settings['bot_mode']['current'] == 'candyland':
+                    await chan.send(f"Copy in this Tile List to ensure that ALL potential items are captured")
+                    list_of_item_names = [x['item_names'] for x in settings['items'].values()]
+                    list_of_item_names = [x.replace("*", "\*") for x in list_of_item_names]
+                    embed = discord.Embed(
+                        description=f"{''.join([x.lower() for x in filter(None, list_of_item_names)])}"
+                        )
+                    await chan.send(embed=embed)
+        # all_channels.append(chan)
+    await interaction.followup.send(f'Channels created for "{team_name}"')
+
+
+
+
+@has_role("Bingo Moderator")
+@app_commands.autocomplete(team_name=team_names_autocomplete)
+@bot.tree.command(name="set_tile", description=f"Set the tile/score manually.")
+async def set_tile(interaction: discord.Interaction, team_name: str):
+    settings = load_settings_json()
+    team_names = [x for x in settings['teams'].keys()]
+    team_number = team_names.index(team_name) + 1
+    await interaction.response.defer(thinking=True)
+    if not interaction.channel.category.name.lower() == 'admin':
+        await interaction.response.send_message(f"Use this command in {mod_channel} and ADMIN section")
+        return
+    elif not team_name in team_names:
+        await interaction.response.send_message(f"Team Name: {team_name} is not found in {team_names}\nPlease Try again")
+        return
+    await interaction.response.defer(thinking=True)
+    try:
+        tile = int(tile)
+    except ValueError:
+        await interaction.response.send_message(f'Unable to process tile "tile": {tile} - Ensure it is a number')
+        return
+    if tile < 0:
+        tile = 1
+    settings['teams'][team_name]['current'] = tile
+    await interaction.response.send_message(f'Updated tile for Team: {team_name} to {tile}')
+    update_settings_json(settings)
+    
+
+@has_role("Bingo Moderator")
+@app_commands.autocomplete(team_name=team_names_autocomplete)
+@bot.tree.command(name="set_previous_tile", description=f"Set the previous tile/score manually. Primarily used for candyland style bingo.")
+async def set_previous_tile(interaction: discord.Interaction, team_name: str):
+    settings = load_settings_json()
+    team_names = [x for x in settings['teams'].keys()]
+    team_number = team_names.index(team_name) + 1
+    await interaction.response.defer(thinking=True)
+    if not interaction.channel.category.name.lower() == 'admin':
+        await interaction.response.send_message(f"Use this command in {mod_channel} and ADMIN section")
+        return
+    elif not team_name in team_names:
+        await interaction.response.send_message(f"Team Name: {team_name} is not found in {team_names}\nPlease Try again")
+        return
+    await interaction.response.defer(thinking=True)
+    try:
+        tile = int(tile)
+    except ValueError:
+        await interaction.response.send_message(f'Unable to process prev tile "tile": {tile} - Ensure it is a number')
+        return
+    if tile < 0:
+        tile = None
+    settings['teams'][team_name]['prev'] = tile
+    await interaction.response.send_message(f'Updated prev tile for Team: {team_name} to {tile}')
+    update_settings_json(settings)
+    
+
+@has_role("Bingo Moderator")
+@app_commands.autocomplete(team_name=team_names_autocomplete)
+@bot.tree.command(name="configure_team_reroll", description=f"Set reroll option for a team. This is used to give or take away rerolls.")
+async def set_reroll(interaction: discord.Interaction, team_name: str):
+    settings = load_settings_json()
+    team_names = [x for x in settings['teams'].keys()]
+    team_number = team_names.index(team_name) + 1
+    await interaction.response.defer(thinking=True)
+    if not interaction.channel.category.name.lower() == 'admin':
+        await interaction.response.send_message(f"Use this command in {mod_channel} and ADMIN section")
+        return
+    elif not team_name in team_names:
+        await interaction.response.send_message(f"Team Name: {team_name} is not found in {team_names}\nPlease Try again")
+        return
+    await interaction.response.defer(thinking=True)
+    await reroll(interaction=interaction, team_name=team_name)
+
+
+
+
+
+
+
+
+
+
+
+
+@has_role("Bingo Moderator")
 @bot.tree.command(name="update_score", description=f"Refresh the Score")
 async def update_score(interaction: discord.Interaction):
     settings = load_settings_json()
@@ -1187,14 +1468,33 @@ async def style(interaction: discord.Interaction):
     
     await interaction.response.send_message(f"Bingo Bot Style is: '{settings['bot_mode']['current']}', Update this, currently only displays current")
 
+async def parse_table_location(location: str):
+    if location == "":
+        return 0, 0
+    col, row = location[0], location[1]
+    if col.lower() == 'a':
+        col = 1
+    elif col.lower() == 'b':
+        col = 2
+    elif col.lower() == 'c':
+        col = 3
+    elif col.lower() == 'd':
+        col = 4
+    elif col.lower() == 'e':
+        col = 5
+    else:
+        col = 0
+    return int(row), int(col)
+
 @has_role("Bingo Moderator")
 @app_commands.autocomplete(team_name=team_names_autocomplete)
-@bot.tree.command(name="mark_tile_completed", description=f"Mark a tile as completed on the bingo board, Row 1-5. Column 1-5.")
-async def mark_tile_completed(interaction: discord.Interaction, team_name: str, row: int, col: int):
+@bot.tree.command(name="mark_tile_completed", description=f"Mark a tile as completed on the bingo board, Column A-E. Row 1-5. 'A1' for example.")
+async def mark_tile_completed(interaction: discord.Interaction, team_name: str, location):
     settings = load_settings_json()
     team_names = [x for x in settings['teams'].keys()]
     team_number = team_names.index(team_name) + 1
     await interaction.response.defer(thinking=True)
+    row, col = await parse_table_location(location)
     if row == 0 or col == 0:
         update = False
     else:
