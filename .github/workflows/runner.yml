@@ -24,10 +24,7 @@ jobs:
       - name: Sync Bot Commands
         run: |
           cd /opt/appdata/discord-bots/ && \
-          docker exec -it opt_osrs-bingo-bot_1 bash && \
-          python3 bot.py && \
-          sleep 10 && \
-          exit
+          docker exec opt_osrs-bingo-bot_1 bash -c "python3 bot.py && sleep 10"
 
       - name: Cleanup Unused Images
         run: docker image prune -f
