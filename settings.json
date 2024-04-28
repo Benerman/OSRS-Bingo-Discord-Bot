@@ -18,17 +18,45 @@
             "prev": 0,
             "reroll": 0,
             "roll_history": [],
-            "image": "C:\\Users\\ADINN-II\\Documents\\Bingo Discord Bot\\images\\The Screen Team-3-1.png",
+            "image": "/app/images/Team 1-5-5.png",
             "image_bounds": {
-                "x_offset": 50,
+                "x_offset": 52,
                 "y_offset": 35,
-                "x_right_offset": 50,
+                "x_right_offset": 52,
                 "y_bottom_offset": 100,
                 "x": 0,
                 "y": 0,
-                "gutter": 18
+                "gutter": 15
             },
             "tiles_completed": [
+                [
+                    1,
+                    1
+                ],
+                [
+                    1,
+                    1
+                ],
+                [
+                    2,
+                    1
+                ],
+                [
+                    1,
+                    5
+                ],
+                [
+                    1,
+                    4
+                ],
+                [
+                    2,
+                    4
+                ],
+                [
+                    5,
+                    5
+                ]
             ]
         },
         "Team 2": {
@@ -36,69 +64,66 @@
             "prev": 0,
             "reroll": 0,
             "roll_history": [],
-            "image": "C:\\Users\\ADINN-II\\Documents\\Bingo Discord Bot\\images\\Hunners and Gatherers-4-3.png",
+            "image": "/app/images/bingo_card_image.png",
             "image_bounds": {
-                "x_offset": 50,
+                "x_offset": 52,
                 "y_offset": 35,
-                "x_right_offset": 50,
+                "x_right_offset": 52,
                 "y_bottom_offset": 100,
                 "x": 0,
                 "y": 0,
-                "gutter": 18
+                "gutter": 15
             },
-            "tiles_completed": [
-            ]
+            "tiles_completed": []
         },
         "Team 3": {
             "current": 0,
             "prev": 0,
             "reroll": 0,
             "roll_history": [],
-            "image": "C:\\Users\\ADINN-II\\Documents\\Bingo Discord Bot\\images\\Loony Looters-3-1.png",
+            "image": "/app/images/bingo_card_image.png",
             "image_bounds": {
-                "x_offset": 50,
+                "x_offset": 52,
                 "y_offset": 35,
-                "x_right_offset": 50,
+                "x_right_offset": 52,
                 "y_bottom_offset": 100,
                 "x": 0,
                 "y": 0,
-                "gutter": 18
+                "gutter": 15
             },
-            "tiles_completed": [
-            ]
+            "tiles_completed": []
         },
         "Team 4": {
             "current": 0,
             "prev": 0,
             "reroll": 0,
             "roll_history": [],
-            "image": "C:\\Users\\ADINN-II\\Documents\\Bingo Discord Bot\\images\\Whalecum-4-5.png",
+            "image": "/app/images/bingo_card_image.png",
             "image_bounds": {
-                "x_offset": 50,
+                "x_offset": 52,
                 "y_offset": 35,
-                "x_right_offset": 50,
+                "x_right_offset": 52,
                 "y_bottom_offset": 100,
                 "x": 0,
                 "y": 0,
-                "gutter": 18
+                "gutter": 15
             },
-            "tiles_completed": [
-            ]
+            "tiles_completed": []
         },
         "Team 5": {
             "current": 0,
             "prev": 0,
             "reroll": 0,
             "roll_history": [],
-            "image": "C:\\Users\\ADINN-II\\Documents\\Bingo Discord Bot\\images\\BINGO_BOARD_FEBRUARY_2024.png",
+            "image": "/app/images/bingo_card_image.png",
             "image_bounds": {
-                "x_offset": 50,
+                "x_offset": 52,
                 "y_offset": 35,
-                "x_right_offset": 50,
+                "x_right_offset": 52,
                 "y_bottom_offset": 100,
                 "x": 0,
                 "y": 0,
-                "gutter": 18
+                "gutter": 15
             },
             "tiles_completed": []
         },
@@ -107,15 +132,15 @@
             "prev": 0,
             "reroll": 0,
             "roll_history": [],
-            "image": "C:\\Users\\ADINN-II\\Documents\\Bingo Discord Bot\\images\\BINGO_BOARD_FEBRUARY_2024.png",
+            "image": "/app/images/bingo_card_image.png",
             "image_bounds": {
-                "x_offset": 50,
+                "x_offset": 52,
                 "y_offset": 35,
-                "x_right_offset": 50,
+                "x_right_offset": 52,
                 "y_bottom_offset": 100,
                 "x": 0,
                 "y": 0,
-                "gutter": 18
+                "gutter": 15
             },
             "tiles_completed": []
         },
@@ -124,15 +149,15 @@
             "prev": 0,
             "reroll": 0,
             "roll_history": [],
-            "image": "C:\\Users\\ADINN-II\\Documents\\Bingo Discord Bot\\images\\BINGO_BOARD_FEBRUARY_2024.png",
+            "image": "/app/images/bingo_card_image.png",
             "image_bounds": {
-                "x_offset": 50,
+                "x_offset": 52,
                 "y_offset": 35,
-                "x_right_offset": 50,
+                "x_right_offset": 52,
                 "y_bottom_offset": 100,
                 "x": 0,
                 "y": 0,
-                "gutter": 18
+                "gutter": 15
             },
             "tiles_completed": []
         }
