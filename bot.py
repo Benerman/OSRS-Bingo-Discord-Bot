@@ -274,8 +274,8 @@ def mark_on_image_tile_complete(team_name: str, row: int, column: int) -> None:
     gutter = image_bounds['gutter'] if image_bounds['gutter'] else 0
     if image_bounds['x'] == 0 and image_bounds['y'] == 0:
         width, height = img.size
-        width = width - (x_offset + x_right_offset)
-        height = height - (y_offset + y_bottom_offset)
+        width = width - (x_offset + x_right_offset + (4 * gutter))
+        height = height - (y_offset + y_bottom_offset + (4 * gutter))
     else:
         width = image_bounds['x']
         height = image_bounds['y']
@@ -291,10 +291,10 @@ def mark_on_image_tile_complete(team_name: str, row: int, column: int) -> None:
     column -= 1
 
     # Calculate the coordinates of the specified bingo tile
-    x1 = (column * tile_width) + x_offset 
-    y1 = (row * tile_height) + y_offset
-    x2 = ((column + 1) * tile_width) + x_offset
-    y2 = ((row + 1) * tile_height) + y_offset 
+    x1 = (column * tile_width) + x_offset + (column * gutter)
+    y1 = (row * tile_height) + y_offset + (row * gutter)
+    x2 = ((column + 1) * tile_width) + x_offset + (column * gutter)
+    y2 = ((row + 1) * tile_height) + y_offset + (row * gutter)
 
     # Create a drawing object
     draw = ImageDraw.Draw(img)
