@@ -10,8 +10,8 @@ jobs:
     environment: production
 
     steps:
-      - name: Get directory
-        run: ls -la
+      - name: Stop docker compose
+        run: docker-compose -f /opt/discord-compose.yml down
         
       - uses: actions/checkout@v3
 
