@@ -23,6 +23,12 @@ jobs:
 
       - name: Show Contents
         run: ls -la
+  
+      - name: Pull latest...
+        run: git pull -f 
+        
+      - name: Show Contents
+        run: ls -la
 
       - name: Git Log
         run: git log
