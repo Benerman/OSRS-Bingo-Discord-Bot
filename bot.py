@@ -1292,7 +1292,7 @@ async def create_team_channels(interaction: discord.Interaction, team_name: str)
 @has_role("Bingo Moderator")
 @app_commands.autocomplete(team_name=team_names_autocomplete)
 @bot.tree.command(name="set_tile", description=f"Set the tile/score manually.")
-async def set_tile(interaction: discord.Interaction, team_name: str):
+async def set_tile(interaction: discord.Interaction, team_name: str, tile: int):
     settings = load_settings_json()
     team_names = [x for x in settings['teams'].keys()]
     team_number = team_names.index(team_name) + 1
@@ -1318,7 +1318,7 @@ async def set_tile(interaction: discord.Interaction, team_name: str):
 @has_role("Bingo Moderator")
 @app_commands.autocomplete(team_name=team_names_autocomplete)
 @bot.tree.command(name="set_previous_tile", description=f"Set the previous tile/score manually. Primarily used for candyland style bingo.")
-async def set_previous_tile(interaction: discord.Interaction, team_name: str):
+async def set_previous_tile(interaction: discord.Interaction, team_name: str, tile: int):
     settings = load_settings_json()
     team_names = [x for x in settings['teams'].keys()]
     team_number = team_names.index(team_name) + 1
