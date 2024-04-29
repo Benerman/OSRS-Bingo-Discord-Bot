@@ -1599,7 +1599,7 @@ async def close_server(interaction: discord.Interaction):
     roles = [discord.utils.get(interaction.guild.roles, name=rl) for rl in ROLES]
     roles.append(spectator_role)
     members = members.split()
-    await process_all_spectators(interaction, roles, spectator_role unassign=True)
+    await process_all_spectators(interaction, roles, spectator_role, unassign=True)
     await interaction.followup.send('Server has been closed.')
 
 print('About to log in with bot')
