@@ -8,6 +8,7 @@ import re
 import random
 import os
 import config
+import asyncio
 from discord import Role
 from typing import List, Optional
 from PIL import Image, ImageDraw
@@ -487,7 +488,37 @@ def formatted_title(settings, team_name):
     desc = settings['items'][str(tile_num)]['short_desc']
     return f"{tile_num} - {name} - {desc}"
 
-# ========= Bot Commands ================
+async def process_all_spectators(interaction, roles, spectator_role, unassign):
+    members = interaction.guild.members
+    for m in members:
+        if discord.RateLimited:
+            await asyncio.sleep(10)
+        await m.remove_roles(*roles)
+        if not unassign:
+            await m.add_roles(spectator_role)
+    await interaction.followup.send(f'Role "spectator" {"added to" if not unassign else "purged from"} all server members')
+
+async def parse_table_location(location: str):
+    if location == "":
+        return 0, 0
+    col, row = location[0], location[1]
+    if col.lower() == 'a':
+        col = 1
+    elif col.lower() == 'b':
+        col = 2
+    elif col.lower() == 'c':
+        col = 3
+    elif col.lower() == 'd':
+        col = 4
+    elif col.lower() == 'e':
+        col = 5
+    else:
+        col = 0
+    return int(row), int(col)
+
+
+
+# ======================================= Bot Commands ====================================================
 
 # settings = load_settings_json()
 # total_tiles = len(settings['items'])
@@ -778,7 +809,7 @@ async def set_tiles(interaction: discord.Interaction, sheet_link: str, process_s
 
 @app_commands.autocomplete(team_name=team_names_autocomplete)
 @has_role("Bingo Moderator")
-@bot.tree.command(name="disband", description=f"Clear Team <#> Role from all players assigned")
+@bot.tree.command(name="clear_team_role", description=f"Clear Team <#> Role from all players assigned")
 async def disband(interaction: discord.Interaction, team_name: str):
     settings = load_settings_json()
     team_names = [x for x in settings['teams'].keys()]
@@ -804,7 +835,7 @@ async def disband(interaction: discord.Interaction, team_name: str):
             await interaction.followup.send(f'We ran into issues disbanding Discord Role: "Team {team_number}" OR there are no members in that that role')
 
 @has_role("Bingo Moderator")
-@bot.tree.command(name="spectators", description=f"Assign Spectator Role to Discord Members")
+@bot.tree.command(name="spectators", description=f"Assign Spectator Role and clear existing roles to Discord Members")
 async def spectators(interaction: discord.Interaction,
                     members: str,
                     unassign: bool = False):
@@ -813,13 +844,8 @@ async def spectators(interaction: discord.Interaction,
     roles = [discord.utils.get(interaction.guild.roles, name=rl) for rl in ROLES]
     roles.append(spectator_role)
     members = members.split()
-    if members[0] == '@everyone':
-        members = interaction.guild.members
-        for m in members:
-            await m.remove_roles(*roles)
-            if not unassign:
-                await m.add_roles(spectator_role)
-        await interaction.followup.send(f'Role "spectator" {"added" if not unassign else "removed"} to all server members')
+    if members[0] == '@everyone' and unassign:
+        process_all_spectators(interaction, roles, spectator_role, unassign)
     elif len(members) == 0:
         await interaction.followup.send(f'Please add @ each member to add them too team')
     else:
@@ -830,6 +856,7 @@ async def spectators(interaction: discord.Interaction,
             if not unassign:
                 await mem.add_roles(spectator_role)
         await interaction.followup.send(f'Role "spectator" {"added" if not unassign else "removed"} to {len(members)} members')
+
 
     # elif option == "Captain":
     #     if len(interaction.message.mentions) == 0:
@@ -849,10 +876,10 @@ async def spectators(interaction: discord.Interaction,
 
 @app_commands.autocomplete(team_name=team_names_autocomplete)
 @has_role("Bingo Moderator")
-@bot.tree.command(name="members", description=f"Assign Team <#> Role to Discord Members")
+@bot.tree.command(name="add_team_role", description=f"Assign Team <#> Role to Discord Members")
 async def members(interaction: discord.Interaction,
                 team_name: str,    
-                members: str):
+                members: List[str]):
     settings = load_settings_json()
     team_names = [x for x in settings['teams'].keys()]
     team_number = team_names.index(team_name) + 1
@@ -1098,35 +1125,51 @@ async def reroll(interaction: discord.Interaction, team_name: str):
 @app_commands.autocomplete(team_name=team_names_autocomplete)
 @bot.tree.command(name="delete_channels", description=f"Delete all channels for a team and the team category.")
 async def delete_channels(interaction: discord.Interaction, team_name: str):
-    settings = load_settings_json()
-    team_names = [x for x in settings['teams'].keys()]
-    team_number = team_names.index(team_name) + 1
-    await interaction.response.defer(thinking=True)
-    if not interaction.channel.category.name.lower() == 'admin':
-        await interaction.followup.send(f"Use this command in {mod_channel} and ADMIN section")
-        return
-    elif not team_name in team_names:
-        await interaction.followup.send(f"Team Name: {team_name} is not found in {team_names}\nPlease Try again")
-        return
-    print('Deleting...')
-    num_deleted = 0
-    cats = interaction.guild.categories
-    print([c.name for c in cats])
-    for cat in cats:
-        if cat.name.lower() == team_name.lower():
-            for ch in cat.channels:
-                print(ch)
-                num_deleted += 1
-                await ch.delete()
-            await cat.delete()
-            if num_deleted > 0:
-                await interaction.followup.send(f"Deleted {team_name}'s channels. {num_deleted} channel(s) deleted.")
-        else:
-            print(f"Skipping {cat.name}\t{team_name}\t{cat.name.lower() == team_name.lower()}")
-    else:
-        if num_deleted == 0:
-            await interaction.followup.send(f"{team_name}: No ({num_deleted}) Channels Deleted")
-    print(f"Deleted {num_deleted} Channels")
+
+    class DeleteConfirmation(discord.ui.View):
+        def __init__(self, interaction: discord.Interaction, team_name: str, *, timeout: Optional[float] = 180):
+            self.interaction = interaction
+            self.team_name = team_name
+            super().__init__(timeout=timeout)
+
+        @discord.ui.button(label='Cancel', style=discord.ButtonStyle.danger)
+        async def abort_delete(self, interaction: discord.Interaction, Button: discord.ui.Button):
+            await interaction.followup.send('Cancelled "Delete Channels" command')
+
+        @discord.ui.button(label='Give', style=discord.ButtonStyle.green)
+        async def delete_team_channels(self, interaction: discord.Interaction, Button: discord.ui.Button):
+            settings = load_settings_json()
+            team_names = [x for x in settings['teams'].keys()]
+            team_number = team_names.index(self.team_name) + 1
+            await interaction.response.defer(thinking=True)
+            if not interaction.channel.category.name.lower() == 'admin':
+                await interaction.followup.send(f"Use this command in {mod_channel} and ADMIN section")
+                return
+            elif not self.team_name in team_names:
+                await interaction.followup.send(f"Team Name: {self.team_name} is not found in {team_names}\nPlease Try again")
+                return
+            print('Deleting...')
+            num_deleted = 0
+            cats = interaction.guild.categories
+            print([c.name for c in cats])
+            for cat in cats:
+                if cat.name.lower() == self.team_name.lower():
+                    for ch in cat.channels:
+                        print(ch)
+                        num_deleted += 1
+                        await ch.delete()
+                    await cat.delete()
+                    if num_deleted > 0:
+                        await interaction.followup.send(f"Deleted {self.team_name}'s channels. {num_deleted} channel(s) deleted.")
+                else:
+                    print(f"Skipping {cat.name}\t{self.team_name}\t{cat.name.lower() == self.team_name.lower()}")
+            else:
+                if num_deleted == 0:
+                    await interaction.followup.send(f"{self.team_name}: No ({num_deleted}) Channels Deleted")
+            print(f"Deleted {num_deleted} Channels")
+
+    await interaction.response.send_message(f'Confirm Deletion of Team "{team_name}":', view=DeleteConfirmation(interaction=interaction, team_name=team_name))
+    
 
 
 @has_role("Bingo Moderator")
@@ -1467,24 +1510,6 @@ async def style(interaction: discord.Interaction, bingo_style: bool = False, can
 
     await interaction.followup.send(f"Bingo Bot Style is: '{settings['bot_mode']['current']}'")
 
-async def parse_table_location(location: str):
-    if location == "":
-        return 0, 0
-    col, row = location[0], location[1]
-    if col.lower() == 'a':
-        col = 1
-    elif col.lower() == 'b':
-        col = 2
-    elif col.lower() == 'c':
-        col = 3
-    elif col.lower() == 'd':
-        col = 4
-    elif col.lower() == 'e':
-        col = 5
-    else:
-        col = 0
-    return int(row), int(col)
-
 @has_role("Bingo Moderator")
 @app_commands.autocomplete(team_name=team_names_autocomplete)
 @bot.tree.command(name="mark_tile_completed", description=f"Mark a tile as completed on the bingo board, Column A-E. Row 1-5. 'A1' for example.")
@@ -1504,8 +1529,8 @@ async def mark_tile_completed(interaction: discord.Interaction, team_name: str, 
     await interaction.followup.send(f'Team: {team_name}\'s tile has been marked as completed and updated in the Bingo Card Channel')
     
 @has_role("Bingo Moderator")
-@bot.tree.command(name="set_board_image", description=f"Attach and upload image as the default Bingo Card Image. Overwrites all teams existing images.")
-async def set_board_image(interaction: discord.Interaction, file: discord.Attachment):
+@bot.tree.command(name="upload_board_image", description=f"Attach and upload image as the default Bingo Card Image. Overwrites all teams existing images.")
+async def upload_board_image(interaction: discord.Interaction, file: discord.Attachment):
     settings = load_settings_json()
     team_names = [x for x in settings['teams'].keys()]
     await interaction.response.defer(thinking=True)
@@ -1565,6 +1590,17 @@ async def sync(interaction: discord.Interaction):
     await interaction.response.defer(thinking=True)
     await bot.tree.sync()
     await interaction.followup.send('Command tree synced.')
+
+@has_role("Bingo Moderator")
+@bot.tree.command(name="close_server", description=f"Remove all roles from non-admin or bingo moderator roles.")
+async def close_server(interaction: discord.Interaction):
+    await interaction.response.defer(thinking=True)
+    spectator_role = discord.utils.get(interaction.guild.roles, name="spectator")
+    roles = [discord.utils.get(interaction.guild.roles, name=rl) for rl in ROLES]
+    roles.append(spectator_role)
+    members = members.split()
+    await process_all_spectators(interaction, roles, spectator_role unassign=True)
+    await interaction.followup.send('Server has been closed.')
 
 print('About to log in with bot')
 bot.run(config.DISCORD_BOT_TOKEN)
