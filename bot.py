@@ -808,14 +808,13 @@ async def disband(interaction: discord.Interaction, team_name: str):
 async def spectators(interaction: discord.Interaction,
                     members: str,
                     unassign: bool = False):
-    await interaction.channel.typing()
+    await interaction.response.defer(thinking=True)
     spectator_role = discord.utils.get(interaction.guild.roles, name="spectator")
     roles = [discord.utils.get(interaction.guild.roles, name=rl) for rl in ROLES]
     roles.append(spectator_role)
     members = members.split()
     if members[0] == '@everyone':
         members = interaction.guild.members
-        await interaction.response.defer(thinking=True)
         for m in members:
             await m.remove_roles(*roles)
             if not unassign:
@@ -824,7 +823,6 @@ async def spectators(interaction: discord.Interaction,
     elif len(members) == 0:
         await interaction.followup.send(f'Please add @ each member to add them too team')
     else:
-        await interaction.response.defer(thinking=True)
         for m in members:
             m_id = int(m.replace('<', '').replace('>', '').replace('@', ''))
             mem = await interaction.guild.fetch_member(m_id)
@@ -1189,7 +1187,6 @@ async def update_tiles_channels(interaction: discord.Interaction, team_name: str
     elif not team_name in team_names:
         await interaction.followup.send(f"Team Name: {team_name} is not found in {team_names}\nPlease Try again")
         return
-    await interaction.response.defer(thinking=True)
     cats = interaction.guild.categories
     print([c.name for c in cats])
     channels = await get_default_channels(interaction)
@@ -1224,7 +1221,6 @@ async def create_team_channels(interaction: discord.Interaction, team_name: str)
     elif not team_name in team_names:
         await interaction.followup.send(f"Team Name: {team_name} is not found in {team_names}\nPlease Try again")
         return
-    await interaction.response.defer(thinking=True)
     everyone_role = discord.utils.get(interaction.guild.roles, name="@everyone")
     spectator_role = discord.utils.get(interaction.guild.roles, name="spectator")
     bingo_bot_role = discord.utils.get(interaction.guild.roles, name="Bingo Bot")
@@ -1307,7 +1303,6 @@ async def set_tile(interaction: discord.Interaction, team_name: str):
     elif not team_name in team_names:
         await interaction.followup.send(f"Team Name: {team_name} is not found in {team_names}\nPlease Try again")
         return
-    await interaction.response.defer(thinking=True)
     try:
         tile = int(tile)
     except ValueError:
