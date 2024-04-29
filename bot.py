@@ -1460,7 +1460,7 @@ async def delete(interaction: discord.Interaction):
 
 @has_role("Bingo Moderator")
 @bot.tree.command(name="style", description=f"Change the Bot's Bingo Style or view current.")
-async def style(interaction: discord.Interaction, bingo_style: str = False, candyland: str = False):
+async def style(interaction: discord.Interaction, bingo_style: bool = False, candyland: bool = False):
     await interaction.response.defer(thinking=True)
     settings = load_settings_json()
     # TODO Update this to change the settings
