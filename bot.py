@@ -1143,7 +1143,7 @@ async def delete_channels(interaction: discord.Interaction, team_name: str):
             await interaction.response.send_message('Cancelled "Delete Channels" command')
 
         @discord.ui.button(label='Delete All Team Channels', style=discord.ButtonStyle.green)
-        async def delete_team_channels(self, interaction: discord.Interaction, Button: discord.ui.Button):
+        async def delete_team_channels(self, interaction: discord.Interaction, button: discord.ui.Button):
             for child in self.children:
                 if child == button:
                     continue
