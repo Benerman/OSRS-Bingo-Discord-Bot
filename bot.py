@@ -1128,22 +1128,28 @@ async def delete_channels(interaction: discord.Interaction, team_name: str):
 
     class DeleteConfirmation(discord.ui.View):
         def __init__(self, interaction: discord.Interaction, team_name: str, *, timeout: Optional[float] = 180):
-            self.interaction = interaction
             self.team_name = team_name
             super().__init__(timeout=timeout)
 
         @discord.ui.button(label='Cancel', style=discord.ButtonStyle.danger)
         async def abort_delete(self, interaction: discord.Interaction, button: discord.ui.Button):
-            self.stop()
             for child in self.children:
-                child.disabled = True 
+                if child == button:
+                    continue
+                else:
+                    child.disabled = True
+            button.disabled = True
+            self.stop()
             await interaction.followup.send('Cancelled "Delete Channels" command')
 
         @discord.ui.button(label='Delete All Team Channels', style=discord.ButtonStyle.green)
         async def delete_team_channels(self, interaction: discord.Interaction, Button: discord.ui.Button):
-            self.stop()
             for child in self.children:
-                child.disabled = True
+                if child == button:
+                    continue
+                else:
+                    child.disabled = True
+            child.disabled = True
             settings = load_settings_json()
             team_names = [x for x in settings['teams'].keys()]
             team_number = team_names.index(self.team_name) + 1
@@ -1173,6 +1179,7 @@ async def delete_channels(interaction: discord.Interaction, team_name: str):
                 if num_deleted == 0:
                     await interaction.followup.send(f"{self.team_name}: No ({num_deleted}) Channels Deleted")
             print(f"Deleted {num_deleted} Channels")
+            self.stop()
 
     await interaction.response.send_message(f'Confirm Deletion of Team "{team_name}":', view=DeleteConfirmation(interaction=interaction, team_name=team_name))
     
