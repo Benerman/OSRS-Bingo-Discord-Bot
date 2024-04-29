@@ -1149,16 +1149,15 @@ async def delete_channels(interaction: discord.Interaction, team_name: str):
                     continue
                 else:
                     child.disabled = True
-            child.disabled = True
+            button.disabled = True
             settings = load_settings_json()
             team_names = [x for x in settings['teams'].keys()]
             team_number = team_names.index(self.team_name) + 1
-            await interaction.response.defer(thinking=True)
             if not interaction.channel.category.name.lower() == 'admin':
-                await interaction.followup.send(f"Use this command in {mod_channel} and ADMIN section")
+                await interaction.response.send_message(f"Use this command in {mod_channel} and ADMIN section")
                 return
             elif not self.team_name in team_names:
-                await interaction.followup.send(f"Team Name: {self.team_name} is not found in {team_names}\nPlease Try again")
+                await interaction.response.send_message(f"Team Name: {self.team_name} is not found in {team_names}\nPlease Try again")
                 return
             print('Deleting...')
             num_deleted = 0
@@ -1172,12 +1171,12 @@ async def delete_channels(interaction: discord.Interaction, team_name: str):
                         await ch.delete()
                     await cat.delete()
                     if num_deleted > 0:
-                        await interaction.followup.send(f"Deleted {self.team_name}'s channels. {num_deleted} channel(s) deleted.")
+                        await interaction.message.edit_original_message(f"Deleted {self.team_name}'s channels. {num_deleted} channel(s) deleted.", view=self)
                 else:
                     print(f"Skipping {cat.name}\t{self.team_name}\t{cat.name.lower() == self.team_name.lower()}")
             else:
                 if num_deleted == 0:
-                    await interaction.followup.send(f"{self.team_name}: No ({num_deleted}) Channels Deleted")
+                    await interaction.response.send_message(f"{self.team_name}: No ({num_deleted}) Channels Deleted")
             print(f"Deleted {num_deleted} Channels")
             self.stop()
 
