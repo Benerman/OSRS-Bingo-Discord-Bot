@@ -1489,7 +1489,7 @@ async def parse_table_location(location: str):
 @has_role("Bingo Moderator")
 @app_commands.autocomplete(team_name=team_names_autocomplete)
 @bot.tree.command(name="mark_tile_completed", description=f"Mark a tile as completed on the bingo board, Column A-E. Row 1-5. 'A1' for example.")
-async def mark_tile_completed(interaction: discord.Interaction, team_name: str, location):
+async def mark_tile_completed(interaction: discord.Interaction, team_name: str, location: str):
     settings = load_settings_json()
     team_names = [x for x in settings['teams'].keys()]
     team_number = team_names.index(team_name) + 1
