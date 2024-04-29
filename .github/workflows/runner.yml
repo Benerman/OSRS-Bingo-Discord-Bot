@@ -18,6 +18,9 @@ jobs:
         with:
           ref: ${{ github.ref }}
 
+      - name: Git Log
+        run: git log
+        
       - name: Run Container
         run: docker-compose -f /opt/discord-compose.yml up -d --build
 
