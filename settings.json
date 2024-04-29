@@ -11,7 +11,7 @@
         "spreadsheet_id": "1Jbfh3gvRWVBbW3nzDn10hP-CUXVlQDKFOlnGU1nPexM",
         "items": {}
     },
-    "running": true,
+    "running": false,
     "teams": {
         "Team 1": {
             "current": 0,
@@ -291,8 +291,8 @@
     },
     "posts": {
         "score-board": {
-            "id": 1202440269165887520,
-            "content": "The Screen Team: 19\nHunners and Gatherers: 13\nLoony Looters: 4\nWhalecum: 17\nTeam 5: 0\nTeam 6: 0\nTeam 7: 0"
+            "id": 1234609674393882624,
+            "content": "Team 1: 0\nTeam 2: 0\nTeam 3: 0\nTeam 4: 0\nTeam 5: 0\nTeam 6: 0\nTeam 7: 0"
         }
     }
 }

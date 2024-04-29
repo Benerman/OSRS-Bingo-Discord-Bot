@@ -826,8 +826,6 @@ async def disband(interaction: discord.Interaction, team_name: str):
                 if current_role:
                     await user.remove_roles(current_role)
                     users_processed += 1
-                else:
-                    print(f'No Role found | "Team {team_number}" | Team Name: "{team_name}"')
             if not users_processed:
                 raise ValueError
             await interaction.followup.send(f'Disbanded Team: {team_name} Role: "Team {team_number}" removing the role from {users_processed} users')
@@ -895,7 +893,7 @@ async def members(interaction: discord.Interaction,
     await interaction.followup.send(f'Role "Team {team_number}" added to {len(members)} members')
 
 
-async def reroll(interaction: discord.Interaction, team_name: str):
+async def configure_reroll(interaction: discord.Interaction, team_name: str):
     
     class Reroll(discord.ui.View):
         def __init__(self, *, timeout: Optional[float] = 180):
@@ -908,7 +906,7 @@ async def reroll(interaction: discord.Interaction, team_name: str):
             else:
                 settings['teams'][team_name]['reroll'] -= 1
                 update_settings_json(settings)
-                await interaction.followup.send('1 Reroll has been removed for that team.')
+                await interaction.response.edit_message(content=f"1 Reroll has been removed for that team.\n{team_name}: {settings['teams'][team_name]['reroll']} Reroll(s) remain", view=self)
                 # Add updating the TEAMS bingo card channel
                 await update_reroll_team_bingo_card_channel(interaction, team_name, settings, used=True)
                 # Add updating the Server's Bingo card Channel
@@ -919,7 +917,7 @@ async def reroll(interaction: discord.Interaction, team_name: str):
             settings = load_settings_json()
             settings['teams'][team_name]['reroll'] += 1
             update_settings_json(settings)
-            await interaction.response.send_message(content='1 Reroll is added to that team.')
+            await interaction.response.edit_message(content=f"1 Reroll is added to that team.\n{team_name}: {settings['teams'][team_name]['reroll']} Reroll(s) remain", view=self)
             # Add updating the TEAMS bingo card channel
             await update_reroll_team_bingo_card_channel(interaction, team_name, settings, used=False)
             # Add updating the Server's Bingo card Channel
@@ -1123,8 +1121,8 @@ async def reroll(interaction: discord.Interaction, team_name: str):
 
 @has_role("Bingo Moderator")
 @app_commands.autocomplete(team_name=team_names_autocomplete)
-@bot.tree.command(name="delete_channels", description=f"Delete all channels for a team and the team category.")
-async def delete_channels(interaction: discord.Interaction, team_name: str):
+@bot.tree.command(name="delete_team", description=f"Delete all channels for a team and the team category.")
+async def delete_team(interaction: discord.Interaction, team_name: str):
 
     class DeleteConfirmation(discord.ui.View):
         def __init__(self, interaction: discord.Interaction, team_name: str, *, timeout: Optional[float] = 180):
@@ -1140,7 +1138,7 @@ async def delete_channels(interaction: discord.Interaction, team_name: str):
                     child.disabled = True
             button.disabled = True
             self.stop()
-            await interaction.response.send_message('Cancelled "Delete Channels" command')
+            await interaction.response.edit_message(embed=discord.Embed(description='Cancelled "Delete Channels" command'), view=self)
 
         @discord.ui.button(label='Delete All Team Channels', style=discord.ButtonStyle.green)
         async def delete_team_channels(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -1157,7 +1155,7 @@ async def delete_channels(interaction: discord.Interaction, team_name: str):
                 await interaction.response.send_message(f"Use this command in {mod_channel} and ADMIN section")
                 return
             elif not self.team_name in team_names:
-                await interaction.response.send_message(f"Team Name: {self.team_name} is not found in {team_names}\nPlease Try again")
+                await interaction.response.edit_message(discord.Embed(description=f"Team Name: {self.team_name} is not found in {team_names}\nPlease Try again"), view=self)
                 return
             print('Deleting...')
             num_deleted = 0
@@ -1171,16 +1169,16 @@ async def delete_channels(interaction: discord.Interaction, team_name: str):
                         await ch.delete()
                     await cat.delete()
                     if num_deleted > 0:
-                        await interaction.message.edit_original_message(f"Deleted {self.team_name}'s channels. {num_deleted} channel(s) deleted.", view=self)
+                        await interaction.response.edit_message(embed=discord.Embed(description=f"Deleted {self.team_name}'s channels. {num_deleted} channel(s) deleted."), view=self)
                 else:
                     print(f"Skipping {cat.name}\t{self.team_name}\t{cat.name.lower() == self.team_name.lower()}")
             else:
                 if num_deleted == 0:
-                    await interaction.response.send_message(f"{self.team_name}: No ({num_deleted}) Channels Deleted")
+                    await interaction.response.edit_message(embed=discord.Embed(description=f"{self.team_name}: No ({num_deleted}) Channels Deleted"), view=self)
             print(f"Deleted {num_deleted} Channels")
             self.stop()
 
-    await interaction.response.send_message(f'Confirm Deletion of Team "{team_name}":', view=DeleteConfirmation(interaction=interaction, team_name=team_name))
+    await interaction.response.send_message(embed= discord.Embed(description=f'Confirm Deletion of Team "{team_name}":'), view=DeleteConfirmation(interaction=interaction, team_name=team_name))
     
 
 
@@ -1326,6 +1324,8 @@ async def create_team_channels(interaction: discord.Interaction, team_name: str)
                                                                 category=cat, overwrites=overwrites)
             if channel['description']:
                 await chan.send(f"{channel['description']}")
+            if channel_name == 'bingo-card':
+                post_bingo_card(interaction, team_name, settings, update=False, row=0, col=0)
             if channel_name == 'photo-dump' or channel_name == 'drop-spam':
                 webhook = await chan.create_webhook(name=channel_name)
                 await chan.send(f"Here are instructions for adding Discord Rare Drop Notification to Runelite\n\nDownload the Plugin from Plugin Hub\nCopy this Webhook URL to this channel into the Plugin(Accessed via the settings)")
@@ -1372,7 +1372,7 @@ async def set_tile(interaction: discord.Interaction, team_name: str, tile: int):
 
 @has_role("Bingo Moderator")
 @app_commands.autocomplete(team_name=team_names_autocomplete)
-@bot.tree.command(name="set_previous_tile", description=f"Set the previous tile/score manually. Primarily used for candyland style bingo.")
+@bot.tree.command(name="set_previous_tile", description=f"Set the previous tile/score manually. Primarily used for candyland version bingo.")
 async def set_previous_tile(interaction: discord.Interaction, team_name: str, tile: int):
     settings = load_settings_json()
     team_names = [x for x in settings['teams'].keys()]
@@ -1403,25 +1403,13 @@ async def set_reroll(interaction: discord.Interaction, team_name: str):
     settings = load_settings_json()
     team_names = [x for x in settings['teams'].keys()]
     team_number = team_names.index(team_name) + 1
-    await interaction.response.defer(thinking=True)
     if not interaction.channel.category.name.lower() == 'admin':
-        await interaction.followup.send(f"Use this command in {mod_channel} and ADMIN section")
+        await interaction.response.send_message(f"Use this command in {mod_channel} and ADMIN section")
         return
     elif not team_name in team_names:
-        await interaction.followup.send(f"Team Name: {team_name} is not found in {team_names}\nPlease Try again")
+        await interaction.response.send_message(f"Team Name: {team_name} is not found in {team_names}\nPlease Try again")
         return
-    await reroll(interaction=interaction, team_name=team_name)
-
-
-
-
-
-
-
-
-
-
-
+    await configure_reroll(interaction=interaction, team_name=team_name)
 
 @has_role("Bingo Moderator")
 @bot.tree.command(name="update_score", description=f"Refresh the Score")
@@ -1470,20 +1458,37 @@ async def post_tiles(interaction: discord.Interaction):
         await tile_list_ch.send(embed=embed)    
     await interaction.followup.send(f"Posted {len(settings['items'])} tiles to channel {tile_list_ch.mention}")
 
-@has_role("Bingo Moderator")
-@bot.tree.command(name="toggle_roll", description=f"Enable or Disable the ability to roll dice. If enabled, it disables. Run again to enable.")
-async def toggle_roll(interaction: discord.Interaction):
-    # TODO add option to enable/disable
+async def toggle_roll_choice(interaction: discord.Interaction):
 
-    await interaction.response.defer(thinking=True)
+    class ToggleRolling(discord.ui.View):
+        def __init__(self, *, timeout: Optional[float] = 180):
+            super().__init__(timeout=timeout)
+        
+        @discord.ui.button(label='Disable Rolling', style=discord.ButtonStyle.danger)
+        async def disable_rolling(self, interaction: discord.Interaction, button: discord.ui.Button):
+            settings = load_settings_json()
+            settings['running'] = False
+            save_settings_json(settings)
+            for child in self.children:
+                child.disabled = True
+            await interaction.response.edit_message(content=f"Rolling is {'ENABLED' if settings['running'] == True else 'DISABLED'}", view=self)
+
+        @discord.ui.button(label='Enable Rolling', style=discord.ButtonStyle.green)
+        async def enable_rolling(self, interaction: discord.Interaction, button: discord.ui.Button):
+            settings = load_settings_json()
+            settings['running'] = True
+            save_settings_json(settings)
+            for child in self.children:
+                child.disabled = True
+            await interaction.response.edit_message(content=f"Rolling is {'ENABLED' if settings['running'] == True else 'DISABLED'}", view=self)
+
     settings = load_settings_json()
-    print(f"{settings['running'] = }")
-    if settings['running'] == True:
-        settings['running'] = False
-    else:
-        settings['running'] = True
-    save_settings_json(settings)
-    await interaction.followup.send(f"Rolling has been: {'ENABLED' if settings['running'] == True else 'DISABLED'}")
+    await interaction.response.send_message(f"Rolling is {'ENABLED' if settings['running'] == True else 'DISABLED'}", view=ToggleRolling())
+
+@has_role("Bingo Moderator")
+@bot.tree.command(name="toggle_rolling", description=f"Enable or Disable the ability to roll dice. If enabled, it disables. Run again to enable.")
+async def toggle_rolling(interaction: discord.Interaction):
+    await toggle_roll_choice(interaction)
 
 @has_role("Bingo Moderator")
 @bot.tree.command(name="check_roll_enabled", description=f"Checks if the rolling is Disabled or Enabled. Does not update/change anything.")
@@ -1504,18 +1509,18 @@ async def tile_completed(interaction: discord.Interaction):
     await interaction.followup.send(f"Tile is: {'COMPLETED' if settings['running'] == True else 'CHANGED TO INCOMPLETE'}\nScore will be updated accordingly")
 
 @has_role("Bingo Moderator")
-@bot.tree.command(name="style", description=f"Change the Bot's Bingo Style or view current.")
-async def style(interaction: discord.Interaction, bingo_style: bool = False, candyland: bool = False):
+@bot.tree.command(name="version", description=f"Change the Bot's Bingo Version or view current.")
+async def version(interaction: discord.Interaction, bingo_version: bool = False, candyland: bool = False):
     await interaction.response.defer(thinking=True)
     settings = load_settings_json()
     # TODO Update this to change the settings
-    if bingo_style:
+    if bingo_version:
         settings['bot_mode']['current'] = "normal"
     elif candyland:
         settings['bot_mode']['current'] = "candyland"
     save_settings_json(settings)
 
-    await interaction.followup.send(f"Bingo Bot Style is: '{settings['bot_mode']['current']}'")
+    await interaction.followup.send(f"Bingo Bot Version is: '{settings['bot_mode']['current']}'")
 
 @has_role("Bingo Moderator")
 @app_commands.autocomplete(team_name=team_names_autocomplete)
@@ -1560,26 +1565,26 @@ async def upload_board_image(interaction: discord.Interaction, file: discord.Att
 @has_role("Bingo Moderator")
 @bot.tree.command(name="set_image_bounds", description=f"Set the bounds for the bingo card to be auto marked as completed by bot.")
 async def set_image_bounds(interaction: discord.Interaction,
-            x_offset: int,
-            y_offset: int,
-            x_right_offset: int,
-            y_bottom_offset: int,
             x: int,
             y: int,
+            x_left_offset: int,
+            x_right_offset: int,
+            y_top_offset: int,
+            y_bottom_offset: int,
             gutter: int
         ):
     settings = load_settings_json()
     team_names = [x for x in settings['teams'].keys()]
     await interaction.response.defer(thinking=True)
-    if x_offset == '' or y_offset == '' or x_right_offset == '' or y_bottom_offset == '' or x == '' or y == '' or gutter == '':
+    if x_left_offset == '' or y_top_offset == '' or x_right_offset == '' or y_bottom_offset == '' or x == '' or y == '' or gutter == '':
         await interaction.followup.send(f'Please provide all the required values')
         return
     else:
         # update all settings['teams'][team_name]['image']
         for team_name in team_names:
             settings['teams'][team_name]['image_bounds'] =  {
-                'x_offset': x_offset,
-                'y_offset': y_offset,
+                'x_offset': x_left_offset,
+                'y_offset': y_top_offset,
                 'x_right_offset': x_right_offset,
                 'y_bottom_offset': y_bottom_offset,
                 'x': x,
