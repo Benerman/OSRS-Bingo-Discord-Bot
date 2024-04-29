@@ -1325,7 +1325,7 @@ async def create_team_channels(interaction: discord.Interaction, team_name: str)
             if channel['description']:
                 await chan.send(f"{channel['description']}")
             if channel_name == 'bingo-card':
-                post_bingo_card(interaction, team_name, settings, update=False, row=0, column=0)
+                await post_bingo_card(interaction, team_name, settings, update=False, row=0, column=0)
             if channel_name == 'photo-dump' or channel_name == 'drop-spam':
                 webhook = await chan.create_webhook(name=channel_name)
                 await chan.send(f"Here are instructions for adding Discord Rare Drop Notification to Runelite\n\nDownload the Plugin from Plugin Hub\nCopy this Webhook URL to this channel into the Plugin(Accessed via the settings)")
