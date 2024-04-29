@@ -12,6 +12,9 @@ jobs:
     steps:
       - name: Git Log
         run: git log
+          
+      - name: Show pwd
+        run: pwd
         
       - name: Stop docker compose
         run: docker-compose -f /opt/discord-compose.yml down
@@ -23,6 +26,9 @@ jobs:
 
       - name: Show Contents
         run: ls -la
+  
+      - name: Show pwd
+        run: pwd
   
       - name: Pull latest...
         run: git pull -f 
