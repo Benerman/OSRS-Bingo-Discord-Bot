@@ -17,6 +17,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
+
+      - name: Copy local files
+        run: |
+          cp /opt/appdata/discord-bots/config.py . &&
+          cp /opt/appdata/discord-bots/token.json . &&
+          cp /opt/appdata/discord-bots/credentials.json .
         
       - name: Build Container
         run: docker-compose -f /opt/discord-compose.yml build --no-cache
