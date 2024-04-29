@@ -1136,14 +1136,14 @@ async def delete_channels(interaction: discord.Interaction, team_name: str):
         async def abort_delete(self, interaction: discord.Interaction, button: discord.ui.Button):
             self.stop()
             for child in self.children:
-                child.button.disabled = True 
+                child.disabled = True 
             await interaction.followup.send('Cancelled "Delete Channels" command')
 
         @discord.ui.button(label='Delete All Team Channels', style=discord.ButtonStyle.green)
         async def delete_team_channels(self, interaction: discord.Interaction, Button: discord.ui.Button):
             self.stop()
             for child in self.children:
-                child.button.disabled = True
+                child.disabled = True
             settings = load_settings_json()
             team_names = [x for x in settings['teams'].keys()]
             team_number = team_names.index(self.team_name) + 1
