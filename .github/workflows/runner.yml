@@ -18,11 +18,11 @@ jobs:
         with:
           ref: ${{ github.ref }}
         
-      - name: Run Container
-        run: docker-compose -f /opt/discord-compose.yml up -d --build
+      - name: Build Container
+        run: docker-compose -f /opt/discord-compose.yml build --no-cache
 
-      - name: restart docker compose
-        run: docker-compose -f /opt/discord-compose.yml restart
+      - name: Start up docker compose
+        run: docker-compose -f /opt/discord-compose.yml up -d
         
       - name: Cleanup Unused Images
         run: docker image prune -f
