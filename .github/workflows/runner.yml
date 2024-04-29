@@ -10,6 +10,9 @@ jobs:
     environment: production
 
     steps:
+      - name: Git Log
+        run: git log
+        
       - name: Stop docker compose
         run: docker-compose -f /opt/discord-compose.yml down
         
@@ -17,6 +20,9 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
+
+      - name: Show Contents
+        run: ls -la
 
       - name: Git Log
         run: git log
