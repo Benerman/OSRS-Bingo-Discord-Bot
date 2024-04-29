@@ -879,7 +879,7 @@ async def spectators(interaction: discord.Interaction,
 @bot.tree.command(name="add_team_role", description=f"Assign Team <#> Role to Discord Members")
 async def members(interaction: discord.Interaction,
                 team_name: str,    
-                members: List[str]):
+                members: str):
     settings = load_settings_json()
     team_names = [x for x in settings['teams'].keys()]
     team_number = team_names.index(team_name) + 1
