@@ -1136,7 +1136,7 @@ async def delete_channels(interaction: discord.Interaction, team_name: str):
         async def abort_delete(self, interaction: discord.Interaction, Button: discord.ui.Button):
             await interaction.followup.send('Cancelled "Delete Channels" command')
 
-        @discord.ui.button(label='Give', style=discord.ButtonStyle.green)
+        @discord.ui.button(label='Delete All Team Channels', style=discord.ButtonStyle.green)
         async def delete_team_channels(self, interaction: discord.Interaction, Button: discord.ui.Button):
             settings = load_settings_json()
             team_names = [x for x in settings['teams'].keys()]
@@ -1459,8 +1459,10 @@ async def post_tiles(interaction: discord.Interaction):
     await interaction.followup.send(f"Posted {len(settings['items'])} tiles to channel {tile_list_ch.mention}")
 
 @has_role("Bingo Moderator")
-@bot.tree.command(name="enable_roll", description=f"Enable or Disable the ability to roll dice. If enabled, it disables. Run again to enable.")
-async def enable_roll(interaction: discord.Interaction):
+@bot.tree.command(name="toggle_roll", description=f"Enable or Disable the ability to roll dice. If enabled, it disables. Run again to enable.")
+async def toggle_roll(interaction: discord.Interaction):
+    # TODO add option to enable/disable
+
     await interaction.response.defer(thinking=True)
     settings = load_settings_json()
     print(f"{settings['running'] = }")
@@ -1488,13 +1490,6 @@ async def tile_completed(interaction: discord.Interaction):
     # Update score in settings
     # Update score in scoreboard channel
     await interaction.followup.send(f"Tile is: {'COMPLETED' if settings['running'] == True else 'CHANGED TO INCOMPLETE'}\nScore will be updated accordingly")
-
-@has_role("Bingo Moderator")
-@bot.tree.command(name="delete", description=f"Checks if the rolling is Disabled or Enabled. Does not update/change anything.")
-async def delete(interaction: discord.Interaction):
-    await interaction.response.defer(thinking=True)
-    settings = load_settings_json()
-    await interaction.followup.send(f"Rolling is currently: {'ENABLED' if settings['running'] == True else 'DISABLED'}")
 
 @has_role("Bingo Moderator")
 @bot.tree.command(name="style", description=f"Change the Bot's Bingo Style or view current.")
