@@ -456,11 +456,14 @@ async def update_server_score_board_channel(interaction: discord.Interaction, se
         message = await score_card_ch.fetch_message(msg_id)
     if message.content != settings['posts']['score-board']['content']:
         print("score is out of sync")
+    total_teams = settings['active_teams']
     teams_names = [x for x in settings['teams'].keys()]
     teams_scores = [x['current'] for x in settings['teams'].values()]
     teams_rerolls = [x['reroll'] for x in settings['teams'].values()]
     content_text = []
     for i in range(len(teams_names)):
+        if i >= total_teams:
+            continue
         if settings['bot_mode']['current'] == 'candyland':
             row = f"{teams_names[i]}: {teams_scores[i]} - Rerolls remain: {teams_rerolls[i]}"
         else:
@@ -489,13 +492,32 @@ def formatted_title(settings, team_name):
     return f"{tile_num} - {name} - {desc}"
 
 async def process_all_spectators(interaction, roles, spectator_role, unassign):
-    members = interaction.guild.members
-    for m in members:
-        if discord.RateLimited:
-            await asyncio.sleep(10)
-        await m.remove_roles(*roles)
-        if not unassign:
-            await m.add_roles(spectator_role)
+    # members = interaction.guild.members
+    guild_roles = interaction.guild.roles
+    for r in guild_roles:
+        if r in roles:
+            for m in r.members:
+                if discord.RateLimited:
+                    print('Rate Limited, pausing 10s')
+                    await asyncio.sleep(10)
+                await m.remove_roles(r)
+                if not unassign:
+                    await m.add_roles(spectator_role)
+    # for m in members:
+    #     roles_to_remove = [r for r in m.roles if r in roles]
+    #     print()
+    #     print(roles_to_remove)
+    #     print(roles)
+    #     print()
+    #     if not roles_to_remove:
+    #         continue
+    #     if discord.RateLimited:
+    #         print('Rate Limited, pausing 10s')
+    #         await asyncio.sleep(10)
+    #     await m.remove_roles(*roles_to_remove)
+    #     if not unassign:
+    #         await m.add_roles(spectator_role)
+    print("All members have been updated")
     await interaction.followup.send(f'Role "spectator" {"added to" if not unassign else "purged from"} all server members')
 
 async def parse_table_location(location: str):
@@ -1125,7 +1147,7 @@ async def configure_reroll(interaction: discord.Interaction, team_name: str):
 async def delete_team(interaction: discord.Interaction, team_name: str):
 
     class DeleteConfirmation(discord.ui.View):
-        def __init__(self, interaction: discord.Interaction, team_name: str, *, timeout: Optional[float] = 180):
+        def __init__(self, team_name: str, *, timeout: Optional[float] = 180):
             self.team_name = team_name
             super().__init__(timeout=timeout)
 
@@ -1155,30 +1177,33 @@ async def delete_team(interaction: discord.Interaction, team_name: str):
                 await interaction.response.send_message(f"Use this command in {mod_channel} and ADMIN section")
                 return
             elif not self.team_name in team_names:
-                await interaction.response.edit_message(discord.Embed(description=f"Team Name: {self.team_name} is not found in {team_names}\nPlease Try again"), view=self)
+                await interaction.message.edit(embed=discord.Embed(description=f"Team Name: {self.team_name} is not found in {team_names}\nPlease Try again"), view=self)
                 return
             print('Deleting...')
+            await interaction.message.edit(embed=discord.Embed(description=f"Attempting to Delete {self.team_name}'s channels."), view=self)
             num_deleted = 0
             cats = interaction.guild.categories
             print([c.name for c in cats])
             for cat in cats:
                 if cat.name.lower() == self.team_name.lower():
+                    await interaction.message.edit(embed=discord.Embed(description=f"Found {len(cat.channels)} channels. Deleting...."), view=self)
                     for ch in cat.channels:
                         print(ch)
                         num_deleted += 1
                         await ch.delete()
                     await cat.delete()
                     if num_deleted > 0:
-                        await interaction.response.edit_message(embed=discord.Embed(description=f"Deleted {self.team_name}'s channels. {num_deleted} channel(s) deleted."), view=self)
+                        await interaction.message.edit(embed=discord.Embed(description=f"Deleted {self.team_name}'s channels. {num_deleted} channel(s) deleted."), view=None)
                 else:
                     print(f"Skipping {cat.name}\t{self.team_name}\t{cat.name.lower() == self.team_name.lower()}")
             else:
                 if num_deleted == 0:
-                    await interaction.response.edit_message(embed=discord.Embed(description=f"{self.team_name}: No ({num_deleted}) Channels Deleted"), view=self)
+                    await interaction.message.edit(embed=discord.Embed(description=f"{self.team_name}: No ({num_deleted}) Channels Deleted"), view=None)
             print(f"Deleted {num_deleted} Channels")
             self.stop()
 
-    await interaction.response.send_message(embed= discord.Embed(description=f'Confirm Deletion of Team "{team_name}":'), view=DeleteConfirmation(interaction=interaction, team_name=team_name))
+    await interaction.response.send_message(embed= discord.Embed(description=f'Confirm Deletion of Team "{team_name}":'),
+                                            view=DeleteConfirmation(team_name=team_name))
     
 
 
@@ -1608,11 +1633,24 @@ async def sync(interaction: discord.Interaction):
 async def close_server(interaction: discord.Interaction):
     await interaction.response.defer(thinking=True)
     spectator_role = discord.utils.get(interaction.guild.roles, name="spectator")
+    rules_accepted_role = discord.utils.get(interaction.guild.roles, name="Rules Accepted")
     roles = [discord.utils.get(interaction.guild.roles, name=rl) for rl in ROLES]
     roles.append(spectator_role)
-    members = members.split()
+    roles.append(rules_accepted_role)
     await process_all_spectators(interaction, roles, spectator_role, unassign=True)
     await interaction.followup.send('Server has been closed.')
+
+@has_role("Bingo Moderator")
+@bot.tree.command(name="update_total_teams", description=f"Update the number of active teams.")
+async def update_active_teams(interaction: discord.Interaction, total_teams: int):
+    await interaction.response.defer(thinking=True)
+    settings = load_settings_json()
+    if total_teams < 1:
+        await interaction.followup.send(f'Number of active teams must be greater than 0')
+        return
+    settings['total_teams'] = total_teams
+    update_settings_json(settings)
+    await interaction.followup.send(f'Number of active teams has been updated to {total_teams}')
 
 print('About to log in with bot')
 bot.run(config.DISCORD_BOT_TOKEN)

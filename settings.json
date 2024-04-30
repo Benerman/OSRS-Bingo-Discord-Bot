@@ -11,7 +11,8 @@
         "spreadsheet_id": "1Jbfh3gvRWVBbW3nzDn10hP-CUXVlQDKFOlnGU1nPexM",
         "items": {}
     },
-    "running": false,
+    "running": true,
+    "total_teams": 1,
     "teams": {
         "Team 1": {
             "current": 0,
