@@ -1441,7 +1441,7 @@ async def set_reroll(interaction: discord.Interaction, team_name: str):
 async def update_score(interaction: discord.Interaction):
     settings = load_settings_json()
     await update_server_score_board_channel(interaction=interaction, settings=settings)
-    await interaction.followup.send('Updated!')
+    await interaction.response.send_message('Updated!')
 
 @has_role("Bingo Moderator")
 @bot.tree.command(name="post_tiles", description=f"Post all the tiles to #tile-list channel")
