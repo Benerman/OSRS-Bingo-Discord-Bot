@@ -1565,7 +1565,7 @@ async def mark_tile_completed(interaction: discord.Interaction, team_name: str, 
 
 @has_role("Bingo Moderator")
 @app_commands.autocomplete(team_name=team_names_autocomplete)
-@bot.tree.command(name="post_bingo_card", description=f"Post the default bingo card to '#bingo-card' channel.")
+@bot.tree.command(name="post_bingo_card", description=f"Post the saved bingo card to '#bingo-card' channel.")
 async def post_bingo_card(interaction: discord.Interaction, for_all_teams: bool = False, team_name: Optional[str] = None):
     await interaction.response.defer(thinking=True)
     settings = load_settings_json()
@@ -1580,7 +1580,21 @@ async def post_bingo_card(interaction: discord.Interaction, for_all_teams: bool 
                 await post_or_update_bingo_card(interaction, settings, team_names[i], update=update, row=0, column=0)
     else:
         await post_or_update_bingo_card(interaction, settings, team_name, update=update, row=0, column=0)
-    await interaction.followup.send(f"Posted Bingo Card image in {team_name if team_name else team_names[i]}'s Bingo Card Channel")
+    await interaction.followup.send(f"Posted Bingo Card image in {team_name if team_name else ', '.join([team_names[x] for x in range(settings['total_teams'])])}'s Bingo Card Channel")
+
+
+@has_role("Bingo Moderator")
+@app_commands.autocomplete(team_name=team_names_autocomplete)
+@bot.tree.command(name="default_bingo_card", description=f"Post the default bingo card to '#bingo-card' channel. From /upload_board_image.")
+async def default_bingo_card(interaction: discord.Interaction, team_name: str):
+    await interaction.response.defer(thinking=True)
+    settings = load_settings_json()
+    update = False
+    settings['teams'][team_name]['image'] = os.path.join(IMAGE_PATH, 'bingo_card_image.png')
+    update_settings_json(settings)
+    await post_or_update_bingo_card(interaction, settings, team_name, update=update, row=0, column=0)
+    await interaction.followup.send(f"Posted Bingo Card image in {team_name}'s Bingo Card Channel")
+
 
     
 @has_role("Bingo Moderator")
