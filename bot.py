@@ -1571,6 +1571,7 @@ async def post_bingo_card(interaction: discord.Interaction, for_all_teams: bool 
     settings = load_settings_json()
     team_names = [x for x in settings['teams'].keys()]
     update = False
+    i = 0
     if for_all_teams or team_name == None:
         for i in range(len(team_names)):
             if i >= settings['total_teams']:
@@ -1579,7 +1580,7 @@ async def post_bingo_card(interaction: discord.Interaction, for_all_teams: bool 
                 await post_or_update_bingo_card(interaction, settings, team_names[i], update=update, row=0, column=0)
     else:
         await post_or_update_bingo_card(interaction, settings, team_name, update=update, row=0, column=0)
-    await interaction.followup.send(f"Posted Bingo Card image in {team_name}'s Bingo Card Channel")
+    await interaction.followup.send(f"Posted Bingo Card image in {team_name if team_name else team_names[i]}'s Bingo Card Channel")
 
     
 @has_role("Bingo Moderator")
@@ -1668,6 +1669,60 @@ async def update_total_teams(interaction: discord.Interaction, total_teams: int)
     settings['total_teams'] = total_teams
     update_settings_json(settings)
     await interaction.followup.send(f'Number of active teams has been updated to {total_teams}')
+
+@has_role("Bingo Moderator")
+@bot.tree.command(name="reset_bingo_settings", description=f"Reset persistent bingo settings.")
+async def reset_bingo_settings(interaction: discord.Interaction):
+
+    class ConfirmReset(discord.ui.View):
+        def __init__(self, *, timeout: Optional[float] = 180):
+            super().__init__(timeout=timeout)
+        
+        @discord.ui.button(label="Don't Reset", style=discord.ButtonStyle.danger)
+        async def abort_reset(self, interaction: discord.Interaction, button: discord.ui.Button):
+            for child in self.children:
+                child.disabled = True
+            await interaction.response.edit_message(content=f"Aborted Reseting of Settings.\nNothing was modified", view=self)
+
+        @discord.ui.button(label='Enable Rolling', style=discord.ButtonStyle.green)
+        async def reset_settings(self, interaction: discord.Interaction, button: discord.ui.Button):
+            settings = load_settings_json()
+            old_settings = load_settings_json()
+            team_names = [x for x in settings['teams'].keys()]
+            # set total_teams to 7
+            settings['total_teams'] = 7
+            for team_name in team_names:
+                # set completed tiles to empty list
+                settings['teams'][team_name]['tiles_completed'] = []
+                # set current tile to 0
+                settings['teams'][team_name]['current'] = 0
+                # set prev tile to 0
+                settings['teams'][team_name]['prev'] = 0
+                # set rerolls to 0
+                settings['teams'][team_name]['reroll'] = 0
+                # set roll_history to empty list
+                settings['teams'][team_name]['roll_history'] = []
+                # set image to default
+                settings['teams'][team_name]['image'] = os.path.join(IMAGE_PATH, 'bingo_card_image.png')
+                # set image bounds to default
+                settings['teams'][team_name]['image_bounds'] = {
+                    'x_offset': 0,
+                    'y_offset': 0,
+                    'x_right_offset': 0,
+                    'y_bottom_offset': 0,
+                    'x': 0,
+                    'y': 0,
+                    'gutter': 0
+                }
+                # set tiles_completed to empty list
+                settings['teams'][team_name]['tiles_completed'] = []
+
+            update_settings_json(settings)
+            for child in self.children:
+                child.disabled = True
+            await interaction.response.edit_message(content=f"Reset Bingo Settings.\nPrevious Settings:\n{json.dumps(old_settings, indent=4)}", view=self)
+
+
 
 print('About to log in with bot')
 bot.run(config.DISCORD_BOT_TOKEN)
