@@ -315,12 +315,10 @@ def mark_on_image_tile_complete(team_name: str, row: int, column: int) -> None:
     update_settings_json(settings)
     return settings
 
-async def post_bingo_card(interaction: discord.Interaction, settings: dict, team_name: str, *, update: bool = False, row: int = None, column: int = None) -> None:
+async def post_or_update_bingo_card(interaction: discord.Interaction, settings: dict, team_name: str, *, update: bool = False, row: int = None, column: int = None) -> None:
     for cat in interaction.guild.categories:
         if cat.name == team_name:
-            print(cat.name)
             bingo_card_chan = [x for x in cat.channels if x.name == 'bingo-card'][0]
-            print(settings['teams'][team_name]['image'])
             processed = False
             async for message in bingo_card_chan.history(limit=1):
                 if message.author == bot.user:
@@ -339,7 +337,7 @@ async def post_bingo_card(interaction: discord.Interaction, settings: dict, team
                     # await message.remove_attachments(message.attachments)
                     # await message.add_files(img)
                     await message.edit(attachments=[img])
-                    print(f'Updated {team_name} Bingo Card Image')
+                    print(f'{"Updated" if update and row and column else "Posted"} {team_name} Bingo Card Image')
             else:
                 if not processed:
                     print('image didnt exist, posting new image')
@@ -1349,8 +1347,6 @@ async def create_team_channels(interaction: discord.Interaction, team_name: str)
                                                                 category=cat, overwrites=overwrites)
             if channel['description']:
                 await chan.send(f"{channel['description']}")
-            if channel_name == 'bingo-card':
-                await post_bingo_card(interaction, team_name, settings, update=False, row=0, column=0)
             if channel_name == 'photo-dump' or channel_name == 'drop-spam':
                 webhook = await chan.create_webhook(name=channel_name)
                 await chan.send(f"Here are instructions for adding Discord Rare Drop Notification to Runelite\n\nDownload the Plugin from Plugin Hub\nCopy this Webhook URL to this channel into the Plugin(Accessed via the settings)")
@@ -1562,8 +1558,29 @@ async def mark_tile_completed(interaction: discord.Interaction, team_name: str, 
         update = True
         settings['teams'][team_name]['tiles_completed'].append([row, col])
     update_settings_json(settings)
-    await post_bingo_card(interaction, settings, team_name, update=update, row=row, column=col)
+    await post_or_update_bingo_card(interaction, settings, team_name, update=update, row=row, column=col)
     await interaction.followup.send(f'Team: {team_name}\'s tile has been marked as completed and updated in the Bingo Card Channel')
+
+@has_role("Bingo Moderator")
+@app_commands.autocomplete(team_name=team_names_autocomplete)
+@bot.tree.command(name="post_bingo_card", description=f"Post the default bingo card to '#bingo-card' channel.")
+async def post_bingo_card(interaction: discord.Interaction, for_all_teams: bool = False, team_name: Optional[str] = None):
+    await interaction.response.defer(thinking=True)
+    settings = load_settings_json()
+    team_names = [x for x in settings['teams'].keys()]
+    team_number = team_names.index(team_name) + 1
+    update = False
+    update_settings_json(settings)
+    if for_all_teams or team_name == None:
+        for i in range(len(team_names)):
+            if i >= settings['total_teams']:
+                continue
+            else:
+                await post_or_update_bingo_card(interaction, settings, team_names[i], update=update, row=0, column=0)
+    else:
+        await post_or_update_bingo_card(interaction, settings, team_name, update=update, row=0, column=0)
+    await interaction.followup.send(f"Posted Bingo Card image in {team_name}'s Bingo Card Channel")
+
     
 @has_role("Bingo Moderator")
 @bot.tree.command(name="upload_board_image", description=f"Attach and upload image as the default Bingo Card Image. Overwrites all teams existing images.")
