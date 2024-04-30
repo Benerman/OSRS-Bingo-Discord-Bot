@@ -456,7 +456,7 @@ async def update_server_score_board_channel(interaction: discord.Interaction, se
         message = await score_card_ch.fetch_message(msg_id)
     if message.content != settings['posts']['score-board']['content']:
         print("score is out of sync")
-    total_teams = settings['active_teams']
+    total_teams = settings['total_teams']
     teams_names = [x for x in settings['teams'].keys()]
     teams_scores = [x['current'] for x in settings['teams'].values()]
     teams_rerolls = [x['reroll'] for x in settings['teams'].values()]
@@ -1642,7 +1642,7 @@ async def close_server(interaction: discord.Interaction):
 
 @has_role("Bingo Moderator")
 @bot.tree.command(name="update_total_teams", description=f"Update the number of active teams.")
-async def update_active_teams(interaction: discord.Interaction, total_teams: int):
+async def update_total_teams(interaction: discord.Interaction, total_teams: int):
     await interaction.response.defer(thinking=True)
     settings = load_settings_json()
     if total_teams < 1:
