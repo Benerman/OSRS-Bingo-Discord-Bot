@@ -1460,23 +1460,25 @@ async def post_tiles(interaction: discord.Interaction):
             item_list.append(f"## {name}\n{desc}")
             
     if len('\n'.join(item_list)) > 4096:
-        embed1 = discord.Embed(
-                title="All Tiles - 1 of 2",
-                description='\n\n'.join(item_list[:len(item_list)//2]),
-            )
-        await tile_list_ch.send(embed=embed1)    
-        embed2 = discord.Embed(
-                title="All Tiles - 2 of 2",
-                description='\n\n'.join(item_list[len(item_list)//2:]),
-            )
-        await tile_list_ch.send(embed=embed2)    
+        # embed1 = discord.Embed(
+        #         title="All Tiles - 1 of 2",
+        #         description='\n\n'.join(item_list[:len(item_list)//2]),
+        #     )
+        # await tile_list_ch.send(embed=embed1)    
+        # embed2 = discord.Embed(
+        #         title="All Tiles - 2 of 2",
+        #         description='\n\n'.join(item_list[len(item_list)//2:]),
+        #     )
+        # await tile_list_ch.send(embed=embed2)    
+        await tile_list_ch.send(content='All Tiles\n\n'.join(item_list[:len(item_list)//2]))
+        await tile_list_ch.send(content=''.join(item_list[len(item_list)//2:]))
     else:
-
-        embed = discord.Embed(
-                title="All Tiles",
-                description='\n\n'.join(item_list),
-            )
-        await tile_list_ch.send(embed=embed)    
+        await tile_list_ch.send(content='All Tiles\n\n'.join(item_list))
+        # embed = discord.Embed(
+        #         title="All Tiles",
+        #         description='\n\n'.join(item_list),
+        #     )
+        # await tile_list_ch.send(embed=embed)    
     await interaction.followup.send(f"Posted {len(settings['items'])} tiles to channel {tile_list_ch.mention}")
 
 async def toggle_roll_choice(interaction: discord.Interaction):
@@ -1568,9 +1570,7 @@ async def post_bingo_card(interaction: discord.Interaction, for_all_teams: bool 
     await interaction.response.defer(thinking=True)
     settings = load_settings_json()
     team_names = [x for x in settings['teams'].keys()]
-    team_number = team_names.index(team_name) + 1
     update = False
-    update_settings_json(settings)
     if for_all_teams or team_name == None:
         for i in range(len(team_names)):
             if i >= settings['total_teams']:
