@@ -101,6 +101,10 @@ mod_channel = 'bot-commands'
 thumb = '\N{THUMBS UP SIGN}'
 thumbs_down = '\N{THUMBS DOWN SIGN}'
 
+
+# ======================================= Utility Commands ====================================================
+
+
 def roll_dice(num=DICE_SIDES):
     """
     Roll a dice with the specified number of sides.
@@ -159,28 +163,6 @@ def save_settings_json(contents: dict) -> None:
         # print('saved settings.json file')
         json.dump(contents, f, indent=4)
 
-def update_tiles_url(contents: dict, url: str, *, process_sheet: bool = False) -> dict:
-    """
-    Update the tiles URL in the settings and optionally process the Google Sheet.
-
-    Args:
-        contents (dict): The current settings.
-        url (str): The new URL to update.
-        process_sheet (bool, optional): Whether to process the Google Sheet. Defaults to False.
-
-    Returns:
-        dict: The updated settings.
-    """
-    contents['tiles']['url'] = url
-    spreadsheet_id = url.split('https://docs.google.com/spreadsheets/d/')[-1].split("/")[0]
-    contents['tiles']['spreadsheet_id'] = spreadsheet_id
-    if process_sheet:
-        items = load_sheet(spreadsheet_id)
-        contents = format_item_list(contents, items)
-    save_settings_json(contents)
-    # print(updates, contents, spreadsheet_id)
-    return contents
-
 def update_settings_json(contents: dict, *, url: str = None, process_sheet: bool = False) -> (str, dict):
     """
     Update the settings in the settings.json file.
@@ -204,6 +186,45 @@ def update_settings_json(contents: dict, *, url: str = None, process_sheet: bool
         save_settings_json(contents)
         updates = 'Updated Team turn information'
     return updates, contents
+
+def update_roll_settings(roll, team_name, settings, prev, current, reroll=False):
+    """
+    Update the roll settings for a team in the bingo bot.
+
+    Args:
+        roll (str): The roll to be added to the team's roll history.
+        team_name (str): The name of the team.
+        settings (dict): The current settings dictionary.
+        prev (int): The previous roll value.
+        current (int): The current roll value.
+        reroll (bool, optional): Indicates if the roll is a reroll. Defaults to False.
+
+    Returns:
+        dict: The updated settings dictionary.
+    """
+    if reroll:
+        settings['teams'][team_name]['roll_history'].append("reroll")
+    settings['teams'][team_name]['roll_history'].append(roll)
+    settings['teams'][team_name]['prev'] = prev
+    settings['teams'][team_name]['current'] = current
+    return settings
+
+
+def formatted_title(settings, team_name):
+    """
+    Formats the title for a specific tile based on the given settings and team name.
+
+    Args:
+        settings (dict): The settings dictionary containing information about the tiles.
+        team_name (str): The name of the team.
+
+    Returns:
+        str: The formatted title for the tile.
+    """
+    tile_num = settings['teams'][team_name]['current']
+    name = settings['items'][str(tile_num)]['name']
+    desc = settings['items'][str(tile_num)]['short_desc']
+    return f"{tile_num} - {name} - {desc}"
 
 def format_item_list(contents, tile_list: list) -> list:
     """
@@ -297,18 +318,27 @@ def load_sheet(SAMPLE_SPREADSHEET_ID, RANGE="A1:Z100"):
         print(err)
 
 
-async def clear_team_roles(interaction):
+def update_tiles_url(contents: dict, url: str, *, process_sheet: bool = False) -> dict:
     """
-    Clear the team roles from all members in the guild.
+    Update the tiles URL in the settings and optionally process the Google Sheet.
 
     Args:
-        interaction: The Discord interaction object.
-    """
-    roles = [discord.utils.get(interaction.guild.roles, name=rl) for rl in ROLES]
-    for member in interaction.guild.members:
-        await member.remove_roles(*roles)
-    print('Removed Team Roles from All Members')
+        contents (dict): The current settings.
+        url (str): The new URL to update.
+        process_sheet (bool, optional): Whether to process the Google Sheet. Defaults to False.
 
+    Returns:
+        dict: The updated settings.
+    """
+    contents['tiles']['url'] = url
+    spreadsheet_id = url.split('https://docs.google.com/spreadsheets/d/')[-1].split("/")[0]
+    contents['tiles']['spreadsheet_id'] = spreadsheet_id
+    if process_sheet:
+        items = load_sheet(spreadsheet_id)
+        contents = format_item_list(contents, items)
+    save_settings_json(contents)
+    # print(updates, contents, spreadsheet_id)
+    return contents
 
 def create_tile_embed(tiles: dict, tile_number: str) -> discord.Embed:
     """
@@ -337,30 +367,6 @@ def create_tile_embed(tiles: dict, tile_number: str) -> discord.Embed:
     #     name = wiki_url.split('/')[-1].replace('_', " ")
     #     embed.add_field(name=name, value=f"[{name}]({wiki_url})", inline=False)
     return embed
-
-async def get_default_channels(interaction: discord.Interaction):
-    """
-    Get the default channels based on the current bot mode.
-
-    Args:
-        interaction (discord.Interaction): The Discord interaction object.
-
-    Returns:
-        list: The list of default channels.
-    """
-    settings = load_settings_json()
-    if settings['bot_mode']['current'] == 'candyland':
-        return CANDYLAND_DEFAULT_CHANNELS
-    else:
-        # using the discord.Interaction object to prompt initial sender for text input
-        if settings['items']:
-            discord_safe_names = [{"name": name, "description": ""} for name in DEFAULT_CHANNELS]
-            discord_safe_names += [{"name": create_discord_friendly_name(itm['name']), "description": itm['desc']} for itm in settings['items'].values()]  
-            return discord_safe_names
-        else:
-            await interaction.followup.send('Tile information is missing. Please update with /set_tiles <google sheet link>', ephemeral=True)
-        # process response
-        # return respons
 
 def mark_on_image_tile_complete(team_name: str, row: int, column: int) -> None:
     """
@@ -423,6 +429,63 @@ def mark_on_image_tile_complete(team_name: str, row: int, column: int) -> None:
     update_settings_json(settings)
     return settings
 
+async def parse_table_location(location: str):
+    if location == "":
+        return 0, 0
+    col, row = location[0], location[1]
+    if col.lower() == 'a':
+        col = 1
+    elif col.lower() == 'b':
+        col = 2
+    elif col.lower() == 'c':
+        col = 3
+    elif col.lower() == 'd':
+        col = 4
+    elif col.lower() == 'e':
+        col = 5
+    else:
+        col = 0
+    return int(row), int(col)
+
+
+# ======================================= Discord Interaction Functions ====================================================
+
+async def get_default_channels(interaction: discord.Interaction):
+    """
+    Get the default channels based on the current bot mode.
+
+    Args:
+        interaction (discord.Interaction): The Discord interaction object.
+
+    Returns:
+        list: The list of default channels.
+    """
+    settings = load_settings_json()
+    if settings['bot_mode']['current'] == 'candyland':
+        return CANDYLAND_DEFAULT_CHANNELS
+    else:
+        # using the discord.Interaction object to prompt initial sender for text input
+        if settings['items']:
+            discord_safe_names = [{"name": name, "description": ""} for name in DEFAULT_CHANNELS]
+            discord_safe_names += [{"name": create_discord_friendly_name(itm['name']), "description": itm['desc']} for itm in settings['items'].values()]  
+            return discord_safe_names
+        else:
+            await interaction.followup.send('Tile information is missing. Please update with /set_tiles <google sheet link>', ephemeral=True)
+        # process response
+        # return respons
+
+async def clear_team_roles(interaction):
+    """
+    Clear the team roles from all members in the guild.
+
+    Args:
+        interaction: The Discord interaction object.
+    """
+    roles = [discord.utils.get(interaction.guild.roles, name=rl) for rl in ROLES]
+    for member in interaction.guild.members:
+        await member.remove_roles(*roles)
+    print('Removed Team Roles from All Members')
+
 async def post_or_update_bingo_card(interaction: discord.Interaction, settings: dict, team_name: str, *, update: bool = False, row: int = None, column: int = None) -> None:
     """
     Posts or updates a bingo card image for a specific team in a Discord channel.
@@ -470,6 +533,127 @@ async def post_or_update_bingo_card(interaction: discord.Interaction, settings: 
                 else:
                     print('image was already posted')
 
+async def update_team_bingo_card_channel(interaction: discord.Interaction, team_name, roll, settings, reroll=False):
+    """
+    Updates the bingo card channel for a specific team with the latest dice roll and tile information.
+
+    Parameters:
+    - interaction (discord.Interaction): The interaction object representing the user's interaction with the bot.
+    - team_name (str): The name of the team whose bingo card channel needs to be updated.
+    - roll (int): The dice roll value.
+    - settings (dict): The settings dictionary containing the current state of the bingo game.
+    - reroll (bool, optional): Indicates whether the dice roll is a reroll. Defaults to False.
+    """
+    for ch in interaction.channel.category.channels:
+        if ch.name.endswith('bingo-card'):
+            await ch.send(f"{'Rerolling ' if reroll else ''}Dice roll: {roll} for team: {team_name}\nNew tile: {settings['teams'][team_name]['current']} << Old tile: {settings['teams'][team_name]['prev']}\nRerolls remaining: {settings['teams'][team_name]['reroll']}")
+
+async def update_reroll_team_bingo_card_channel(interaction: discord.Interaction, team_name, settings, used=True):
+    """
+    Updates the team's bingo card channel with the information about the reroll.
+
+    Parameters:
+    - interaction (discord.Interaction): The interaction object representing the user's interaction with the bot.
+    - team_name (str): The name of the team.
+    - settings (dict): The settings dictionary containing information about the teams and their rerolls.
+    - used (bool, optional): Indicates whether the reroll was used or awarded. Defaults to True.
+    """
+    for ch in interaction.guild.channels:
+        if ch.name.endswith(f'{create_discord_friendly_name(team_name)}-bingo-card'):
+            await ch.send(f"Reroll was {'used' if used else 'awarded'} for team: {team_name}\nRerolls remaining: {settings['teams'][team_name]['reroll']}")
+
+async def update_server_score_board_channel(interaction: discord.Interaction, settings):
+    """
+    Updates the score board channel in the server with the current scores and team information.
+
+    Parameters:
+    - interaction (discord.Interaction): The interaction object representing the command interaction.
+    - settings (dict): The settings dictionary containing the bot configuration.
+
+    Returns:
+    None
+    """
+    score_card_ch = discord.utils.get(interaction.guild.channels , name="score-board")
+    if settings['posts']['score-board']['id']:
+        msg_id = int(settings['posts']['score-board']['id'])
+    else:
+        # ch_id = 1108133466350030858
+        async for msg in score_card_ch.history(oldest_first=True):
+            print(msg)
+            if msg.author == bot.user:
+                msg_id = msg.id
+                print(f"{msg_id =}")
+                msg_webhook = msg.webhook_id
+                print(f"{msg_webhook =}")
+    try:
+        message = await score_card_ch.fetch_message(msg_id)
+    except discord.errors.NotFound as e:
+        msg = await score_card_ch.send(content=settings['posts']['score-board']['content'])
+        msg_id = msg.id
+        message = await score_card_ch.fetch_message(msg_id)
+    if message.content != settings['posts']['score-board']['content']:
+        print("score is out of sync")
+    total_teams = settings['total_teams']
+    teams_names = [x for x in settings['teams'].keys()]
+    teams_scores = [x['current'] for x in settings['teams'].values()]
+    teams_rerolls = [x['reroll'] for x in settings['teams'].values()]
+    content_text = []
+    for i in range(len(teams_names)):
+        if i >= total_teams:
+            continue
+        if settings['bot_mode']['current'] == 'candyland':
+            row = f"{teams_names[i]}: {teams_scores[i]} - Rerolls remain: {teams_rerolls[i]}"
+        else:
+            row = f"{teams_names[i]}: {teams_scores[i]}"
+        content_text.append(row)
+    settings['posts']['score-board']['id'] = msg_id
+    settings['posts']['score-board']['content'] = '\n'.join(content_text)
+    update_settings_json(settings)
+    await message.edit(content='\n'.join(content_text))
+
+async def process_all_spectators(interaction, roles, spectator_role, unassign):
+    """
+    Process all spectators by removing specified roles from all server members and optionally adding the spectator role.
+
+    Parameters:
+    - interaction: The interaction object representing the command interaction.
+    - roles: A list of roles to be removed from all server members.
+    - spectator_role: The role to be added to all server members as spectators.
+    - unassign: A boolean indicating whether to remove the spectator role from all server members.
+
+    Returns:
+    None
+    """
+    # members = interaction.guild.members
+    guild_roles = interaction.guild.roles
+    for r in guild_roles:
+        if r in roles:
+            for m in r.members:
+                if discord.RateLimited:
+                    print('Rate Limited, pausing 10s')
+                    await asyncio.sleep(10)
+                await m.remove_roles(r)
+                if not unassign:
+                    await m.add_roles(spectator_role)
+    # for m in members:
+    #     roles_to_remove = [r for r in m.roles if r in roles]
+    #     print()
+    #     print(roles_to_remove)
+    #     print(roles)
+    #     print()
+    #     if not roles_to_remove:
+    #         continue
+    #     if discord.RateLimited:
+    #         print('Rate Limited, pausing 10s')
+    #         await asyncio.sleep(10)
+    #     await m.remove_roles(*roles_to_remove)
+    #     if not unassign:
+    #         await m.add_roles(spectator_role)
+    print("All members have been updated")
+    await interaction.followup.send(f'Role "spectator" {"added to" if not unassign else "purged from"} all server members')
+
+
+# ======================================= Discord Roles Functions ====================================================
     
 def team_overwrites():
     return discord.PermissionOverwrite(
@@ -536,212 +720,7 @@ def general_chat_restrict_overwrites():
         send_messages=False
     )
 
-async def update_team_bingo_card_channel(interaction: discord.Interaction, team_name, roll, settings, reroll=False):
-    """
-    Updates the bingo card channel for a specific team with the latest dice roll and tile information.
-
-    Parameters:
-    - interaction (discord.Interaction): The interaction object representing the user's interaction with the bot.
-    - team_name (str): The name of the team whose bingo card channel needs to be updated.
-    - roll (int): The dice roll value.
-    - settings (dict): The settings dictionary containing the current state of the bingo game.
-    - reroll (bool, optional): Indicates whether the dice roll is a reroll. Defaults to False.
-    """
-    for ch in interaction.channel.category.channels:
-        if ch.name.endswith('bingo-card'):
-            await ch.send(f"{'Rerolling ' if reroll else ''}Dice roll: {roll} for team: {team_name}\nNew tile: {settings['teams'][team_name]['current']} << Old tile: {settings['teams'][team_name]['prev']}\nRerolls remaining: {settings['teams'][team_name]['reroll']}")
-
-
-async def update_reroll_team_bingo_card_channel(interaction: discord.Interaction, team_name, settings, used=True):
-    """
-    Updates the team's bingo card channel with the information about the reroll.
-
-    Parameters:
-    - interaction (discord.Interaction): The interaction object representing the user's interaction with the bot.
-    - team_name (str): The name of the team.
-    - settings (dict): The settings dictionary containing information about the teams and their rerolls.
-    - used (bool, optional): Indicates whether the reroll was used or awarded. Defaults to True.
-    """
-    for ch in interaction.guild.channels:
-        if ch.name.endswith(f'{create_discord_friendly_name(team_name)}-bingo-card'):
-            await ch.send(f"Reroll was {'used' if used else 'awarded'} for team: {team_name}\nRerolls remaining: {settings['teams'][team_name]['reroll']}")
-
-async def update_server_score_board_channel(interaction: discord.Interaction, settings):
-    """
-    Updates the score board channel in the server with the current scores and team information.
-
-    Parameters:
-    - interaction (discord.Interaction): The interaction object representing the command interaction.
-    - settings (dict): The settings dictionary containing the bot configuration.
-
-    Returns:
-    None
-    """
-    score_card_ch = discord.utils.get(interaction.guild.channels , name="score-board")
-    if settings['posts']['score-board']['id']:
-        msg_id = int(settings['posts']['score-board']['id'])
-    else:
-        # ch_id = 1108133466350030858
-        async for msg in score_card_ch.history(oldest_first=True):
-            print(msg)
-            if msg.author == bot.user:
-                msg_id = msg.id
-                print(f"{msg_id =}")
-                msg_webhook = msg.webhook_id
-                print(f"{msg_webhook =}")
-    try:
-        message = await score_card_ch.fetch_message(msg_id)
-    except discord.errors.NotFound as e:
-        msg = await score_card_ch.send(content=settings['posts']['score-board']['content'])
-        msg_id = msg.id
-        message = await score_card_ch.fetch_message(msg_id)
-    if message.content != settings['posts']['score-board']['content']:
-        print("score is out of sync")
-    total_teams = settings['total_teams']
-    teams_names = [x for x in settings['teams'].keys()]
-    teams_scores = [x['current'] for x in settings['teams'].values()]
-    teams_rerolls = [x['reroll'] for x in settings['teams'].values()]
-    content_text = []
-    for i in range(len(teams_names)):
-        if i >= total_teams:
-            continue
-        if settings['bot_mode']['current'] == 'candyland':
-            row = f"{teams_names[i]}: {teams_scores[i]} - Rerolls remain: {teams_rerolls[i]}"
-        else:
-            row = f"{teams_names[i]}: {teams_scores[i]}"
-        content_text.append(row)
-    settings['posts']['score-board']['id'] = msg_id
-    settings['posts']['score-board']['content'] = '\n'.join(content_text)
-    update_settings_json(settings)
-    await message.edit(content='\n'.join(content_text))
-
-def update_roll_settings(roll, team_name, settings, prev, current, reroll=False):
-    """
-    Update the roll settings for a team in the bingo bot.
-
-    Args:
-        roll (str): The roll to be added to the team's roll history.
-        team_name (str): The name of the team.
-        settings (dict): The current settings dictionary.
-        prev (int): The previous roll value.
-        current (int): The current roll value.
-        reroll (bool, optional): Indicates if the roll is a reroll. Defaults to False.
-
-    Returns:
-        dict: The updated settings dictionary.
-    """
-    if reroll:
-        settings['teams'][team_name]['roll_history'].append("reroll")
-    settings['teams'][team_name]['roll_history'].append(roll)
-    settings['teams'][team_name]['prev'] = prev
-    settings['teams'][team_name]['current'] = current
-    return settings
-
-
-def formatted_title(settings, team_name):
-    """
-    Formats the title for a specific tile based on the given settings and team name.
-
-    Args:
-        settings (dict): The settings dictionary containing information about the tiles.
-        team_name (str): The name of the team.
-
-    Returns:
-        str: The formatted title for the tile.
-    """
-    tile_num = settings['teams'][team_name]['current']
-    name = settings['items'][str(tile_num)]['name']
-    desc = settings['items'][str(tile_num)]['short_desc']
-    return f"{tile_num} - {name} - {desc}"
-
-async def process_all_spectators(interaction, roles, spectator_role, unassign):
-    """
-    Process all spectators by removing specified roles from all server members and optionally adding the spectator role.
-
-    Parameters:
-    - interaction: The interaction object representing the command interaction.
-    - roles: A list of roles to be removed from all server members.
-    - spectator_role: The role to be added to all server members as spectators.
-    - unassign: A boolean indicating whether to remove the spectator role from all server members.
-
-    Returns:
-    None
-    """
-    # members = interaction.guild.members
-    guild_roles = interaction.guild.roles
-    for r in guild_roles:
-        if r in roles:
-            for m in r.members:
-                if discord.RateLimited:
-                    print('Rate Limited, pausing 10s')
-                    await asyncio.sleep(10)
-                await m.remove_roles(r)
-                if not unassign:
-                    await m.add_roles(spectator_role)
-    # for m in members:
-    #     roles_to_remove = [r for r in m.roles if r in roles]
-    #     print()
-    #     print(roles_to_remove)
-    #     print(roles)
-    #     print()
-    #     if not roles_to_remove:
-    #         continue
-    #     if discord.RateLimited:
-    #         print('Rate Limited, pausing 10s')
-    #         await asyncio.sleep(10)
-    #     await m.remove_roles(*roles_to_remove)
-    #     if not unassign:
-    #         await m.add_roles(spectator_role)
-    print("All members have been updated")
-    await interaction.followup.send(f'Role "spectator" {"added to" if not unassign else "purged from"} all server members')
-
-async def parse_table_location(location: str):
-    if location == "":
-        return 0, 0
-    col, row = location[0], location[1]
-    if col.lower() == 'a':
-        col = 1
-    elif col.lower() == 'b':
-        col = 2
-    elif col.lower() == 'c':
-        col = 3
-    elif col.lower() == 'd':
-        col = 4
-    elif col.lower() == 'e':
-        col = 5
-    else:
-        col = 0
-    return int(row), int(col)
-
-
-
-# ======================================= Bot Commands ====================================================
-
-# settings = load_settings_json()
-# total_tiles = len(settings['items'])
-
-
-#  TODO Possibly delete this command
-# async def team_autocomplete(
-#     interaction: discord.Interaction,
-#     current: str
-#     ) -> List[app_commands.Choice[str]]:
-#         commands = [
-#             "Create",
-#             # "Set Team Name",
-#             "Set Tile",
-#             "Set Prev Tile",
-#             "Set Reroll",
-#             # "Delete Channels",
-#             "Update Tiles"
-#             # "Members",
-#             # "Captain",
-#             # "Spectators"
-#         ]
-#         return [
-#             app_commands.Choice(name=command, value=command)
-#             for command in commands if current.lower() in command.lower()
-#         ]
+# ======================================= Discord Autocomplete Functions ====================================================
 
 async def team_names_autocomplete(
     interaction: discord.Interaction,
@@ -779,9 +758,11 @@ async def process_sheet_autocomplete(
         List[app_commands.Choice[str]]: The list of autocomplete choices.
     """
     return [
-        app_commands.Choice(name="Don't Process", value=False),
-        app_commands.Choice(name="Process Sheet", value=True)
+        app_commands.Choice(name="Only store link for later processing", value=False),
+        app_commands.Choice(name="Retrieve sheet data to generate tile list", value=True)
     ]
+
+# ======================================= Bot Commands ====================================================
 
 @bot.event
 async def on_ready():
@@ -800,6 +781,8 @@ async def roll(interaction: discord.Interaction):
     Rolls the dice for a team in the bingo game.
     uses roll_dice() to get a random number between 1 and DICE_SIDES
     Requires the user to have the appropriate team role and be in the correct channel: roll_channel.
+    Updates the team's current tile, previous tile, and roll history in the settings.
+    Creates a new channel for the newly rolled tile and posts the tile information in the channel.
 
     Parameters:
     - interaction (discord.Interaction): The interaction object representing the user's interaction with the bot.
@@ -903,9 +886,6 @@ async def roll(interaction: discord.Interaction):
         
         # Add updating the Server's Bingo card Channel
         await update_server_score_board_channel(interaction, settings)
-        
-
-
 
 @bot.tree.command(name="reroll", description=f"Reroll a d{DICE_SIDES} in your teams {roll_channel} channel, nulling the last roll and rolls from the prev tile.")
 async def reroll(interaction: discord.Interaction):
@@ -914,6 +894,9 @@ async def reroll(interaction: discord.Interaction):
     Requires the user to have the appropriate team role and be in the correct channel: roll_channel.
     Uses previous tile and roll to determine the new tile.
     5/2/24 - Currently can reroll the same tile that it is on. This needs to be updated.
+
+    Updates the team's current tile, previous tile, and roll history in the settings.
+    Creates a new channel for the newly rolled tile and posts the tile information in the channel.
 
 
     Parameters:
@@ -1031,14 +1014,23 @@ async def reroll(interaction: discord.Interaction):
 
 @has_role("Bingo Moderator")
 @bot.tree.command(name="upload_tiles", description=f"Sets the Bingo Tiles from a Public Google Sheet doc, processes, and formats them.")
-async def set_tiles(interaction: discord.Interaction, sheet_link: str, process_sheet: bool = False):
+async def set_tiles(interaction: discord.Interaction, sheet_link: str, process_sheet: bool = True):
     """
-    Sets the tiles for the bingo game.
+    Sets the tiles for the bingo game using a PUBLIC Google Sheet.
+    Provide the FULL URL link to the Google Sheets document containing the tile data.
+    settings['items'] will get updated with the new tile URL.
+    If process_sheet is True, the sheet will be processed and the settings will be updated.
+
+    Example of Normal Bingo Template is:
+    https://docs.google.com/spreadsheets/d/1zkhEsUOME7lRTQ8m5n3puieyKJsG3fcqiiTonQQwWoA/edit?usp=sharing
+
+    Example of Candyland Bingo Template is:
+    https://docs.google.com/spreadsheets/d/1-S-m4r3JCMdzbc-AfBCaUDPQO08SQWC0vjcwO44kHBg/edit?usp=sharing
 
     Parameters:
     - interaction (discord.Interaction): The interaction object representing the user's command.
-    - sheet_link (str): The link to the Google Sheets document containing the tile data.
-    - process_sheet (bool, optional): Whether to process the sheet and update the settings. Defaults to False.
+    - sheet_link (str): The FULL URL link to the Google Sheets document containing the tile data.
+    - process_sheet (bool, optional): Whether to process the sheet and update the settings. Defaults to True.
 
     Returns:
     None
@@ -1051,15 +1043,6 @@ async def set_tiles(interaction: discord.Interaction, sheet_link: str, process_s
     settings = load_settings_json()
     processed, settings = update_settings_json(settings, url=sheet_link, process_sheet=process_sheet)
     await interaction.followup.send(f"{processed}")
-    # embed = discord.Embed(
-    #     title="Tile List",
-    #     color=discord.Color.blue(),
-    #     description='\n'.join([itm['discord_name'] for itm in settings['items'].values()])
-    #     )
-    # await interaction.reply(embed=embed)
-    # post in #tile-list
-    # tile_list_channel = discord.utils.get(interaction.guild.channels, name="tile-list")
-    # await tile_list_channel.send(embed=embed)
 
 @app_commands.autocomplete(team_name=team_names_autocomplete)
 @has_role("Bingo Moderator")
@@ -1103,6 +1086,9 @@ async def spectators(interaction: discord.Interaction,
                     unassign: bool = False):
     """
     Assigns or unassigns the "spectator" role to the specified members.
+    Use of @everyone will assign/unassign the role to all members in the server.
+    Specify the unassign parameter to remove or add the role. The default is to add the role(Unassign = False).
+    members: @user1 @user2 @user3
 
     Parameters:
     - interaction: The discord.Interaction object representing the interaction with the bot.
@@ -1139,6 +1125,8 @@ async def add_team_role(interaction: discord.Interaction,
                 members: str):
     """
     Adds a team role to the specified members.
+    Specify team name and @ the users to add the role to.
+    members: @user1 @user2 @user3
 
     Parameters:
     - interaction (discord.Interaction): The interaction object representing the command invocation.
@@ -1166,6 +1154,7 @@ async def add_team_role(interaction: discord.Interaction,
 async def configure_reroll(interaction: discord.Interaction, team_name: str):
     """
     Configures the reroll functionality for a team.
+    Requires the user to grant or revoke a reroll for the team by responding to the bot's message
 
     Parameters:
     - interaction (discord.Interaction): The interaction object representing the user's interaction with the bot.
@@ -1226,199 +1215,6 @@ async def configure_reroll(interaction: discord.Interaction, team_name: str):
 
     await interaction.response.send_message('Choose an option for Reroll:', view=Reroll())
 
-# # @has_role("Bingo Moderator")
-# @app_commands.autocomplete(team_name=team_names_autocomplete)
-# @app_commands.autocomplete(option=team_autocomplete)
-# @bot.tree.command(name="team", description=f"Configure teams")
-# async def team(interaction: discord.Interaction,
-#                option: str,
-#                team_name: str,
-#                tile: str = None,
-#                role: discord.Role = None,
-#                new_team_name: str = None,
-#                members: str = None
-#                ):
-#     settings = load_settings_json()
-#     team_names = [x for x in settings['teams'].keys()]
-#     team_number = team_names.index(team_name) + 1
-#     await interaction.channel.typing()
-#     if not interaction.channel.category.name.lower() == 'admin':
-#         await interaction.response.send_message(f"Use this command in {mod_channel} and ADMIN section")
-#         return
-#     elif not team_name in team_names:
-#         await interaction.response.send_message(f"Team Name: {team_name} is not found in {team_names}\nPlease Try again")
-#         return
-    # elif option == "Create":
-    #     everyone_role = discord.utils.get(interaction.guild.roles, name="@everyone")
-    #     spectator_role = discord.utils.get(interaction.guild.roles, name="spectator")
-    #     bingo_bot_role = discord.utils.get(interaction.guild.roles, name="Bingo Bot")
-    #     team_role = discord.utils.get(interaction.guild.roles, name=f"Team {team_number}")
-        
-    #     cat = await interaction.guild.create_category(name=team_name)
-
-    #     overwrites_with_spectator = {
-    #         interaction.guild.default_role: discord.PermissionOverwrite(read_messages=False, connect=False),
-    #         bingo_bot_role: bingo_bot_overwrites(),
-    #         interaction.guild.me: bingo_bot_overwrites(),
-    #         spectator_role: spectator_overwrites(),
-    #         team_role: team_overwrites(),
-    #         everyone_role: everyone_overwrites()
-    #         }
-    #     overwrites_w_out_spectator = {
-    #         interaction.guild.default_role: discord.PermissionOverwrite(read_messages=False, connect=False),
-    #         bingo_bot_role: bingo_bot_overwrites(),
-    #         interaction.guild.me: bingo_bot_overwrites(),
-    #         team_role: team_overwrites(),
-    #         everyone_role: everyone_overwrites()
-    #         }
-
-    #     await interaction.response.defer(thinking=True)
-    #     await cat.edit(overwrites=overwrites_with_spectator)
-    #     # Create Default Channels
-    #     # all_channels = []
-    #     channels = await get_default_channels(interaction)
-    #     for channel in channels:
-    #         settings = load_settings_json()
-    #         if settings['bot_mode']['current'] == 'candyland':
-    #             channel_name = f"team-{team_number}-{channel}"
-    #             if channel_name == f"team-{team_number}-chat":
-    #                 overwrites = overwrites_w_out_spectator
-    #             else:
-    #                 overwrites = overwrites_with_spectator
-    #         else:
-    #             channel_name = channel['name']
-    #             if channel_name == "chat":
-    #                 # TODO update this
-    #                 # raise Exception("This is not implemented yet, update proper perms")
-    #                 channel_name = f"{team_number}-general-{channel_name}"
-    #                 overwrites = overwrites_w_out_spectator
-    #             else:
-    #                 # raise Exception("This is not implemented yet, update proper perms")
-    #                 overwrites = overwrites_with_spectator
-    #         if "voice" in channel_name:
-    #             channel_name = f"{team_number}-{channel_name}"
-    #             chan = await interaction.guild.create_voice_channel(name=channel_name, category=cat, overwrites=overwrites)
-    #         else:
-    #             chan = await interaction.guild.create_text_channel(name=channel_name, topic=channel['description'],
-    #                                                                category=cat, overwrites=overwrites)
-    #             if channel['description']:
-    #                 await chan.send(f"{channel['description']}")
-    #             if channel_name == 'photo-dump' or channel_name == 'drop-spam':
-    #                 webhook = await chan.create_webhook(name=channel_name)
-    #                 await chan.send(f"Here are instructions for adding Discord Rare Drop Notification to Runelite\n\nDownload the Plugin from Plugin Hub\nCopy this Webhook URL to this channel into the Plugin(Accessed via the settings)")
-    #                 await chan.send(f"```{webhook.url}```")
-    #                 if settings['bot_mode']['current'] == 'candyland':
-    #                     await chan.send(f"Copy in this Tile List to ensure that ALL potential items are captured")
-    #                     list_of_item_names = [x['item_names'] for x in settings['items'].values()]
-    #                     list_of_item_names = [x.replace("*", "\*") for x in list_of_item_names]
-    #                     embed = discord.Embed(
-    #                         description=f"{''.join([x.lower() for x in filter(None, list_of_item_names)])}"
-    #                         )
-    #                     await chan.send(embed=embed)
-    #         # all_channels.append(chan)
-    #     await interaction.followup.send(f'Channels created for "{team_name}"')
-
-    # elif option == "Set Team Name":
-    #     # Update Settings
-    #     if not new_team_name:
-    #         await interaction.response.send_message(f'No "new_team_name" provided, Please try again')
-    #     teams_index = dict(zip(settings['teams'].keys(), range(len(settings['teams'].keys()))))
-    #     team_idx = teams_index[team_name]
-    #     new_teams = {}
-    #     for i, pair in enumerate(settings['teams'].items()):
-    #         k, v = pair
-    #         if i == team_idx:
-    #             new_teams.update({new_team_name: v})
-    #         else:
-    #             new_teams.update({k: v})
-    #     settings['teams'] = new_teams
-    #     save_settings_json(settings)
-    #     # Update Category
-    #     team_cat = discord.utils.get(interaction.guild.categories, name=team_name)
-    #     if not team_cat:
-    #         await interaction.response.send_message(f'No Category found for "{team_name}"')
-    #     await team_cat.edit(name=new_team_name)
-    #     await interaction.response.send_message(f'Changed Team "{team_name}" to "{new_team_name}"')
-    # elif option == "Set Tile":
-    #     try:
-    #         tile = int(tile)
-    #     except ValueError:
-    #         await interaction.response.send_message(f'Unable to process tile "tile": {tile} - Ensure it is a number')
-    #         return
-    #     if tile < 0:
-    #         tile = 1
-    #     settings['teams'][team_name]['current'] = tile
-    #     await interaction.response.send_message(f'Updated tile for Team: {team_name} to {tile}')
-    #     update_settings_json(settings)
-    # elif option == "Set Prev Tile":
-    #     try:
-    #         tile = int(tile)
-    #     except ValueError:
-    #         await interaction.response.send_message(f'Unable to process prev tile "tile": {tile} - Ensure it is a number')
-    #         return
-    #     if tile < 0:
-    #         tile = None
-    #     settings['teams'][team_name]['prev'] = tile
-    #     await interaction.response.send_message(f'Updated prev tile for Team: {team_name} to {tile}')
-    #     update_settings_json(settings)
-    # elif option == "Set Reroll":
-    #     await reroll(interaction=interaction, option=option, team_name=team_name)
-
-    # elif option == "Delete Channels":
-    #     print('Deleting...')
-    #     await interaction.response.defer(thinking=True)
-    #     num_deleted = 0
-    #     cats = interaction.guild.categories
-    #     print([c.name for c in cats])
-    #     for cat in cats:
-    #         if cat.name.lower() == team_name.lower():
-    #             for ch in cat.channels:
-    #                 print(ch)
-    #                 num_deleted += 1
-    #                 await ch.delete()
-    #             await cat.delete()
-    #             if num_deleted > 0:
-    #                 await interaction.followup.send(f"Deleted {team_name}'s channels. {num_deleted} channel(s) deleted.")
-    #         else:
-    #             print(f"Skipping {cat.name}\t{team_name}\t{cat.name.lower() == team_name.lower()}")
-      
-    #     else:
-    #         if num_deleted == 0:
-    #             await interaction.followup.send(f"{team_name}: No ({num_deleted}) Channels Deleted")
-    #     print(f"Deleted {num_deleted} Channels")
-    # elif option == "Update Tiles":
-    #     await interaction.response.defer(thinking=True)
-    #     cats = interaction.guild.categories
-    #     print([c.name for c in cats])
-    #     channels = await get_default_channels(interaction)
-    #     updated_num = 0
-    #     for cat in cats:
-    #         if cat.name.lower() == team_name.lower():
-    #             for ch in cat.channels:
-    #                 # look for first message in channel and update it
-    #                 if ch.type == discord.ChannelType.text and ch.name in [x['name'] for x in channels]:
-    #                     channel_details = [x for x in channels if x['name'] == ch.name][0]
-    #                     async for message in ch.history(limit=1):
-    #                         if message.author == bot.user:
-    #                             if channel_details['description'] != message.content:
-    #                                 if channel_details['description'] != "":
-    #                                     await ch.edit(topic=channel_details['description'])
-    #                                     await message.edit(content=f"{channel_details['description']}")
-    #                                     updated_num += 1            
-    #     await interaction.followup.send(f"Updated {team_name}'s channels Tiles. {updated_num} channel(s) tiles updated.")
-    # processed, settings = update_settings_json(settings, tiles=sheet_link)
-    # await interaction.response.send_message(f"{processed}")
-    # embed = discord.Embed(
-    #     title="Tile List",
-    #     color=discord.Color.blue(),
-    #     description='\n'.join([itm['discord_name'] for itm in settings['items'].values()])
-    #     )
-    # # await interaction.reply(embed=embed)
-    # # post in #tile-list
-    # tile_list_channel = discord.utils.get(interaction.guild.channels, name="tile-list")
-    # await tile_list_channel.send(embed=embed)
-    # else:
-    #     await interaction.response.send_message(f'Unable to proccess: {interaction.data}\nPlease Try again or contact Administrator.')
 
 @has_role("Bingo Moderator")
 @app_commands.autocomplete(team_name=team_names_autocomplete)
@@ -1426,6 +1222,7 @@ async def configure_reroll(interaction: discord.Interaction, team_name: str):
 async def delete_team(interaction: discord.Interaction, team_name: str):
     """
     Deletes all channels associated with a team.
+    Prompts for user's confirmation on bot's response before deleting the channels.
 
     Parameters:
     - interaction (discord.Interaction): The interaction object representing the user's interaction with the bot.
@@ -1529,6 +1326,8 @@ async def delete_team(interaction: discord.Interaction, team_name: str):
 async def change_team_name(interaction: discord.Interaction, team_name: str, new_team_name: str):
     """
     Changes the name of a team in the bot settings and updates the corresponding category name.
+    Requires the Team Name to be the same as in the settings, will fail if it isn't.
+    If fails, change the team name(Category) manually and try running category command again. 
 
     Parameters:
     - interaction (discord.Interaction): The interaction object representing the command invocation.
@@ -1577,6 +1376,9 @@ async def change_team_name(interaction: discord.Interaction, team_name: str, new
 async def update_tiles_channels(interaction: discord.Interaction, team_name: str):
     """
     Updates the channels' tiles for a specific team.
+    Edits existing message in the channel and updates channel description.
+    Used if there are changes to the tiles after the game has started.
+    Updates only team specified.
 
     Parameters:
     - interaction (discord.Interaction): The interaction object representing the command invocation.
@@ -1791,7 +1593,7 @@ async def set_previous_tile(interaction: discord.Interaction, team_name: str, ti
 @has_role("Bingo Moderator")
 @app_commands.autocomplete(team_name=team_names_autocomplete)
 @bot.tree.command(name="configure_team_reroll", description=f"Set reroll option for a team. This is used to give or take away rerolls.")
-async def set_reroll(interaction: discord.Interaction, team_name: str):
+async def configure_team_reroll(interaction: discord.Interaction, team_name: str):
     """
     Sets the reroll configuration for a specific team.
 
@@ -1818,6 +1620,7 @@ async def set_reroll(interaction: discord.Interaction, team_name: str):
 async def update_score(interaction: discord.Interaction):
     """
     Updates the score and sends a message to the user.
+    Uses the stored settings to get the proper channel and message ID, looks it up if it doesn't exist.
 
     Parameters:
     - interaction: The discord interaction object.
@@ -1833,6 +1636,7 @@ async def update_score(interaction: discord.Interaction):
 async def post_tiles(interaction: discord.Interaction):
     """
     Posts the tiles to the tile-list channel in the guild.
+    Uses the settings.json file to get the tiles(settings['items']).
 
     Parameters:
     - interaction: The discord.Interaction object representing the user interaction.
@@ -1865,7 +1669,8 @@ async def post_tiles(interaction: discord.Interaction):
 
 async def toggle_roll_choice(interaction: discord.Interaction):
     """
-    Toggles the rolling functionality for the bot based on user interaction.
+    Toggles the rolling functionality for the bot based on user interaction with bot response.
+    User has option to disable rolling or enable rolling by clicking button on bot's response.
 
     Args:
         interaction (discord.Interaction): The interaction object representing the user's interaction with the bot.
@@ -1960,7 +1765,8 @@ async def check_roll_enabled(interaction: discord.Interaction):
 async def tile_completed(interaction: discord.Interaction):
     """
     Updates the tile completion status and score in the settings and scoreboard channel.
-
+    NOT IMPLEMENTED YET
+    
     Parameters:
     interaction (discord.Interaction): The interaction object representing the user's interaction with the bot.
 
@@ -2234,9 +2040,6 @@ async def reset_bingo_settings(interaction: discord.Interaction):
     Returns:
     - None
     """
-    class ConfirmReset(discord.ui.View):
-        ...
-async def reset_bingo_settings(interaction: discord.Interaction):
 
     class ConfirmReset(discord.ui.View):
         def __init__(self, *, timeout: Optional[float] = 180):
@@ -2290,5 +2093,13 @@ async def reset_bingo_settings(interaction: discord.Interaction):
     await interaction.response.send_message(f"RESET ALL BINGO SETTINGS is ?????????????", view=ConfirmReset())
 
 if __name__ == '__main__':
+    # import inspect
+    # import sys
+    # # get all docstrings and generate documentation for discord.py
+    # with open('discord_commands.txt', 'w') as f:  
+    #     for name, obj in inspect.getmembers(sys.modules[__name__]):
+    #         if inspect.isfunction(obj):
+    #             if obj.__doc__:
+    #                 f.write(f"{obj.__name__}: {obj.__doc__}\n")
     print('About to log in with bot')
     bot.run(config.DISCORD_BOT_TOKEN)
