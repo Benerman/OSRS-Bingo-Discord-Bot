@@ -4,5 +4,5 @@ WORKDIR /app
 RUN pip install -r requirements.txt
 COPY . .
 RUN mkdir -p /app/images
-CMD ["python3", "bot.py"]
+CMD ["python3", "-u", "bot.py"]
 
