@@ -448,6 +448,28 @@ async def parse_table_location(location: str):
     return int(row), int(col)
 
 
+def generate_team_assignment_text(all_roles, total_teams) -> str:
+    """
+    Generate a text representation of team assignments based on the given roles and total number of teams.
+
+    Parameters:
+    all_roles (list): A list of roles representing the teams.
+    total_teams (int): The total number of teams to generate assignments for.
+
+    Returns:
+    str: A string representation of team assignments, with each line containing the role name followed by the IDs of the members in that role.
+    """
+    content = []
+    all_roles.sort(key=lambda x: x.name)
+    for i, role in enumerate(all_roles):
+        print(i, role.name)
+        if i >= total_teams:
+            continue
+        formatted_text = f"# {role.name}:\n{' '.join([f'<@{str(r.id)}>' for r in role.members])}\n"
+        content.append(formatted_text)
+    content.sort()
+    return '\n'.join(content)
+
 # ======================================= Discord Interaction Functions ====================================================
 
 async def get_default_channels(interaction: discord.Interaction):
@@ -774,6 +796,11 @@ async def on_ready():
     except Exception as e:
         print(f"Error syncing commands: {e}")
 
+# @bot.event
+# async def on_guild_role_update(before, after):
+#     print(f"Role Updated: {before.name} -> {after.name}")
+#     # TODO Implement this so #team-assignments gets updated too
+
 
 @bot.tree.command(name="roll", description=f"Roll a d{DICE_SIDES} in your teams {roll_channel} channel. Creates new channel for the newly rolled tile.")
 async def roll(interaction: discord.Interaction):
@@ -1036,9 +1063,6 @@ async def set_tiles(interaction: discord.Interaction, sheet_link: str, process_s
     None
     """
     await interaction.response.defer(thinking=True)
-    if not interaction.channel.category.name.lower() == 'admin':
-        await interaction.followup.send(f"Use this command in {mod_channel} and ADMIN section")
-        return
     # await interaction.response.edit_message(suppress=True)
     settings = load_settings_json()
     processed, settings = update_settings_json(settings, url=sheet_link, process_sheet=process_sheet)
@@ -1148,6 +1172,7 @@ async def add_team_role(interaction: discord.Interaction,
         mem = await interaction.guild.fetch_member(m_id)
         await mem.remove_roles(*roles)
         await mem.add_roles(current_role)
+    await process_team_assignment_updates(interaction)
     await interaction.followup.send(f'Role "Team {team_number}" added to {len(members)} members')
 
 
@@ -1286,10 +1311,7 @@ async def delete_team(interaction: discord.Interaction, team_name: str):
             settings = load_settings_json()
             team_names = [x for x in settings['teams'].keys()]
             team_number = team_names.index(self.team_name) + 1
-            if not interaction.channel.category.name.lower() == 'admin':
-                await interaction.response.send_message(f"Use this command in {mod_channel} and ADMIN section")
-                return
-            elif not self.team_name in team_names:
+            if not self.team_name in team_names:
                 await interaction.message.edit(embed=discord.Embed(description=f"Team Name: {self.team_name} is not found in {team_names}\nPlease Try again"), view=self)
                 return
             print('Deleting...')
@@ -1341,10 +1363,7 @@ async def change_team_name(interaction: discord.Interaction, team_name: str, new
     team_names = [x for x in settings['teams'].keys()]
     team_number = team_names.index(team_name) + 1
     await interaction.response.defer(thinking=True)
-    if not interaction.channel.category.name.lower() == 'admin':
-        await interaction.followup.send(f"Use this command in {mod_channel} and ADMIN section")
-        return
-    elif not team_name in team_names:
+    if not team_name in team_names:
         await interaction.followup.send(f"Team Name: {team_name} is not found in {team_names}\nPlease Try again")
         return
     # Update Settings
@@ -1372,7 +1391,7 @@ async def change_team_name(interaction: discord.Interaction, team_name: str, new
 
 @has_role("Bingo Moderator")
 @app_commands.autocomplete(team_name=team_names_autocomplete)
-@bot.tree.command(name="update_tiles_channels", description=f"Update the bingo tiles for a team. Useful for post start updates.")
+@bot.tree.command(name="update_tiles_channels", description=f"Updates channel tiles DESCRIPTION AND Initial Message for a team. Doesn't update channel name.")
 async def update_tiles_channels(interaction: discord.Interaction, team_name: str):
     """
     Updates the channels' tiles for a specific team.
@@ -1387,21 +1406,19 @@ async def update_tiles_channels(interaction: discord.Interaction, team_name: str
     Returns:
     None
     """
-    not_implemented = True
+    settings = load_settings_json()
+    team_names = [x for x in settings['teams'].keys()]
+    team_number = team_names.index(team_name) + 1
+    await interaction.response.defer(thinking=True)
+    not_implemented = False
+    # not_implemented = True
     if not_implemented:
         await interaction.followup.send(f"command not implemented yet.")
 
         """========================== NOT IMPLEMENTED ============================="""
 
         return
-    settings = load_settings_json()
-    team_names = [x for x in settings['teams'].keys()]
-    team_number = team_names.index(team_name) + 1
-    await interaction.response.defer(thinking=True)
-    if not interaction.channel.category.name.lower() == 'admin':
-        await interaction.followup.send(f"Use this command in {mod_channel} and ADMIN section")
-        return
-    elif not team_name in team_names:
+    if not team_name in team_names:
         await interaction.followup.send(f"Team Name: {team_name} is not found in {team_names}\nPlease Try again")
         return
     cats = interaction.guild.categories
@@ -1410,6 +1427,7 @@ async def update_tiles_channels(interaction: discord.Interaction, team_name: str
     updated_num = 0
     for cat in cats:
         if cat.name.lower() == team_name.lower():
+            print('team cat found', cat.name)
             for ch in cat.channels:
                 # look for first message in channel and update it
                 if ch.type == discord.ChannelType.text and ch.name in [x['name'] for x in channels]:
@@ -1442,10 +1460,7 @@ async def create_team_channels(interaction: discord.Interaction, team_name: str)
     team_names = [x for x in settings['teams'].keys()]
     team_number = team_names.index(team_name) + 1
     await interaction.response.defer(thinking=True)
-    if not interaction.channel.category.name.lower() == 'admin':
-        await interaction.followup.send(f"Use this command in {mod_channel} and ADMIN section")
-        return
-    elif not team_name in team_names:
+    if not team_name in team_names:
         await interaction.followup.send(f"Team Name: {team_name} is not found in {team_names}\nPlease Try again")
         return
     everyone_role = discord.utils.get(interaction.guild.roles, name="@everyone")
@@ -1537,10 +1552,7 @@ async def set_tile(interaction: discord.Interaction, team_name: str, tile: int):
     team_names = [x for x in settings['teams'].keys()]
     team_number = team_names.index(team_name) + 1
     await interaction.response.defer(thinking=True)
-    if not interaction.channel.category.name.lower() == 'admin':
-        await interaction.followup.send(f"Use this command in {mod_channel} and ADMIN section")
-        return
-    elif not team_name in team_names:
+    if not team_name in team_names:
         await interaction.followup.send(f"Team Name: {team_name} is not found in {team_names}\nPlease Try again")
         return
     try:
@@ -1574,10 +1586,7 @@ async def set_previous_tile(interaction: discord.Interaction, team_name: str, ti
     team_names = [x for x in settings['teams'].keys()]
     team_number = team_names.index(team_name) + 1
     await interaction.response.defer(thinking=True)
-    if not interaction.channel.category.name.lower() == 'admin':
-        await interaction.followup.send(f"Use this command in {mod_channel} and ADMIN section")
-        return
-    elif not team_name in team_names:
+    if not team_name in team_names:
         await interaction.followup.send(f"Team Name: {team_name} is not found in {team_names}\nPlease Try again")
         return
     try:
@@ -1609,10 +1618,7 @@ async def configure_team_reroll(interaction: discord.Interaction, team_name: str
     settings = load_settings_json()
     team_names = [x for x in settings['teams'].keys()]
     team_number = team_names.index(team_name) + 1
-    if not interaction.channel.category.name.lower() == 'admin':
-        await interaction.response.send_message(f"Use this command in {mod_channel} and ADMIN section")
-        return
-    elif not team_name in team_names:
+    if not team_name in team_names:
         await interaction.response.send_message(f"Team Name: {team_name} is not found in {team_names}\nPlease Try again")
         return
     await configure_reroll(interaction=interaction, team_name=team_name)
@@ -2085,7 +2091,7 @@ async def reset_bingo_settings(interaction: discord.Interaction):
                 }
                 # set tiles_completed to empty list
                 settings['teams'][team_name]['tiles_completed'] = []
-
+            # delete images in IMAGE_PATH that arent default_bingo_card_image.png
             update_settings_json(settings)
             for child in self.children:
                 child.disabled = True
@@ -2094,14 +2100,46 @@ async def reset_bingo_settings(interaction: discord.Interaction):
     settings = load_settings_json()
     await interaction.response.send_message(f"RESET ALL BINGO SETTINGS is ?????????????", view=ConfirmReset())
 
+async def process_team_assignment_updates(interaction: discord.Interaction):
+    settings = load_settings_json()
+    total_teams = settings['total_teams']
+    all_roles = []
+    for role in interaction.guild.roles:
+        if role.name in ROLES:
+            all_roles.append(role)
+    print(f"{all_roles = }")
+    
+    team_assignment_channel = discord.utils.get(interaction.guild.channels, name="team-assignments")
+
+    if not team_assignment_channel:
+        await interaction.followup.send('No Team Assignment Channel found')
+        return
+    else:
+        async for m in team_assignment_channel.history(oldest_first=True):
+            if m.author == bot.user:
+                content = generate_team_assignment_text(all_roles, total_teams)
+                await m.edit(content=content)
+                break
+        else:
+            content = generate_team_assignment_text(all_roles, total_teams)
+            await team_assignment_channel.send(content=content, silent=True)
+    await interaction.followup.send('Updated Team Assignment Channel')
+
+@has_role("Bingo Moderator")
+@bot.tree.command(name="update_team_assignment", description=f"Update #team-assignment channel with proper roles.")
+async def update_team_assignment(interaction: discord.Interaction):
+    """
+    Updates the team assignment channel to display the members currently assigned to the role.
+
+    Parameters:
+    - interaction (discord.Interaction): The interaction object representing the user's interaction with the bot.
+
+    Returns:
+    - None
+    """
+    await interaction.response.defer(thinking=True)
+    await process_team_assignment_updates(interaction)
+
 if __name__ == '__main__':
-    # import inspect
-    # import sys
-    # # get all docstrings and generate documentation for discord.py
-    # with open('discord_commands.txt', 'w') as f:  
-    #     for name, obj in inspect.getmembers(sys.modules[__name__]):
-    #         if inspect.isfunction(obj):
-    #             if obj.__doc__:
-    #                 f.write(f"{obj.__name__}: {obj.__doc__}\n")
     print('About to log in with bot')
     bot.run(config.DISCORD_BOT_TOKEN)
