@@ -1500,8 +1500,10 @@ async def create_team_channels(interaction: discord.Interaction, team_name: str)
                 await chan.send(f"{channel['description']}")
             if channel_name == 'photo-dump' or channel_name == 'drop-spam':
                 webhook = await chan.create_webhook(name=channel_name)
-                await chan.send(f"Here are instructions for adding Discord Rare Drop Notification to Runelite\n\nDownload the Plugin from Plugin Hub\nCopy this Webhook URL to this channel into the Plugin(Accessed via the settings)")
-                await chan.send(f"```{webhook.url}```")
+                message_1 = await chan.send(f"Here are instructions for adding Discord Rare Drop Notification to Runelite\n\nDownload the Plugin from Plugin Hub\nCopy this Webhook URL to this channel into the Plugin(Accessed via the settings)")
+                message_2 = await chan.send(f"```{webhook.url}```")
+                await message_1.pin()
+                await message_2.pin()
                 if settings['bot_mode']['current'] == 'candyland':
                     await chan.send(f"Copy in this Tile List to ensure that ALL potential items are captured")
                     list_of_item_names = [x['item_names'] for x in settings['items'].values()]
