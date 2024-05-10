@@ -1667,12 +1667,17 @@ async def post_tiles(interaction: discord.Interaction):
             # tile['short_desc']
             desc = tile['desc']
             item_list.append(f"## {name}\n{desc}")
-            
-    if len('\n'.join(item_list)) > 4096:
-        await tile_list_ch.send(content='All Tiles\n\n'.join(item_list[:len(item_list)//2]))
-        await tile_list_ch.send(content=''.join(item_list[len(item_list)//2:]))
+    i = 0
+    async for m in tile_list_ch.history(oldest_first=True):
+        if m.author == bot.user and i == 0:
+            await m.edit(content='\n\n'.join(item_list[:len(item_list)//2]))
+        if m.author == bot.user and i == 1:
+            await m.edit(content='\n\n'.join(item_list[len(item_list)//2:]))
+            break
+        i += 1
     else:
-        await tile_list_ch.send(content='All Tiles\n\n'.join(item_list))
+        await tile_list_ch.send(content='All Tiles\n\n'.join(item_list[:len(item_list)//2]))
+        await tile_list_ch.send(content='\n'.join(item_list[len(item_list)//2:]))
     await interaction.followup.send(f"Posted {len(settings['items'])} tiles to channel {tile_list_ch.mention}")
 
 async def toggle_roll_choice(interaction: discord.Interaction):
