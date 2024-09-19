@@ -7,12 +7,12 @@
         "current": "normal"
     },
     "tiles": {
-        "url": "https://docs.google.com/spreadsheets/d/1Jbfh3gvRWVBbW3nzDn10hP-CUXVlQDKFOlnGU1nPexM/edit#gid=0",
-        "spreadsheet_id": "1Jbfh3gvRWVBbW3nzDn10hP-CUXVlQDKFOlnGU1nPexM",
+        "url": "https://docs.google.com/spreadsheets/d/1rYlZF3dHTKQZTPGMbV77tulP07hU-6WLvHw26F9FFsE/edit?usp=sharing",
+        "spreadsheet_id": "1rYlZF3dHTKQZTPGMbV77tulP07hU-6WLvHw26F9FFsE",
         "items": {}
     },
     "running": true,
-    "total_teams": 1,
+    "total_teams": 6,
     "teams": {
         "Team 1": {
             "current": 0,
@@ -137,135 +137,140 @@
     },
     "items": {
         "1": {
-            "name": "Lunch Lady Land",
-            "desc": "1 piece of Sandwich Lady outfit",
-            "discord_name": "Lunch Lady Land - 1 piece of Sandwich Lady outfit"
+            "name": "Skotizo Unique",
+            "desc": "Skotizo unique - Jar, Claw, Pet, Onyx, Full totem, Basically anything on Skotizo Log but Ancient Shard",
+            "discord_name": "Skotizo Unique - Skotizo unique - Jar, Claw, Pet, Onyx, Full totem, Basically anything on Skotizo Log but Ancient Shard"
         },
         "2": {
-            "name": "I'd rather be PVMing",
-            "desc": "1 person/1 account per team gets 500k Xp gained in a shit skill. Choices of skills are as follows: Mining, Fishing, Runecrafting, Agility, or Woodcutting.",
-            "discord_name": "I'd rather be PVMing - 1 person/1 account per team gets 500k Xp gained in a shit skill. Choices of skills are as follows: Mining, Fishing, Runecrafting, Agility, or Woodcutting."
+            "name": "25m Drop",
+            "desc": "Boost yer stonks with a juicy drop. Receive a drop in chat that exceeds 25mil",
+            "discord_name": "25m Drop - Boost yer stonks with a juicy drop. Receive a drop in chat that exceeds 25mil"
         },
         "3": {
-            "name": "Barrel When?",
-            "desc": "Tackle Box or Fish Barrel from Temp, if receive 25 soaked pages, screenshot log and soaked pages in chat box",
-            "discord_name": "Barrel When? - Tackle Box or Fish Barrel from Temp, if receive 25 soaked pages, screenshot log and soaked pages in chat box"
+            "name": "GM Tasks",
+            "desc": "1 gm speed time, 1 gm mechanical, 1 perfection, 1 restriction, 1 stamina. - 1 of each gm task minus kc.",
+            "discord_name": "GM Tasks - 1 gm speed time, 1 gm mechanical, 1 perfection, 1 restriction, 1 stamina. - 1 of each gm task minus kc."
         },
         "4": {
-            "name": "Spoiled Soul",
-            "desc": "Dragon item from Spoils of War",
-            "discord_name": "Spoiled Soul - Dragon item from Spoils of War"
+            "name": "Clue Boot",
+            "desc": "Any clue boot from Medium clues",
+            "discord_name": "Clue Boot - Any clue boot from Medium clues"
         },
         "5": {
-            "name": "Rat Cock",
-            "desc": "Create a Bone Weapon. (Scurrius Spine + 1 weapon(Bow, Mace, or Battlestaff) to make it).",
-            "discord_name": "Rat Cock - Create a Bone Weapon. (Scurrius Spine + 1 weapon(Bow, Mace, or Battlestaff) to make it)."
+            "name": "Nex Unique",
+            "desc": "Any Nex Unique - Hilt, Armor, Nihil horn, Pet",
+            "discord_name": "Nex Unique - Any Nex Unique - Hilt, Armor, Nihil horn, Pet"
         },
         "6": {
-            "name": "I Sharded",
-            "desc": "Get 1 Zenyte shard from Demonics",
-            "discord_name": "I Sharded - Get 1 Zenyte shard from Demonics"
+            "name": "Raid Armor",
+            "desc": "Any raids clothing item (head, body, legs).",
+            "discord_name": "Raid Armor - Any raid clothing item (head, body, legs)."
         },
         "7": {
-            "name": "Chicken shit",
-            "desc": "Onyx bolt Drop from Corp",
-            "discord_name": "Chicken shit - Onyx bolt Drop from Corp"
+            "name": "Rev Uniques",
+            "desc": "Rev weapon or 16m gp worth of totems. Rev boss guaranteed drops do not count.",
+            "discord_name": "Rev Uniques - Rev weapon or 16m gp worth of totems. Rev boss guaranteed drops do not count."
         },
         "8": {
-            "name": "Mommy Zillyana's scrunchy",
-            "desc": "ACB",
-            "discord_name": "Mommy Zillyana's scrunchy - ACB"
+            "name": "Hydra Unique",
+            "desc": "A Hydra's claw OR full ring(Eye, Heart, Fang)",
+            "discord_name": "Hydra Unique - A Hydra's claw OR full ring(Eye, Heart, Fang)"
         },
         "9": {
-            "name": "Deep Seeded",
-            "desc": "3 of any Seeds from Gauntlet",
-            "discord_name": "Deep Seeded - 3 of any Seeds from Gauntlet"
+            "name": "Shard/Seed",
+            "desc": "Blood shard and Enhanced crystal seed drop - drops OR thieving. IF THIEVING, Log with bingo password is required.",
+            "discord_name": "Shard/Seed - Blood shard and Enhanced crystal seed drop - drops OR thieving. IF THIEVING, Log with bingo password is required."
         },
         "10": {
-            "name": "Let Me Simmer",
-            "desc": "5 LMS Wins",
-            "discord_name": "Let Me Simmer - 5 LMS Wins"
+            "name": "Unsired",
+            "desc": "3 Unsired",
+            "discord_name": "Unsired - 3 Unsired"
         },
         "11": {
-            "name": "Archer's Js",
-            "desc": "1 classic Ranger Boot",
-            "discord_name": "Archer's Js - 1 classic Ranger Boot"
+            "name": "Cerb Crystals",
+            "desc": "4 Cerberus crystals(and stone) - no dupes",
+            "discord_name": "Cerb Crystals - 4 Cerberus crystals(and stone) - no dupes"
         },
         "12": {
-            "name": "Swamp Ass",
-            "desc": "Get both Fangs from Zulrah, (Magic and Tanz)",
-            "discord_name": "Swamp Ass - Get both Fangs from Zulrah, (Magic and Tanz)"
+            "name": "GWD Uniques",
+            "desc": "1 unique from every GWD boss(Includes pet) (No Saradomin Sword[too EZ],No shards, No Nex)",
+            "discord_name": "GWD Uniques - 1 unique from every GWD boss(Includes pet) (No Saradomin Sword[too EZ],No shards, No Nex)"
         },
         "13": {
-            "name": "Getting Hot in here",
-            "desc": "Any 2 of (Jar, Staff, or Occult) [Only from] Thermie Uniques",
-            "discord_name": "Getting Hot in here - Any 2 of (Jar, Staff, or Occult) [Only from] Thermie Uniques"
+            "name": "Raids Cosmetic",
+            "desc": "Dust, or Kit from Raids EXCLUDES ALL TOA KITS",
+            "discord_name": "Raids Cosmetic - Dust, or Kit from Raids EXCLUDES ALL TOA KITS"
         },
         "14": {
-            "name": "Grave Danger",
-            "desc": "Get 1 completed set of Barrows Brothers armor and weapon(1 Helm, 1 Torso, 1 Legs, 1 Weapon from same brother)",
-            "discord_name": "Grave Danger - Get 1 completed set of Barrows Brothers armor and weapon(1 Helm, 1 Torso, 1 Legs, 1 Weapon from same brother)"
+            "name": "Boss jar",
+            "desc": "Any Boss jar",
+            "discord_name": "Boss jar - Any Boss jar"
         },
         "15": {
-            "name": "Muy Mass Importante",
-            "desc": "Complete 5(Five) Mass Raid of 15+ people. Bingo Mass is encouraged. GLHF!",
-            "discord_name": "Muy Mass Importante - Complete 5(Five) Mass Raid of 15+ people. Bingo Mass is encouraged. GLHF!"
+            "name": "Basilisk Jaw",
+            "desc": "1 Basilisk jaw",
+            "discord_name": "Basilisk Jaw - 1 Basilisk jaw"
         },
         "16": {
-            "name": "Back 2 School fit",
-            "desc": "Get any 2 wearable Raid armor pieces(Dupes are ok). Head, Body, or Leg",
-            "discord_name": "Back 2 School fit - Get any 2 wearable Raid armor pieces(Dupes are ok). Head, Body, or Leg"
+            "name": "Zalcano unique",
+            "desc": "Zalcano unique",
+            "discord_name": "Zalcano unique - Zalcano unique"
         },
         "17": {
-            "name": "Moosey Poosey",
-            "desc": "3 Venator Shards from Moldy Loaf",
-            "discord_name": "Moosey Poosey - 3 Venator Shards from Moldy Loaf"
+            "name": "Axe/Cudgel",
+            "desc": "Zombie axe AND Sarachnis Cudgel",
+            "discord_name": "Axe/Cudgel - Zombie axe AND Sarachnis Cudgel"
         },
         "18": {
-            "name": "Getting Hilted",
-            "desc": "Any GWD Hilt(all 5 count)",
-            "discord_name": "Getting Hilted - Any GWD Hilt(all 5 count)"
+            "name": "Voidwaker",
+            "desc": "Build a Voidwaker",
+            "discord_name": "Voidwaker - Build a Voidwaker"
         },
         "19": {
-            "name": "Obby warrior",
-            "desc": "Obsidian platebody and Obsidian Platelegs drops",
-            "discord_name": "Obby warrior - Obsidian platebody and Obsidian Platelegs drops"
+            "name": "Helm Recolor",
+            "desc": "3 slayer helm recolors NO DUPES, (KBD, VORK, KQ, HYDRA, SIRE, CLAW)",
+            "discord_name": "Helm Recolor - 3 slayer helm recolors NO DUPES, (KBD, VORK, KQ, HYDRA, SIRE, CLAW)"
         },
         "20": {
-            "name": "Kitted Out",
-            "desc": "3 Kits from TOA(1 Submission per person)",
-            "discord_name": "Kitted Out - 3 Kits from TOA(1 Submission per person)"
+            "name": "Full Moon",
+            "desc": "Two(2) Different Full Perilous Moon Sets",
+            "discord_name": "Full Moon - Two(2) Different Full Perilous Moon Sets"
         },
         "21": {
-            "name": "Hammered",
-            "desc": "Get Dragon War Hammer",
-            "discord_name": "Hammered - Get Dragon War Hammer"
+            "name": "Raids Weapon",
+            "desc": "Any Raids weapon (Kodia counts)",
+            "discord_name": "Raids Weapon - Any Raids weapon (Kodia counts)"
         },
         "22": {
-            "name": "25miller",
-            "desc": "Get a drop worth 25 million GP",
-            "discord_name": "25miller - Get a drop worth 25 million GP"
+            "name": "Zulrah Uniques",
+            "desc": "Magic Fang, Tanz Fang, Onyx, and Serp Visage(ALL 4) OR 1 mutagen from Zulrah",
+            "discord_name": "Zulrah Uniques - Magic Fang, Tanz Fang, Onyx, and Serp Visage(ALL 4) OR 1 mutagen from Zulrah"
         },
         "23": {
-            "name": "Bird Feathers",
-            "desc": "3 armadyl armor drops, or 1 Nex armor drop",
-            "discord_name": "Bird Feathers - 3 armadyl armor drops, or 1 Nex armor drop"
+            "name": "Raids Shield",
+            "desc": "1 Raids shield slot/shield (Dinhs counts)",
+            "discord_name": "Raids Shield - 1 Raids shield slot/shield (Dinhs counts)"
         },
         "24": {
-            "name": "Volunteer Dreaming",
-            "desc": "A Nightmare Drop. (Exlcudes Slepey Tablet, or parasitic egg)",
-            "discord_name": "Volunteer Dreaming - A Nightmare Drop. (Exlcudes Slepey Tablet, or parasitic egg)"
+            "name": "Nightmare Unique",
+            "desc": "Excludes Slepey tab, and Parasitic Egg",
+            "discord_name": "Nightmare Unique - Excludes Slepey tab, and Parasitic Egg"
         },
         "25": {
-            "name": "Surely 2 outta 3",
-            "desc": "Axe piece or Vestige from DT2 Boss",
-            "discord_name": "Surely 2 outta 3 - Axe piece or Vestige from DT2 Boss"
+            "name": "DT2 Unique",
+            "desc": "Virtus Piece, Vestige, Axe piece, or Three(3) Ingots",
+            "discord_name": "DT2 Unique - Virtus Piece, Vestige, Axe piece, or Three(3) Ingots"
+        },
+        "26": {
+            "name": "Bonus Tiles",
+            "desc": "Dirty rotten cloggers... eat your hearts out. Ring of Endurance, Dragon Full Helm(Drop or Pyre), Eternal Glory",
+            "discord_name": "Bonus Tiles - Dirty rotten cloggers... eat your hearts out. Ring of Endurance, Dragon Full Helm(Drop or Pyre), Eternal Glory"
         }
     },
     "posts": {
         "score-board": {
             "id": 1234609674393882624,
-            "content": "Team 1: 0\nTeam 2: 0\nTeam 3: 0\nTeam 4: 0\nTeam 5: 0\nTeam 6: 0\nTeam 7: 0"
+            "content": "Team 1: 0\nTeam 2: 0\nTeam 3: 0\nTeam 4: 0\nTeam 5: 0\nTeam 6: 0"
         }
     },
     "state": {

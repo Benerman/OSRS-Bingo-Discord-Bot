@@ -10,3 +10,4 @@ Scripts/
 images/*
 pyvenv.cfg
 actions-runnner/
+settings.json
