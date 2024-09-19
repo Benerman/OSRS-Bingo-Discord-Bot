@@ -2470,10 +2470,8 @@ async def sync(interaction: discord.Interaction):
 
 
 @has_role("Bingo Moderator")
-@bot.tree.command(
-    name="close_server",
-    description=f"Remove all roles from non-admin or bingo moderator roles.",
-)
+@bot.tree.command(name="close_server",
+    description=f"Remove all roles from non-admin or bingo moderator roles.",)
 async def close_server(interaction: discord.Interaction):
     """
     Closes the server by deferring the interaction response, processing all spectators, and sending a follow-up message.
@@ -2530,9 +2528,7 @@ async def update_total_teams(interaction: discord.Interaction, total_teams: int)
 
 
 @has_role("Bingo Moderator")
-@bot.tree.command(
-    name="reset_bingo_settings", description=f"Reset persistent bingo settings."
-)
+@bot.tree.command(name="reset_bingo_settings", description=f"Reset persistent bingo settings.")
 async def reset_bingo_settings(interaction: discord.Interaction):
     """
     Resets the bingo settings for all teams.
