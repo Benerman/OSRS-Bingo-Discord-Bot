@@ -29,36 +29,8 @@
                 "y": 0,
                 "gutter": 15
             },
-            "tiles_completed": [
-                [
-                    1,
-                    1
-                ],
-                [
-                    1,
-                    1
-                ],
-                [
-                    2,
-                    1
-                ],
-                [
-                    1,
-                    5
-                ],
-                [
-                    1,
-                    4
-                ],
-                [
-                    2,
-                    4
-                ],
-                [
-                    5,
-                    5
-                ]
-            ]
+            "tiles_completed": []
+            
         },
         "Team 2": {
             "current": 0,
@@ -294,6 +266,16 @@
         "score-board": {
             "id": 1234609674393882624,
             "content": "Team 1: 0\nTeam 2: 0\nTeam 3: 0\nTeam 4: 0\nTeam 5: 0\nTeam 6: 0\nTeam 7: 0"
+        }
+    },
+    "state": {
+        "daily_board_posts": {
+            "disabled": false,
+            "list_of_posts": [
+                {"date": "2021-09-15", "time": "20:00", "post": "A new daily board post!", "channel": "general", "image_url": "https://www.example.com/image1.png"},
+                {"date": "2021-09-11", "time": "20:00", "post": "A new new daily board post!", "channel": "general", "image_url": "https://www.example.com/image2.png"},
+
+            ] 
         }
     }
 }
