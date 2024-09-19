@@ -9,7 +9,6 @@ import random
 import os
 import config
 import asyncio
-import datetime
 from discord import Role
 from typing import List, Optional
 from PIL import Image, ImageDraw
@@ -689,6 +688,7 @@ async def process_all_spectators(interaction, roles, spectator_role, unassign):
     """
     # members = interaction.guild.members
     guild_roles = interaction.guild.roles
+    await interaction.followup.send(f'Starting the update for Role "spectator" {"added to" if not unassign else "purged from"}\nThis will take a while(1-5 mins). Standby for update...')
     for r in guild_roles:
         if r in roles:
             for m in r.members:
@@ -1186,11 +1186,6 @@ async def set_tiles(
     None
     """
     await interaction.response.defer(thinking=True)
-    if not interaction.channel.category.name.lower() == "admin":
-        await interaction.followup.send(
-            f"Use this command in {mod_channel} and ADMIN section"
-        )
-        return
     # await interaction.response.edit_message(suppress=True)
     settings = load_settings_json()
     processed, settings = update_settings_json(
@@ -1489,12 +1484,7 @@ async def delete_team(interaction: discord.Interaction, team_name: str):
             settings = load_settings_json()
             team_names = [x for x in settings["teams"].keys()]
             team_number = team_names.index(self.team_name) + 1
-            if not interaction.channel.category.name.lower() == "admin":
-                await interaction.response.send_message(
-                    f"Use this command in {mod_channel} and ADMIN section"
-                )
-                return
-            elif not self.team_name in team_names:
+            if not self.team_name in team_names:
                 await interaction.message.edit(
                     embed=discord.Embed(
                         description=f"Team Name: {self.team_name} is not found in {team_names}\nPlease Try again"
@@ -1576,12 +1566,7 @@ async def change_team_name(
     team_names = [x for x in settings["teams"].keys()]
     team_number = team_names.index(team_name) + 1
     await interaction.response.defer(thinking=True)
-    if not interaction.channel.category.name.lower() == "admin":
-        await interaction.followup.send(
-            f"Use this command in {mod_channel} and ADMIN section"
-        )
-        return
-    elif not team_name in team_names:
+    if not team_name in team_names:
         await interaction.followup.send(
             f"Team Name: {team_name} is not found in {team_names}\nPlease Try again"
         )
@@ -1646,12 +1631,7 @@ async def update_tiles_channels(interaction: discord.Interaction, team_name: str
     team_names = [x for x in settings["teams"].keys()]
     team_number = team_names.index(team_name) + 1
     await interaction.response.defer(thinking=True)
-    if not interaction.channel.category.name.lower() == "admin":
-        await interaction.followup.send(
-            f"Use this command in {mod_channel} and ADMIN section"
-        )
-        return
-    elif not team_name in team_names:
+    if not team_name in team_names:
         await interaction.followup.send(
             f"Team Name: {team_name} is not found in {team_names}\nPlease Try again"
         )
@@ -1704,12 +1684,7 @@ async def create_team_channels(interaction: discord.Interaction, team_name: str)
     team_names = [x for x in settings["teams"].keys()]
     team_number = team_names.index(team_name) + 1
     await interaction.response.defer(thinking=True)
-    if not interaction.channel.category.name.lower() == "admin":
-        await interaction.followup.send(
-            f"Use this command in {mod_channel} and ADMIN section"
-        )
-        return
-    elif not team_name in team_names:
+    if not team_name in team_names:
         await interaction.followup.send(
             f"Team Name: {team_name} is not found in {team_names}\nPlease Try again"
         )
@@ -1819,12 +1794,7 @@ async def set_tile(interaction: discord.Interaction, team_name: str, tile: int):
     team_names = [x for x in settings["teams"].keys()]
     team_number = team_names.index(team_name) + 1
     await interaction.response.defer(thinking=True)
-    if not interaction.channel.category.name.lower() == "admin":
-        await interaction.followup.send(
-            f"Use this command in {mod_channel} and ADMIN section"
-        )
-        return
-    elif not team_name in team_names:
+    if not team_name in team_names:
         await interaction.followup.send(
             f"Team Name: {team_name} is not found in {team_names}\nPlease Try again"
         )
@@ -1867,12 +1837,7 @@ async def set_previous_tile(
     team_names = [x for x in settings["teams"].keys()]
     team_number = team_names.index(team_name) + 1
     await interaction.response.defer(thinking=True)
-    if not interaction.channel.category.name.lower() == "admin":
-        await interaction.followup.send(
-            f"Use this command in {mod_channel} and ADMIN section"
-        )
-        return
-    elif not team_name in team_names:
+    if not team_name in team_names:
         await interaction.followup.send(
             f"Team Name: {team_name} is not found in {team_names}\nPlease Try again"
         )
@@ -1913,12 +1878,7 @@ async def configure_team_reroll(interaction: discord.Interaction, team_name: str
     settings = load_settings_json()
     team_names = [x for x in settings["teams"].keys()]
     team_number = team_names.index(team_name) + 1
-    if not interaction.channel.category.name.lower() == "admin":
-        await interaction.response.send_message(
-            f"Use this command in {mod_channel} and ADMIN section"
-        )
-        return
-    elif not team_name in team_names:
+    if not team_name in team_names:
         await interaction.response.send_message(
             f"Team Name: {team_name} is not found in {team_names}\nPlease Try again"
         )
@@ -2537,14 +2497,14 @@ async def reset_bingo_settings(interaction: discord.Interaction):
 
 # create a command that posts image to channel "bingo-card" at 8pm EST every day until disabled. command should accept 'date_started', 'date_ended', 'time', 'message', and list of 'image_urls'
 @has_role("Bingo Moderator")
-@bot.slash_command(description="Post a daily bingo card to the channel 'bingo-card'.")
+@bot.tree.command(name="daily_board_post", description="Post a daily bingo card to the channel 'bingo-card'.")
 async def daily_board_post(
-    date_started: datetime.date,
-    date_ended: datetime.date,
-    time: datetime.time,
-    message: str,
-    image_urls: List[str],
     interaction: discord.Interaction,
+    date_started: str,
+    date_ended: str,
+    time: str,
+    message: str,
+    image_urls: str,
     disable: bool = False,
 ):
     # create a new daily board post task that posts the image to the channel every day at 8pm EST
@@ -2601,6 +2561,7 @@ async def update_team_assignment(interaction: discord.Interaction):
     """
     await interaction.response.defer(thinking=True)
     await process_team_assignment_updates(interaction)
+
 
 if __name__ == '__main__':
     print('About to log in with bot')
