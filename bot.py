@@ -2025,6 +2025,7 @@ async def post_tiles(interaction: discord.Interaction):
             desc = tile["desc"]
             item_list.append(f"## {name}\n{desc}")
 <<<<<<< HEAD
+<<<<<<< HEAD
 
     if len("\n".join(item_list)) > 4096:
         await tile_list_ch.send(
@@ -2047,8 +2048,14 @@ async def post_tiles(interaction: discord.Interaction):
             break
         i += 1
     else:
+=======
+            
+    if len('\n'.join(item_list)) > 4096:
+>>>>>>> parent of 2f4c097 (fixed /post_tiles)
         await tile_list_ch.send(content='All Tiles\n\n'.join(item_list[:len(item_list)//2]))
-        await tile_list_ch.send(content='\n'.join(item_list[len(item_list)//2:]))
+        await tile_list_ch.send(content=''.join(item_list[len(item_list)//2:]))
+    else:
+        await tile_list_ch.send(content='All Tiles\n\n'.join(item_list))
     await interaction.followup.send(f"Posted {len(settings['items'])} tiles to channel {tile_list_ch.mention}")
 >>>>>>> 2f4c097f2b640fe6718b9d3ee0df72e1fda2c475
 
