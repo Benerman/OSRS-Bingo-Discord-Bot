@@ -516,8 +516,6 @@ async def clear_team_roles(interaction):
     for member in interaction.guild.members:
         await member.remove_roles(*roles)
     print("Removed Team Roles from All Members")
-
-
 async def post_or_update_bingo_card(
     interaction: discord.Interaction,
     settings: dict,
@@ -580,8 +578,6 @@ async def post_or_update_bingo_card(
                     await bingo_card_chan.send(embed=embed, file=img)
                 else:
                     print("image was already posted")
-
-
 async def update_team_bingo_card_channel(
     interaction: discord.Interaction, team_name, roll, settings, reroll=False
 ):
@@ -600,8 +596,6 @@ async def update_team_bingo_card_channel(
             await ch.send(
                 f"{'Rerolling ' if reroll else ''}Dice roll: {roll} for team: {team_name}\nNew tile: {settings['teams'][team_name]['current']} << Old tile: {settings['teams'][team_name]['prev']}\nRerolls remaining: {settings['teams'][team_name]['reroll']}"
             )
-
-
 async def update_reroll_team_bingo_card_channel(
     interaction: discord.Interaction, team_name, settings, used=True
 ):
@@ -1502,7 +1496,12 @@ async def delete_team(interaction: discord.Interaction, team_name: str):
                     view=self,
                 )
             if not self.team_name in team_names:
-                await interaction.message.edit(embed=discord.Embed(description=f"Team Name: {self.team_name} is not found in {team_names}\nPlease Try again"), view=self)
+                await interaction.message.edit(
+                    embed=discord.Embed(
+                        description=f"Team Name: {self.team_name} is not found in {team_names}\nPlease Try again"
+                    ),
+                    view=self,
+                )
                 return
             print("Deleting...")
             await interaction.message.edit(
@@ -1588,7 +1587,9 @@ async def change_team_name(
             f"Team Name: {team_name} is not found in {team_names}\nPlease Try again"
         )
     if not team_name in team_names:
-        await interaction.followup.send(f"Team Name: {team_name} is not found in {team_names}\nPlease Try again")
+        await interaction.followup.send(
+            f"Team Name: {team_name} is not found in {team_names}\nPlease Try again"
+        )
         return
     # Update Settings
     if not new_team_name:
@@ -1646,8 +1647,14 @@ async def update_tiles_channels(interaction: discord.Interaction, team_name: str
         """========================== NOT IMPLEMENTED ============================="""
 
         return
+    settings = load_settings_json()
+    team_names = [x for x in settings["teams"].keys()]
+    team_number = team_names.index(team_name) + 1
+    await interaction.response.defer(thinking=True)
     if not team_name in team_names:
-        await interaction.followup.send(f"Team Name: {team_name} is not found in {team_names}\nPlease Try again")
+        await interaction.followup.send(
+            f"Team Name: {team_name} is not found in {team_names}\nPlease Try again"
+        )
         return
     cats = interaction.guild.categories
     print([c.name for c in cats])
@@ -1707,7 +1714,9 @@ async def create_team_channels(interaction: discord.Interaction, team_name: str)
             f"Team Name: {team_name} is not found in {team_names}\nPlease Try again"
         )
     if not team_name in team_names:
-        await interaction.followup.send(f"Team Name: {team_name} is not found in {team_names}\nPlease Try again")
+        await interaction.followup.send(
+            f"Team Name: {team_name} is not found in {team_names}\nPlease Try again"
+        )
         return
     everyone_role = discord.utils.get(interaction.guild.roles, name="@everyone")
     spectator_role = discord.utils.get(interaction.guild.roles, name="spectator")
@@ -1824,7 +1833,9 @@ async def set_tile(interaction: discord.Interaction, team_name: str, tile: int):
             f"Team Name: {team_name} is not found in {team_names}\nPlease Try again"
         )
     if not team_name in team_names:
-        await interaction.followup.send(f"Team Name: {team_name} is not found in {team_names}\nPlease Try again")
+        await interaction.followup.send(
+            f"Team Name: {team_name} is not found in {team_names}\nPlease Try again"
+        )
         return
     try:
         tile = int(tile)
@@ -1874,7 +1885,9 @@ async def set_previous_tile(
             f"Team Name: {team_name} is not found in {team_names}\nPlease Try again"
         )
     if not team_name in team_names:
-        await interaction.followup.send(f"Team Name: {team_name} is not found in {team_names}\nPlease Try again")
+        await interaction.followup.send(
+            f"Team Name: {team_name} is not found in {team_names}\nPlease Try again"
+        )
         return
     try:
         tile = int(tile)
@@ -1922,7 +1935,9 @@ async def configure_team_reroll(interaction: discord.Interaction, team_name: str
     #         f"Team Name: {team_name} is not found in {team_names}\nPlease Try again"
     #     )
     if not team_name in team_names:
-        await interaction.response.send_message(f"Team Name: {team_name} is not found in {team_names}\nPlease Try again")
+        await interaction.response.send_message(
+            f"Team Name: {team_name} is not found in {team_names}\nPlease Try again"
+        )
         return
     await configure_reroll(interaction=interaction, team_name=team_name)
 
@@ -1974,6 +1989,7 @@ async def post_tiles(interaction: discord.Interaction):
             # tile['short_desc']
             desc = tile["desc"]
             item_list.append(f"## {name}\n{desc}")
+
     i = 0
     async for m in tile_list_ch.history(oldest_first=True):
         if m.author == bot.user and i == 0:
@@ -1987,6 +2003,7 @@ async def post_tiles(interaction: discord.Interaction):
     #     await tile_list_ch.send(content=''.join(item_list[len(item_list)//2:]))
     # else:
     #     await tile_list_ch.send(content='All Tiles\n\n'.join(item_list))
+
     await interaction.followup.send(f"Posted {len(settings['items'])} tiles to channel {tile_list_ch.mention}")
 
 async def toggle_roll_choice(interaction: discord.Interaction):
@@ -2520,7 +2537,8 @@ async def reset_bingo_settings(interaction: discord.Interaction):
                     "gutter": 0,
                 }
                 # set tiles_completed to empty list
-                settings['teams'][team_name]['tiles_completed'] = []
+                settings["teams"][team_name]["tiles_completed"] = []
+
             # delete images in IMAGE_PATH that arent default_bingo_card_image.png
             update_settings_json(settings)
             for child in self.children:
