@@ -12,7 +12,7 @@
         "items": {}
     },
     "running": true,
-    "total_teams": 6,
+    "total_teams": 7,
     "teams": {
         "Team 1": {
             "current": 0,
@@ -269,8 +269,8 @@
     },
     "posts": {
         "score-board": {
-            "id": 1234609674393882624,
-            "content": "Team 1: 0\nTeam 2: 0\nTeam 3: 0\nTeam 4: 0\nTeam 5: 0\nTeam 6: 0"
+            "id": 1292637097030717493,
+            "content": "Raw Dogs: 91\nRats N Batts: 101\nVarlamores Whores: 99"
         }
     },
     "state": {
