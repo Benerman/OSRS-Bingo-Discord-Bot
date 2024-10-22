@@ -30,7 +30,6 @@
                 "gutter": 15
             },
             "tiles_completed": []
-            
         },
         "Team 2": {
             "current": 0,
@@ -271,16 +270,6 @@
         "score-board": {
             "id": 1292637097030717493,
             "content": "Raw Dogs: 91\nRats N Batts: 101\nVarlamores Whores: 99"
-        }
-    },
-    "state": {
-        "daily_board_posts": {
-            "disabled": false,
-            "list_of_posts": [
-                {"date": "2021-09-15", "time": "20:00", "post": "A new daily board post!", "channel": "general", "image_url": "https://www.example.com/image1.png"},
-                {"date": "2021-09-11", "time": "20:00", "post": "A new new daily board post!", "channel": "general", "image_url": "https://www.example.com/image2.png"},
-
-            ] 
         }
     }
 }
