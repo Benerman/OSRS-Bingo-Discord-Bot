@@ -11,3 +11,5 @@ images/*
 pyvenv.cfg
 actions-runnner/
 settings.json
+.venv/
+template_images/generated/

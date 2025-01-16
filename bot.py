@@ -7,6 +7,7 @@ import json
 import re
 import random
 import os
+import math
 import config
 import asyncio
 from discord import Role
@@ -26,11 +27,13 @@ intents.members = True
 
 bot = commands.Bot(command_prefix="/", intents=intents)
 
-DICE_SIDES = 8
+DICE_SIDES = 6
 
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
 
 IMAGE_PATH = os.path.join(os.getcwd(), "images")
+IMAGE_TEMPLATE_PATH = os.path.join(os.getcwd(), "template_images")
+
 print(f"{IMAGE_PATH = }")
 
 ROLES = ["Team 1", "Team 2", "Team 3", "Team 4", "Team 5", "Team 6", "Team 7"]
@@ -46,6 +49,14 @@ TEAM_CAPTAIN_ROLES = [
 
 DEFAULT_CHANNELS = ["chat", "bingo-card", "drop-spam", "pets", "voice-chat"]
 CANDYLAND_DEFAULT_CHANNELS = [
+    "chat",
+    "bingo-card",
+    "dice-roll",
+    "photo-dump",
+    "voice-chat",
+]
+
+CNL_DEFAULT_CHANNELS = [
     "chat",
     "bingo-card",
     "dice-roll",
@@ -82,7 +93,7 @@ def roll_dice(num=DICE_SIDES):
     Roll a dice with the specified number of sides.
 
     Args:
-        num (int): Number of sides on the dice. Default is 8.
+        num (int): Number of sides on the dice. Default is 6.
 
     Returns:
         int: The result of the dice roll.
@@ -371,7 +382,7 @@ def mark_on_image_tile_complete(team_name: str, row: int, column: int) -> None:
     # Open the image
     settings = load_settings_json()
     image_path = os.path.abspath(settings["teams"][team_name]["image"])
-    image_bounds = settings["teams"][team_name]["image_bounds"]
+    image_bounds = settings["image_bounds"]
     img = Image.open(image_path)
     x_offset = image_bounds["x_offset"] if image_bounds["x_offset"] else 0
     y_offset = image_bounds["y_offset"] if image_bounds["y_offset"] else 0
@@ -578,6 +589,7 @@ async def post_or_update_bingo_card(
                     await bingo_card_chan.send(embed=embed, file=img)
                 else:
                     print("image was already posted")
+
 async def update_team_bingo_card_channel(
     interaction: discord.Interaction, team_name, roll, settings, reroll=False
 ):
@@ -596,6 +608,7 @@ async def update_team_bingo_card_channel(
             await ch.send(
                 f"{'Rerolling ' if reroll else ''}Dice roll: {roll} for team: {team_name}\nNew tile: {settings['teams'][team_name]['current']} << Old tile: {settings['teams'][team_name]['prev']}\nRerolls remaining: {settings['teams'][team_name]['reroll']}"
             )
+
 async def update_reroll_team_bingo_card_channel(
     interaction: discord.Interaction, team_name, settings, used=True
 ):
@@ -847,10 +860,8 @@ async def on_ready():
 #     # TODO Implement this so #team-assignments gets updated too
 
 
-@bot.tree.command(
-    name="roll",
-    description=f"Roll a d{DICE_SIDES} in your teams {roll_channel} channel. Creates new channel for the newly rolled tile.",
-)
+@bot.tree.command(name="roll",
+    description=f"Roll a d{DICE_SIDES} in your teams {roll_channel} channel. Creates new channel for the newly rolled tile.")
 async def roll(interaction: discord.Interaction):
     """
     Rolls the dice for a team in the bingo game.
@@ -989,10 +1000,8 @@ async def roll(interaction: discord.Interaction):
         await update_server_score_board_channel(interaction, settings)
 
 
-@bot.tree.command(
-    name="reroll",
-    description=f"Reroll a d{DICE_SIDES} in your teams {roll_channel} channel, nulling the last roll and rolls from the prev tile.",
-)
+@bot.tree.command(name="reroll",
+    description=f"Reroll a d{DICE_SIDES} in your teams {roll_channel} channel, nulling the last roll and rolls from the prev tile.",)
 async def reroll(interaction: discord.Interaction):
     """
     Rerolls the dice for a team in the bingo game.
@@ -1023,9 +1032,9 @@ async def reroll(interaction: discord.Interaction):
         return
     else:
         settings = load_settings_json()
-        if settings["running"] == False:
+        if settings["running"] == False or settings['rerolling'] == False:
             await interaction.followup.send(
-                "Rolling is not enabled, either wait till Start time or message @ Bingo Moderator if receiving this message in error."
+                "Rolling/Rerolling is not enabled, either wait till Start time or message @ Bingo Moderator if receiving this message in error."
             )
             return
         settings = load_settings_json()
@@ -1152,10 +1161,8 @@ async def reroll(interaction: discord.Interaction):
 
 
 @has_role("Bingo Moderator")
-@bot.tree.command(
-    name="upload_tiles",
-    description=f"Sets the Bingo Tiles from a Public Google Sheet doc, processes, and formats them.",
-)
+@bot.tree.command(name="upload_tiles",
+    description=f"Sets the Bingo Tiles from a Public Google Sheet doc, processes, and formats them.")
 async def set_tiles(
     interaction: discord.Interaction, sheet_link: str, process_sheet: bool = True
 ):
@@ -1195,9 +1202,8 @@ async def set_tiles(
 
 @app_commands.autocomplete(team_name=team_names_autocomplete)
 @has_role("Bingo Moderator")
-@bot.tree.command(
-    name="clear_team_role", description=f"Clear Team <#> Role from all players assigned"
-)
+@bot.tree.command(name="clear_team_role",
+    description=f"Clear Team <#> Role from all players assigned")
 async def clear_team_role(interaction: discord.Interaction, team_name: str):
     """
     Disbands a team by removing the corresponding role from all members in the guild.
@@ -1238,10 +1244,8 @@ async def clear_team_role(interaction: discord.Interaction, team_name: str):
 
 
 @has_role("Bingo Moderator")
-@bot.tree.command(
-    name="spectators",
-    description=f"Assign Spectator Role and clear existing roles to Discord Members",
-)
+@bot.tree.command(name="spectators",
+    description=f"Assign Spectator Role and clear existing roles to Discord Members")
 async def spectators(
     interaction: discord.Interaction, members: str, unassign: bool = False
 ):
@@ -1284,9 +1288,8 @@ async def spectators(
 
 @app_commands.autocomplete(team_name=team_names_autocomplete)
 @has_role("Bingo Moderator")
-@bot.tree.command(
-    name="add_team_role", description=f"Assign Team <#> Role to Discord Members"
-)
+@bot.tree.command(name="add_team_role",
+    description=f"Assign Team <#> Role to Discord Members")
 async def add_team_role(interaction: discord.Interaction, team_name: str, members: str):
     """
     Adds a team role to the specified members.
@@ -1404,10 +1407,8 @@ async def configure_reroll(interaction: discord.Interaction, team_name: str):
 
 @has_role("Bingo Moderator")
 @app_commands.autocomplete(team_name=team_names_autocomplete)
-@bot.tree.command(
-    name="delete_team",
-    description=f"Delete all channels for a team and the team category.",
-)
+@bot.tree.command(name="delete_team",
+    description=f"Delete all channels for a team and the team category.")
 async def delete_team(interaction: discord.Interaction, team_name: str):
     """
     Deletes all channels associated with a team.
@@ -1685,10 +1686,8 @@ async def update_tiles_channels(interaction: discord.Interaction, team_name: str
 
 @has_role("Bingo Moderator")
 @app_commands.autocomplete(team_name=team_names_autocomplete)
-@bot.tree.command(
-    name="create_team_channels",
-    description=f"Update the bingo tiles for a team. Useful for post start updates.",
-)
+@bot.tree.command(name="create_team_channels",
+    description=f"Update the bingo tiles for a team. Useful for post start updates.")
 async def create_team_channels(interaction: discord.Interaction, team_name: str):
     """
     Creates team-specific channels in a Discord server.
@@ -1853,10 +1852,8 @@ async def set_tile(interaction: discord.Interaction, team_name: str, tile: int):
 
 @has_role("Bingo Moderator")
 @app_commands.autocomplete(team_name=team_names_autocomplete)
-@bot.tree.command(
-    name="set_previous_tile",
-    description=f"Set the previous tile/score manually. Primarily used for candyland version bingo.",
-)
+@bot.tree.command(name="set_previous_tile",
+    description=f"Set the previous tile/score manually. Primarily used for candyland version bingo.")
 async def set_previous_tile(
     interaction: discord.Interaction, team_name: str, tile: int
 ):
@@ -1907,10 +1904,8 @@ async def set_previous_tile(
 
 @has_role("Bingo Moderator")
 @app_commands.autocomplete(team_name=team_names_autocomplete)
-@bot.tree.command(
-    name="configure_team_reroll",
-    description=f"Set reroll option for a team. This is used to give or take away rerolls.",
-)
+@bot.tree.command(name="configure_team_reroll",
+    description=f"Set reroll option for a team. This is used to give or take away rerolls.")
 async def configure_team_reroll(interaction: discord.Interaction, team_name: str):
     """
     Sets the reroll configuration for a specific team.
@@ -1960,9 +1955,7 @@ async def update_score(interaction: discord.Interaction):
 
 
 @has_role("Bingo Moderator")
-@bot.tree.command(
-    name="post_tiles", description=f"Post all the tiles to #tile-list channel"
-)
+@bot.tree.command(name="post_tiles", description=f"Post all the tiles to #tile-list channel")
 async def post_tiles(interaction: discord.Interaction):
     """
     Posts the tiles to the tile-list channel in the guild.
@@ -2006,7 +1999,7 @@ async def post_tiles(interaction: discord.Interaction):
 
     await interaction.followup.send(f"Posted {len(settings['items'])} tiles to channel {tile_list_ch.mention}")
 
-async def toggle_roll_choice(interaction: discord.Interaction):
+async def toggle_roll_choice(interaction: discord.Interaction, reroll=False):
     """
     Toggles the rolling functionality for the bot based on user interaction with bot response.
     User has option to disable rolling or enable rolling by clicking button on bot's response.
@@ -2076,18 +2069,65 @@ async def toggle_roll_choice(interaction: discord.Interaction):
                 view=self,
             )
 
+        @discord.ui.button(label="Disable Rerolling", style=discord.ButtonStyle.danger)
+        async def disable_rerolling(
+            self, interaction: discord.Interaction, button: discord.ui.Button
+        ):
+            """
+            Disables the rerolling functionality of the bot.
+
+            Parameters:
+            - interaction (discord.Interaction): The interaction object representing the user's interaction with the bot.
+            - button (discord.ui.Button): The button that triggered the disable_rolling function.
+
+            Returns:
+            - None
+            """
+            settings = load_settings_json()
+            settings["rerolling"] = False
+            save_settings_json(settings)
+            for child in self.children:
+                child.disabled = True
+            await interaction.response.edit_message(
+                content=f"Rerolling is {'ENABLED' if settings['rerolling'] == True else 'DISABLED'}",
+                view=self,
+            )
+
+        @discord.ui.button(label="Enable Rerolling", style=discord.ButtonStyle.green)
+        async def enable_rerolling(
+            self, interaction: discord.Interaction, button: discord.ui.Button
+        ):
+            """
+            Enables rerolling and updates the settings accordingly.
+
+            Args:
+                interaction (discord.Interaction): The interaction object representing the user's interaction with the bot.
+                button (discord.ui.Button): The button that triggered the enable_rolling function.
+
+            Returns:
+                None
+            """
+            settings = load_settings_json()
+            settings["rerolling"] = True
+            save_settings_json(settings)
+            for child in self.children:
+                child.disabled = True
+            await interaction.response.edit_message(
+                content=f"Rerolling is {'ENABLED' if settings['rerolling'] == True else 'DISABLED'}",
+                view=self,
+            )
+
     settings = load_settings_json()
     await interaction.response.send_message(
-        f"Rolling is {'ENABLED' if settings['running'] == True else 'DISABLED'}",
+        f"Rolling is {'ENABLED' if settings['running'] == True else 'DISABLED'}\n\
+            Rerolling is {'ENABLED' if settings['rerolling'] == True else 'DISABLED'}",
         view=ToggleRolling(),
     )
 
 
 @has_role("Bingo Moderator")
-@bot.tree.command(
-    name="toggle_rolling",
-    description=f"Enable or Disable the ability to roll dice. If enabled, it disables. Run again to enable.",
-)
+@bot.tree.command(name="toggle_rolling",
+    description=f"Enable or Disable the ability to roll and reroll dice. Interact with response to update the satings.")
 async def toggle_rolling(interaction: discord.Interaction):
     """
     Toggles the rolling of a choice for the given interaction.
@@ -2102,10 +2142,8 @@ async def toggle_rolling(interaction: discord.Interaction):
 
 
 @has_role("Bingo Moderator")
-@bot.tree.command(
-    name="check_roll_enabled",
-    description=f"Checks if the rolling is Disabled or Enabled. Does not update/change anything.",
-)
+@bot.tree.command(name="check_roll_enabled",
+    description=f"Checks if the rolling and rerolling is Disabled or Enabled. Does not update/change anything.")
 async def check_roll_enabled(interaction: discord.Interaction):
     """
     Checks if rolling is enabled and sends a response indicating the current status.
@@ -2119,14 +2157,13 @@ async def check_roll_enabled(interaction: discord.Interaction):
     await interaction.response.defer(thinking=True)
     settings = load_settings_json()
     await interaction.followup.send(
-        f"Rolling is currently: {'ENABLED' if settings['running'] == True else 'DISABLED'}"
+        f"Rolling is currently: {'ENABLED' if settings['running'] == True else 'DISABLED'}\n\
+            Rerolling is {'ENABLED' if settings['rerolling'] == True else 'DISABLED'}"
     )
 
 
 @has_role("Bingo Moderator")
-@bot.tree.command(
-    name="tile_completed", description=f"Marks a channel's tile as completed(Normal)"
-)
+@bot.tree.command(name="tile_completed", description=f"Marks a channel's tile as completed(Normal)")
 async def tile_completed(interaction: discord.Interaction):
     """
     Updates the tile completion status and score in the settings and scoreboard channel.
@@ -2150,13 +2187,12 @@ async def tile_completed(interaction: discord.Interaction):
 
 
 @has_role("Bingo Moderator")
-@bot.tree.command(
-    name="version", description=f"Change the Bot's Bingo Version or view current."
-)
+@bot.tree.command(name="version", description=f"Change the Bot's Bingo Version or view current.")
 async def version(
     interaction: discord.Interaction,
     bingo_version: bool = False,
     candyland: bool = False,
+    chutes_and_ladders: bool = False,
 ):
     """
     Updates the bot version based on the provided parameters and sends a response with the updated version.
@@ -2173,8 +2209,9 @@ async def version(
         settings["bot_mode"]["current"] = "normal"
     elif candyland:
         settings["bot_mode"]["current"] = "candyland"
+    elif chutes_and_ladders:
+        settings["bot_mode"]["current"] = "chutes and ladders"
     save_settings_json(settings)
-
     await interaction.followup.send(
         f"Bingo Bot Version is: '{settings['bot_mode']['current']}'"
     )
@@ -2182,13 +2219,9 @@ async def version(
 
 @has_role("Bingo Moderator")
 @app_commands.autocomplete(team_name=team_names_autocomplete)
-@bot.tree.command(
-    name="mark_tile_completed",
-    description=f"Mark a tile as completed on the bingo board, Column A-E. Row 1-5. 'A1' for example.",
-)
-async def mark_tile_completed(
-    interaction: discord.Interaction, team_name: str, location: str
-):
+@bot.tree.command(name="mark_tile_completed",
+    description=f"Mark a tile as completed on the bingo board, Column A-E. Row 1-5. 'A1' for example.")
+async def mark_tile_completed(interaction: discord.Interaction, team_name: str, location: str):
     """
     Marks a tile as completed for a specific team and updates the Bingo Card.
 
@@ -2221,10 +2254,8 @@ async def mark_tile_completed(
 
 @has_role("Bingo Moderator")
 @app_commands.autocomplete(team_name=team_names_autocomplete)
-@bot.tree.command(
-    name="post_bingo_card",
-    description=f"Post the saved bingo card to '#bingo-card' channel.",
-)
+@bot.tree.command(name="post_bingo_card",
+    description=f"Post the saved bingo card to '#bingo-card' channel.")
 async def post_bingo_card(
     interaction: discord.Interaction,
     for_all_teams: bool = False,
@@ -2265,10 +2296,8 @@ async def post_bingo_card(
 
 @has_role("Bingo Moderator")
 @app_commands.autocomplete(team_name=team_names_autocomplete)
-@bot.tree.command(
-    name="default_bingo_card",
-    description=f"Post the default bingo card to '#bingo-card' channel. From /upload_board_image.",
-)
+@bot.tree.command(name="default_bingo_card",
+    description=f"Post the default bingo card to '#bingo-card' channel. From /upload_board_image.")
 async def default_bingo_card(interaction: discord.Interaction, team_name: str):
     """
     Posts the default bingo card image in the specified team's Bingo Card Channel.
@@ -2283,10 +2312,10 @@ async def default_bingo_card(interaction: discord.Interaction, team_name: str):
     await interaction.response.defer(thinking=True)
     settings = load_settings_json()
     update = False
-    settings["teams"][team_name]["image"] = os.path.join(
-        IMAGE_PATH, "bingo_card_image.png"
-    )
-    update_settings_json(settings)
+    # settings["teams"][team_name]["image"] = os.path.join(
+    #     IMAGE_PATH, "bingo_card_image.png"
+    # )
+    # update_settings_json(settings)
     await post_or_update_bingo_card(
         interaction, settings, team_name, update=update, row=0, column=0
     )
@@ -2296,13 +2325,9 @@ async def default_bingo_card(interaction: discord.Interaction, team_name: str):
 
 
 @has_role("Bingo Moderator")
-@bot.tree.command(
-    name="upload_board_image",
-    description=f"Attach and upload image as the default Bingo Card Image. Overwrites all teams existing images.",
-)
-async def upload_board_image(
-    interaction: discord.Interaction, file: discord.Attachment
-):
+@bot.tree.command(name="upload_board_image",
+    description=f"Attach and upload image as the default Bingo Card Image. Overwrites all teams existing images.")
+async def upload_board_image(interaction: discord.Interaction, file: discord.Attachment):
     """
     Uploads a board image and updates the default Bingo Card Image for all teams.
 
@@ -2322,23 +2347,28 @@ async def upload_board_image(
         )
         return
     else:
+        # check game style
+        if settings["bot_mode"]["current"] == "chutes and ladders":
+            image_path = os.path.join(IMAGE_TEMPLATE_PATH, "bingo_card_image.png")
+            for team_name in team_names:
+                settings["teams"][team_name]["board"] = image_path
+        else:
+            image_path = os.path.join(IMAGE_PATH, "bingo_card_image.png")
+
         # download attachment
-        bingo_image_path = os.path.join(IMAGE_PATH, "bingo_card_image.png")
-        with open(bingo_image_path, "wb") as f:
+        with open(image_path, "wb") as f:
             await file.save(f)
         # update all settings['teams'][team_name]['image']
         for team_name in team_names:
-            settings["teams"][team_name]["image"] = bingo_image_path
+            settings["teams"][team_name]["image"] = image_path
         update_settings_json(settings)
         await interaction.followup.send(f"Default Bingo Card Image has been updated")
         update_settings_json(settings)
 
 
 @has_role("Bingo Moderator")
-@bot.tree.command(
-    name="set_image_bounds",
-    description=f"Set the bounds for the bingo card to be auto marked as completed by bot.",
-)
+@bot.tree.command(name="set_image_bounds",
+    description=f"Set the bounds for the bingo card to be auto marked as completed by bot.",)
 async def set_image_bounds(
     interaction: discord.Interaction,
     x: int,
@@ -2382,7 +2412,7 @@ async def set_image_bounds(
     else:
         # update all settings['teams'][team_name]['image']
         for team_name in team_names:
-            settings["teams"][team_name]["image_bounds"] = {
+            settings["image_bounds"] = {
                 "x_offset": x_left_offset,
                 "y_offset": y_top_offset,
                 "x_right_offset": x_right_offset,
@@ -2397,9 +2427,80 @@ async def set_image_bounds(
 
 
 @has_role("Bingo Moderator")
-@bot.tree.command(
-    name="sync", description=f"Sync the command tree with the current settings."
-)
+@bot.tree.command(name="set_board_bounds",
+    description=f"Set the bounds for the Chutes and Ladder style bingo card to be auto marked as completed by bot.",)
+async def set_board_bounds(
+    interaction: discord.Interaction,
+    tile_count: int,
+    tile_size: int,
+    team_icon_offset: int,
+    x: int,
+    y: int,
+    x_left_offset: int,
+    x_right_offset: int,
+    y_top_offset: int,
+    y_bottom_offset: int,
+    gutter: int,
+):
+    """
+    Sets the image bounds for each team in the settings.
+
+    Parameters:
+    - interaction: The discord interaction object.
+    - tile_count: Number of tiles on the board.
+    - tile_size: Size of square tile.
+    - team_icon_offset: Distance to offset team icons so they overlay with good visibility.
+    - x: The x-coordinate of the image.
+    - y: The y-coordinate of the image.
+    - x_left_offset: The left offset of the image.
+    - x_right_offset: The right offset of the image.
+    - y_top_offset: The top offset of the image.
+    - y_bottom_offset: The bottom offset of the image.
+    - gutter: The gutter size between tiles.
+
+    Returns:
+    - None
+    """
+    settings = load_settings_json()
+    team_names = [x for x in settings["teams"].keys()]
+    await interaction.response.defer(thinking=True)
+    if (
+        tile_count == ""
+        or tile_size == ""
+        or team_icon_offset == ""
+        or x_left_offset == ""
+        or y_top_offset == ""
+        or x_right_offset == ""
+        or y_bottom_offset == ""
+        or x == ""
+        or y == ""
+        or gutter == ""
+    ):
+        await interaction.followup.send(f"Please provide all the required values")
+        return
+    else:
+        # update all settings['teams'][team_name]['image']
+        for team_name in team_names:
+            settings["teams"][team_name]["board_bounds"] = {
+                "tile_count": tile_count,
+                "tile_size": tile_size,
+                "tile_icon_offset": tile_icon_offset, 
+                "x_offset": x_left_offset,
+                "y_offset": y_top_offset,
+                "x_right_offset": x_right_offset,
+                "y_bottom_offset": y_bottom_offset,
+                "x": x,
+                "y": y,
+                "gutter": gutter,
+            }
+        update_settings_json(settings)
+        await interaction.followup.send(f"Board bounds for each team have been updated")
+        update_settings_json(settings)
+
+
+
+@has_role("Bingo Moderator")
+@bot.tree.command(name="sync", description=f"Sync the command tree with the current settings.")
 async def sync(interaction: discord.Interaction):
     """
     Synchronizes the command tree with the bot.
@@ -2446,9 +2547,7 @@ async def close_server(interaction: discord.Interaction):
 
 
 @has_role("Bingo Moderator")
-@bot.tree.command(
-    name="update_total_teams", description=f"Update the number of active teams."
-)
+@bot.tree.command(name="update_total_teams", description=f"Update the number of active teams.")
 async def update_total_teams(interaction: discord.Interaction, total_teams: int):
     """
     Updates the number of active teams in the settings and sends a response message.
@@ -2526,16 +2625,16 @@ async def reset_bingo_settings(interaction: discord.Interaction):
                 settings["teams"][team_name]["image"] = os.path.join(
                     IMAGE_PATH, "bingo_card_image.png"
                 )
-                # set image bounds to default
-                settings["teams"][team_name]["image_bounds"] = {
-                    "x_offset": 0,
-                    "y_offset": 0,
-                    "x_right_offset": 0,
-                    "y_bottom_offset": 0,
-                    "x": 0,
-                    "y": 0,
-                    "gutter": 0,
-                }
+                # # set image bounds to default
+                # settings["image_bounds"] = {
+                #     "x_offset": 0,
+                #     "y_offset": 0,
+                #     "x_right_offset": 0,
+                #     "y_bottom_offset": 0,
+                #     "x": 0,
+                #     "y": 0,
+                #     "gutter": 0,
+                # }
                 # set tiles_completed to empty list
                 settings["teams"][team_name]["tiles_completed"] = []
 
