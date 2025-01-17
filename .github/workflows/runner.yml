@@ -11,10 +11,10 @@ jobs:
 
     steps:
       - name: Stop other docker compose
-        run: docker-compose -f /opt/docker-compose.yml down
+        run: docker-compose -f /opt/docker-compose.yml down --remove-orphans
         
-      - name: Stop bingo bot docker compose
-        run: docker-compose -f /opt/discord-compose.yml down
+      # - name: Stop bingo bot docker compose
+      #   run: docker-compose -f /opt/discord-compose.yml down
         
       - name: Checkout
         uses: actions/checkout@v4
@@ -31,10 +31,10 @@ jobs:
         run: docker-compose -f /opt/discord-compose.yml build --no-cache
 
       - name: Start up docker compose
-        run: docker-compose -f /opt/discord-compose.yml up -d
+        run: docker-compose -f /opt/discord-compose.yml up -d --remove-orphans
         
-      - name: Start up docker compose
-        run: docker-compose -f /opt/docker-compose.yml up -d
+      # - name: Start up docker compose
+      #   run: docker-compose -f /opt/docker-compose.yml up -d
         
       - name: Cleanup Unused Images
         run: docker image prune -f
