@@ -8,8 +8,8 @@
         "current": "chutes and ladders"
     },
     "tiles": {
-        "url": "https://docs.google.com/spreadsheets/d/1rYlZF3dHTKQZTPGMbV77tulP07hU-6WLvHw26F9FFsE/edit?usp=sharing",
-        "spreadsheet_id": "1rYlZF3dHTKQZTPGMbV77tulP07hU-6WLvHw26F9FFsE",
+        "url": "https://docs.google.com/spreadsheets/d/19pMWFwJ-5R9CX3x3BQqP0uBDsS_bhNIkaJU2Ng4FYO4/edit?usp=sharing",
+        "spreadsheet_id": "19pMWFwJ-5R9CX3x3BQqP0uBDsS_bhNIkaJU2Ng4FYO4",
         "items": {}
     },
     "running": true,
@@ -26,7 +26,7 @@
             "tiles_completed": []
         },
         "Team 2": {
-            "current": 60,
+            "current": 0,
             "prev": 0,
             "reroll": 0,
             "roll_history": [],
@@ -35,7 +35,7 @@
             "tiles_completed": []
         },
         "Team 3": {
-            "current": 30,
+            "current": 0,
             "prev": 0,
             "reroll": 0,
             "roll_history": [],
@@ -44,7 +44,7 @@
             "tiles_completed": []
         },
         "Team 4": {
-            "current": 20,
+            "current": 0,
             "prev": 0,
             "reroll": 0,
             "roll_history": [],
@@ -53,7 +53,7 @@
             "tiles_completed": []
         },
         "Team 5": {
-            "current": 100,
+            "current": 0,
             "prev": 0,
             "reroll": 0,
             "roll_history": [],
@@ -62,7 +62,7 @@
             "tiles_completed": []
         },
         "Team 6": {
-            "current": 10,
+            "current": 0,
             "prev": 0,
             "reroll": 0,
             "roll_history": [],
@@ -71,7 +71,7 @@
             "tiles_completed": []
         },
         "Team 7": {
-            "current": 100,
+            "current": 0,
             "prev": 0,
             "reroll": 0,
             "roll_history": [],
@@ -89,7 +89,7 @@
         "gutter": 15
     },
     "board_template": "/home/benerman/github/OSRS-Bingo-Discord-Bot/template_images/bingo_card_image.png",
-    "board_latest": "/home/benerman/github/OSRS-Bingo-Discord-Bot/template_images/generated/CNL-2025-01-15 15:43:31.881097.png",
+    "board_latest": "/home/benerman/github/OSRS-Bingo-Discord-Bot/template_images/generated/CNL-2025-01-16 19:06:45.061870.png",
     "board_bounds": {
         "tile_count": 100,
         "tile_size": 100,
@@ -105,140 +105,910 @@
     },
     "items": {
         "1": {
-            "name": "Skotizo Unique",
-            "desc": "Skotizo unique - Jar, Claw, Pet, Onyx, Full totem, Basically anything on Skotizo Log but Ancient Shard",
-            "discord_name": "Skotizo Unique - Skotizo unique - Jar, Claw, Pet, Onyx, Full totem, Basically anything on Skotizo Log but Ancient Shard"
+            "tile_num": "1",
+            "name": "Lorem ",
+            "short_desc": "Lorem ipsum odor ",
+            "desc": "Lorem ipsum odor amet, consectetuer adipiscing elit.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "1. Lorem  - Lorem ipsum odor amet, consectetuer adipiscing elit."
         },
         "2": {
-            "name": "25m Drop",
-            "desc": "Boost yer stonks with a juicy drop. Receive a drop in chat that exceeds 25mil",
-            "discord_name": "25m Drop - Boost yer stonks with a juicy drop. Receive a drop in chat that exceeds 25mil"
+            "tile_num": "2",
+            "name": "Dolor ",
+            "short_desc": "Dolor facilisis ",
+            "desc": "Dolor facilisis scelerisque malesuada rhoncus ultrices duis at venenatis facilisi.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "2. Dolor  - Dolor facilisis scelerisque malesuada rhoncus ultrices duis at venenatis facilisi."
         },
         "3": {
-            "name": "GM Tasks",
-            "desc": "1 gm speed time, 1 gm mechanical, 1 perfection, 1 restriction, 1 stamina. - 1 of each gm task minus kc.",
-            "discord_name": "GM Tasks - 1 gm speed time, 1 gm mechanical, 1 perfection, 1 restriction, 1 stamina. - 1 of each gm task minus kc."
+            "tile_num": "3",
+            "name": "Facilisi ",
+            "short_desc": "Facilisi vehicula ",
+            "desc": "Facilisi vehicula habitant sapien sem inceptos nisi conubia viverra.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "3. Facilisi  - Facilisi vehicula habitant sapien sem inceptos nisi conubia viverra."
         },
         "4": {
-            "name": "Clue Boot",
-            "desc": "Any clue boot from Medium clues",
-            "discord_name": "Clue Boot - Any clue boot from Medium clues"
+            "tile_num": "4",
+            "name": "Mi ",
+            "short_desc": "Mi erat massa laoreet, ",
+            "desc": "Mi erat massa laoreet, arcu a donec pretium pharetra.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "4. Mi  - Mi erat massa laoreet, arcu a donec pretium pharetra."
         },
         "5": {
-            "name": "Nex Unique",
-            "desc": "Any Nex Unique - Hilt, Armor, Nihil horn, Pet",
-            "discord_name": "Nex Unique - Any Nex Unique - Hilt, Armor, Nihil horn, Pet"
+            "tile_num": "5",
+            "name": "Finibus ",
+            "short_desc": "Finibus duis eleifend ",
+            "desc": "Finibus duis eleifend massa, dis laoreet mattis risus.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "5. Finibus  - Finibus duis eleifend massa, dis laoreet mattis risus."
         },
         "6": {
-            "name": "Raid Armor",
-            "desc": "Any raids clothing item (head, body, legs).",
-            "discord_name": "Raid Armor - Any raid clothing item (head, body, legs)."
+            "tile_num": "6",
+            "name": "Tellus ",
+            "short_desc": "Tellus purus non ",
+            "desc": "Tellus purus non elit maecenas; adipiscing elit elementum.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "6. Tellus  - Tellus purus non elit maecenas; adipiscing elit elementum."
         },
         "7": {
-            "name": "Rev Uniques",
-            "desc": "Rev weapon or 16m gp worth of totems. Rev boss guaranteed drops do not count.",
-            "discord_name": "Rev Uniques - Rev weapon or 16m gp worth of totems. Rev boss guaranteed drops do not count."
+            "tile_num": "7",
+            "name": "Ipsum ",
+            "short_desc": "Ipsum justo felis ",
+            "desc": "Ipsum justo felis lacinia mollis rutrum taciti.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "7. Ipsum  - Ipsum justo felis lacinia mollis rutrum taciti."
         },
         "8": {
-            "name": "Hydra Unique",
-            "desc": "A Hydra's claw OR full ring(Eye, Heart, Fang)",
-            "discord_name": "Hydra Unique - A Hydra's claw OR full ring(Eye, Heart, Fang)"
+            "tile_num": "8",
+            "name": "Aenean ",
+            "short_desc": "Aenean adipiscing ",
+            "desc": "Aenean adipiscing vestibulum elementum augue velit leo sodales.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "8. Aenean  - Aenean adipiscing vestibulum elementum augue velit leo sodales."
         },
         "9": {
-            "name": "Shard/Seed",
-            "desc": "Blood shard and Enhanced crystal seed drop - drops OR thieving. IF THIEVING, Log with bingo password is required.",
-            "discord_name": "Shard/Seed - Blood shard and Enhanced crystal seed drop - drops OR thieving. IF THIEVING, Log with bingo password is required."
+            "tile_num": "9",
+            "name": "Elit ",
+            "short_desc": "Elit gravida nostra ",
+            "desc": "Elit gravida nostra curabitur dictumst purus per semper maximus.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "9. Elit  - Elit gravida nostra curabitur dictumst purus per semper maximus."
         },
         "10": {
-            "name": "Unsired",
-            "desc": "3 Unsired",
-            "discord_name": "Unsired - 3 Unsired"
+            "tile_num": "10",
+            "name": "Venenatis ",
+            "short_desc": "Venenatis maximus ",
+            "desc": "Venenatis maximus nascetur mollis montes lectus ad velit mus sapien.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "10. Venenatis  - Venenatis maximus nascetur mollis montes lectus ad velit mus sapien."
         },
         "11": {
-            "name": "Cerb Crystals",
-            "desc": "4 Cerberus crystals(and stone) - no dupes",
-            "discord_name": "Cerb Crystals - 4 Cerberus crystals(and stone) - no dupes"
+            "tile_num": "11",
+            "name": "Litora ",
+            "short_desc": "Litora elementum ",
+            "desc": "Litora elementum vulputate ligula feugiat lorem rutrum.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "11. Litora  - Litora elementum vulputate ligula feugiat lorem rutrum."
         },
         "12": {
-            "name": "GWD Uniques",
-            "desc": "1 unique from every GWD boss(Includes pet) (No Saradomin Sword[too EZ],No shards, No Nex)",
-            "discord_name": "GWD Uniques - 1 unique from every GWD boss(Includes pet) (No Saradomin Sword[too EZ],No shards, No Nex)"
+            "tile_num": "12",
+            "name": "Consequat ",
+            "short_desc": "Consequat donec ",
+            "desc": "Consequat donec imperdiet magnis nunc interdum montes donec purus.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "12. Consequat  - Consequat donec imperdiet magnis nunc interdum montes donec purus."
         },
         "13": {
-            "name": "Raids Cosmetic",
-            "desc": "Dust, or Kit from Raids EXCLUDES ALL TOA KITS",
-            "discord_name": "Raids Cosmetic - Dust, or Kit from Raids EXCLUDES ALL TOA KITS"
+            "tile_num": "13",
+            "name": "Vivamus ",
+            "short_desc": "Vivamus cras maximus ",
+            "desc": "Vivamus cras maximus ullamcorper ac, sollicitudin luctus ligula duis.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "13. Vivamus  - Vivamus cras maximus ullamcorper ac, sollicitudin luctus ligula duis."
         },
         "14": {
-            "name": "Boss jar",
-            "desc": "Any Boss jar",
-            "discord_name": "Boss jar - Any Boss jar"
+            "tile_num": "14",
+            "name": "Magnis ",
+            "short_desc": "Magnis ultricies ",
+            "desc": "Magnis ultricies primis class fames faucibus phasellus imperdiet dignissim.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "14. Magnis  - Magnis ultricies primis class fames faucibus phasellus imperdiet dignissim."
         },
         "15": {
-            "name": "Basilisk Jaw",
-            "desc": "1 Basilisk jaw",
-            "discord_name": "Basilisk Jaw - 1 Basilisk jaw"
+            "tile_num": "15",
+            "name": "Curabitur ",
+            "short_desc": "Curabitur egestas ",
+            "desc": "Curabitur egestas rhoncus amet augue mi tellus netus libero.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "15. Curabitur  - Curabitur egestas rhoncus amet augue mi tellus netus libero."
         },
         "16": {
-            "name": "Zalcano unique",
-            "desc": "Zalcano unique",
-            "discord_name": "Zalcano unique - Zalcano unique"
+            "tile_num": "16",
+            "name": "Facilisis ",
+            "short_desc": "Facilisis facilisi ",
+            "desc": "Facilisis facilisi himenaeos mollis vestibulum torquent porttitor ligula fames.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "16. Facilisis  - Facilisis facilisi himenaeos mollis vestibulum torquent porttitor ligula fames."
         },
         "17": {
-            "name": "Axe/Cudgel",
-            "desc": "Zombie axe AND Sarachnis Cudgel",
-            "discord_name": "Axe/Cudgel - Zombie axe AND Sarachnis Cudgel"
+            "tile_num": "17",
+            "name": "Sem ",
+            "short_desc": "Sem metus aptent ",
+            "desc": "Sem metus aptent cras nec, lacus suspendisse pulvinar.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "17. Sem  - Sem metus aptent cras nec, lacus suspendisse pulvinar."
         },
         "18": {
-            "name": "Voidwaker",
-            "desc": "Build a Voidwaker",
-            "discord_name": "Voidwaker - Build a Voidwaker"
+            "tile_num": "18",
+            "name": "Semper ",
+            "short_desc": "Semper morbi cras ",
+            "desc": "Semper morbi cras tempus blandit libero varius nibh fermentum.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "18. Semper  - Semper morbi cras tempus blandit libero varius nibh fermentum."
         },
         "19": {
-            "name": "Helm Recolor",
-            "desc": "3 slayer helm recolors NO DUPES, (KBD, VORK, KQ, HYDRA, SIRE, CLAW)",
-            "discord_name": "Helm Recolor - 3 slayer helm recolors NO DUPES, (KBD, VORK, KQ, HYDRA, SIRE, CLAW)"
+            "tile_num": "19",
+            "name": "Cubilia ",
+            "short_desc": "Cubilia nisl sodales ",
+            "desc": "Cubilia nisl sodales scelerisque neque rhoncus maecenas.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "19. Cubilia  - Cubilia nisl sodales scelerisque neque rhoncus maecenas."
         },
         "20": {
-            "name": "Full Moon",
-            "desc": "Two(2) Different Full Perilous Moon Sets",
-            "discord_name": "Full Moon - Two(2) Different Full Perilous Moon Sets"
+            "tile_num": "20",
+            "name": "Imperdiet ",
+            "short_desc": "Imperdiet erat ",
+            "desc": "Imperdiet erat nunc hendrerit pretium massa tristique ipsum hac mauris.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "20. Imperdiet  - Imperdiet erat nunc hendrerit pretium massa tristique ipsum hac mauris."
         },
         "21": {
-            "name": "Raids Weapon",
-            "desc": "Any Raids weapon (Kodia counts)",
-            "discord_name": "Raids Weapon - Any Raids weapon (Kodia counts)"
+            "tile_num": "21",
+            "name": "Ullamcorper ",
+            "short_desc": "Ullamcorper dolor ",
+            "desc": "Ullamcorper dolor sapien nibh hendrerit habitant iaculis adipiscing.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "21. Ullamcorper  - Ullamcorper dolor sapien nibh hendrerit habitant iaculis adipiscing."
         },
         "22": {
-            "name": "Zulrah Uniques",
-            "desc": "Magic Fang, Tanz Fang, Onyx, and Serp Visage(ALL 4) OR 1 mutagen from Zulrah",
-            "discord_name": "Zulrah Uniques - Magic Fang, Tanz Fang, Onyx, and Serp Visage(ALL 4) OR 1 mutagen from Zulrah"
+            "tile_num": "22",
+            "name": "Id ",
+            "short_desc": "Id egestas malesuada; ",
+            "desc": "Id egestas malesuada; nunc metus urna potenti.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "22. Id  - Id egestas malesuada; nunc metus urna potenti."
         },
         "23": {
-            "name": "Raids Shield",
-            "desc": "1 Raids shield slot/shield (Dinhs counts)",
-            "discord_name": "Raids Shield - 1 Raids shield slot/shield (Dinhs counts)"
+            "tile_num": "23",
+            "name": "Parturient ",
+            "short_desc": "Parturient orci ",
+            "desc": "Parturient orci erat morbi senectus nascetur libero.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "23. Parturient  - Parturient orci erat morbi senectus nascetur libero."
         },
         "24": {
-            "name": "Nightmare Unique",
-            "desc": "Excludes Slepey tab, and Parasitic Egg",
-            "discord_name": "Nightmare Unique - Excludes Slepey tab, and Parasitic Egg"
+            "tile_num": "24",
+            "name": "Torquent ",
+            "short_desc": "Torquent finibus ",
+            "desc": "Torquent finibus dignissim eget ex senectus aliquet.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "24. Torquent  - Torquent finibus dignissim eget ex senectus aliquet."
         },
         "25": {
-            "name": "DT2 Unique",
-            "desc": "Virtus Piece, Vestige, Axe piece, or Three(3) Ingots",
-            "discord_name": "DT2 Unique - Virtus Piece, Vestige, Axe piece, or Three(3) Ingots"
+            "tile_num": "25",
+            "name": "Cras ",
+            "short_desc": "Cras nibh amet ",
+            "desc": "Cras nibh amet condimentum penatibus; amet imperdiet.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "25. Cras  - Cras nibh amet condimentum penatibus; amet imperdiet."
         },
         "26": {
-            "name": "Bonus Tiles",
-            "desc": "Dirty rotten cloggers... eat your hearts out. Ring of Endurance, Dragon Full Helm(Drop or Pyre), Eternal Glory",
-            "discord_name": "Bonus Tiles - Dirty rotten cloggers... eat your hearts out. Ring of Endurance, Dragon Full Helm(Drop or Pyre), Eternal Glory"
+            "tile_num": "26",
+            "name": "Dictum ",
+            "short_desc": "Dictum ornare aliquam ",
+            "desc": "Dictum ornare aliquam turpis vel tortor.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "26. Dictum  - Dictum ornare aliquam turpis vel tortor."
+        },
+        "27": {
+            "tile_num": "27",
+            "name": "Aptent ",
+            "short_desc": "Aptent mauris neque; ",
+            "desc": "Aptent mauris neque; pretium tempor commodo suscipit ultrices.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "27. Aptent  - Aptent mauris neque; pretium tempor commodo suscipit ultrices."
+        },
+        "28": {
+            "tile_num": "28",
+            "name": "Magna ",
+            "short_desc": "Magna habitant ",
+            "desc": "Magna habitant senectus libero augue eleifend! Augue pretium sodales natoque penatibus; ridiculus ipsum.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "28. Magna  - Magna habitant senectus libero augue eleifend! Augue pretium sodales natoque penatibus; ridiculus ipsum."
+        },
+        "29": {
+            "tile_num": "29",
+            "name": "Nulla ",
+            "short_desc": "Nulla erat et ornare, ",
+            "desc": "Nulla erat et ornare, libero viverra conubia elementum.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "29. Nulla  - Nulla erat et ornare, libero viverra conubia elementum."
+        },
+        "30": {
+            "tile_num": "30",
+            "name": "Non ",
+            "short_desc": "Non a hac purus ",
+            "desc": "Non a hac purus urna nam suscipit purus.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "30. Non  - Non a hac purus urna nam suscipit purus."
+        },
+        "31": {
+            "tile_num": "31",
+            "name": "Auctor ",
+            "short_desc": "Auctor himenaeos ",
+            "desc": "Auctor himenaeos conubia posuere inceptos maecenas sodales dui.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "31. Auctor  - Auctor himenaeos conubia posuere inceptos maecenas sodales dui."
+        },
+        "32": {
+            "tile_num": "32",
+            "name": "Amet ",
+            "short_desc": "Amet augue ipsum ",
+            "desc": "Amet augue ipsum inceptos non primis? Nisi lectus nec fames quis inceptos quisque.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "32. Amet  - Amet augue ipsum inceptos non primis? Nisi lectus nec fames quis inceptos quisque."
+        },
+        "33": {
+            "tile_num": "33",
+            "name": "Odio ",
+            "short_desc": "Odio arcu ac sollicitudin, ",
+            "desc": "Odio arcu ac sollicitudin, rhoncus ipsum cursus venenatis.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "33. Odio  - Odio arcu ac sollicitudin, rhoncus ipsum cursus venenatis."
+        },
+        "34": {
+            "tile_num": "34",
+            "name": "Proin ",
+            "short_desc": "Proin mauris fusce ",
+            "desc": "Proin mauris fusce dapibus interdum suspendisse accumsan.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "34. Proin  - Proin mauris fusce dapibus interdum suspendisse accumsan."
+        },
+        "35": {
+            "tile_num": "35",
+            "name": "Litora ",
+            "short_desc": "Litora nisl rhoncus ",
+            "desc": "Litora nisl rhoncus auctor congue phasellus placerat urna non.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "35. Litora  - Litora nisl rhoncus auctor congue phasellus placerat urna non."
+        },
+        "36": {
+            "tile_num": "36",
+            "name": "Vestibulum ",
+            "short_desc": "Vestibulum ullamcorper ",
+            "desc": "Vestibulum ullamcorper conubia penatibus nascetur iaculis cubilia.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "36. Vestibulum  - Vestibulum ullamcorper conubia penatibus nascetur iaculis cubilia."
+        },
+        "37": {
+            "tile_num": "37",
+            "name": "Morbi ",
+            "short_desc": "Morbi purus faucibus ",
+            "desc": "Morbi purus faucibus natoque at vestibulum taciti euismod per orci.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "37. Morbi  - Morbi purus faucibus natoque at vestibulum taciti euismod per orci."
+        },
+        "38": {
+            "tile_num": "38",
+            "name": "Diam ",
+            "short_desc": "Diam nisl non ipsum ",
+            "desc": "Diam nisl non ipsum placerat; ac facilisi porttitor duis egestas.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "38. Diam  - Diam nisl non ipsum placerat; ac facilisi porttitor duis egestas."
+        },
+        "39": {
+            "tile_num": "39",
+            "name": "Dolor ",
+            "short_desc": "Dolor erat integer ",
+            "desc": "Dolor erat integer accumsan habitant pulvinar.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "39. Dolor  - Dolor erat integer accumsan habitant pulvinar."
+        },
+        "40": {
+            "tile_num": "40",
+            "name": "Hendrerit ",
+            "short_desc": "Hendrerit sapien ",
+            "desc": "Hendrerit sapien curabitur feugiat dolor facilisis? Pellentesque at ex justo adipiscing curae est.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "40. Hendrerit  - Hendrerit sapien curabitur feugiat dolor facilisis? Pellentesque at ex justo adipiscing curae est."
+        },
+        "41": {
+            "tile_num": "41",
+            "name": "Viverra ",
+            "short_desc": "Viverra curabitur ",
+            "desc": "Viverra curabitur ridiculus praesent mi himenaeos fames, felis luctus elit.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "41. Viverra  - Viverra curabitur ridiculus praesent mi himenaeos fames, felis luctus elit."
+        },
+        "42": {
+            "tile_num": "42",
+            "name": "Metus ",
+            "short_desc": "Metus finibus elit ",
+            "desc": "Metus finibus elit senectus et nunc lacinia elit a hac.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "42. Metus  - Metus finibus elit senectus et nunc lacinia elit a hac."
+        },
+        "43": {
+            "tile_num": "43",
+            "name": "Dapibus ",
+            "short_desc": "Dapibus nam tortor ",
+            "desc": "Dapibus nam tortor dapibus praesent nec dictum.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "43. Dapibus  - Dapibus nam tortor dapibus praesent nec dictum."
+        },
+        "44": {
+            "tile_num": "44",
+            "name": "Pretium ",
+            "short_desc": "Pretium vel sem ",
+            "desc": "Pretium vel sem quis odio efficitur.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "44. Pretium  - Pretium vel sem quis odio efficitur."
+        },
+        "45": {
+            "tile_num": "45",
+            "name": "Torquent ",
+            "short_desc": "Torquent odio commodo ",
+            "desc": "Torquent odio commodo class accumsan diam ipsum, mollis elit.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "45. Torquent  - Torquent odio commodo class accumsan diam ipsum, mollis elit."
+        },
+        "46": {
+            "tile_num": "46",
+            "name": "Tempus ",
+            "short_desc": "Tempus efficitur ",
+            "desc": "Tempus efficitur viverra finibus metus molestie vitae phasellus.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "46. Tempus  - Tempus efficitur viverra finibus metus molestie vitae phasellus."
+        },
+        "47": {
+            "tile_num": "47",
+            "name": "Sed ",
+            "short_desc": "Sed quam diam curabitur ",
+            "desc": "Sed quam diam curabitur ullamcorper class imperdiet senectus sodales.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "47. Sed  - Sed quam diam curabitur ullamcorper class imperdiet senectus sodales."
+        },
+        "48": {
+            "tile_num": "48",
+            "name": "Accumsan ",
+            "short_desc": "Accumsan semper ",
+            "desc": "Accumsan semper bibendum interdum etiam diam laoreet.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "48. Accumsan  - Accumsan semper bibendum interdum etiam diam laoreet."
+        },
+        "49": {
+            "tile_num": "49",
+            "name": "Ullamcorper ",
+            "short_desc": "Ullamcorper tellus ",
+            "desc": "Ullamcorper tellus ligula nibh nascetur turpis, hendrerit dolor gravida.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "49. Ullamcorper  - Ullamcorper tellus ligula nibh nascetur turpis, hendrerit dolor gravida."
+        },
+        "50": {
+            "tile_num": "50",
+            "name": "At ",
+            "short_desc": "At ipsum ullamcorper ",
+            "desc": "At ipsum ullamcorper sagittis posuere pharetra nascetur pellentesque nullam ornare.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "50. At  - At ipsum ullamcorper sagittis posuere pharetra nascetur pellentesque nullam ornare."
+        },
+        "51": {
+            "tile_num": "51",
+            "name": "Quam ",
+            "short_desc": "Quam sagittis fermentum ",
+            "desc": "Quam sagittis fermentum libero pellentesque suspendisse ridiculus.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "51. Quam  - Quam sagittis fermentum libero pellentesque suspendisse ridiculus."
+        },
+        "52": {
+            "tile_num": "52",
+            "name": "Lorem ",
+            "short_desc": "Lorem posuere quam ",
+            "desc": "Lorem posuere quam commodo quis donec.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "52. Lorem  - Lorem posuere quam commodo quis donec."
+        },
+        "53": {
+            "tile_num": "53",
+            "name": "Odio ",
+            "short_desc": "Odio curabitur ",
+            "desc": "Odio curabitur dictum ultricies mollis semper consequat lorem dolor.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "53. Odio  - Odio curabitur dictum ultricies mollis semper consequat lorem dolor."
+        },
+        "54": {
+            "tile_num": "54",
+            "name": "Fames ",
+            "short_desc": "Fames euismod mus ",
+            "desc": "Fames euismod mus hendrerit; proin vehicula eros.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "54. Fames  - Fames euismod mus hendrerit; proin vehicula eros."
+        },
+        "55": {
+            "tile_num": "55",
+            "name": "Quisque ",
+            "short_desc": "Quisque malesuada ",
+            "desc": "Quisque malesuada netus nisi vehicula conubia.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "55. Quisque  - Quisque malesuada netus nisi vehicula conubia."
+        },
+        "56": {
+            "tile_num": "56",
+            "name": "Eros ",
+            "short_desc": "Eros elit metus ",
+            "desc": "Eros elit metus lorem urna ultrices curabitur pharetra.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "56. Eros  - Eros elit metus lorem urna ultrices curabitur pharetra."
+        },
+        "57": {
+            "tile_num": "57",
+            "name": "Quis ",
+            "short_desc": "Quis integer suspendisse ",
+            "desc": "Quis integer suspendisse netus nam conubia.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "57. Quis  - Quis integer suspendisse netus nam conubia."
+        },
+        "58": {
+            "tile_num": "58",
+            "name": "Torquent ",
+            "short_desc": "Torquent placerat ",
+            "desc": "Torquent placerat nulla hendrerit pharetra eget.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "58. Torquent  - Torquent placerat nulla hendrerit pharetra eget."
+        },
+        "59": {
+            "tile_num": "59",
+            "name": "Est ",
+            "short_desc": "Est primis viverra ",
+            "desc": "Est primis viverra gravida nam pretium convallis nam phasellus.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "59. Est  - Est primis viverra gravida nam pretium convallis nam phasellus."
+        },
+        "60": {
+            "tile_num": "60",
+            "name": "Lobortis ",
+            "short_desc": "Lobortis dignissim ",
+            "desc": "Lobortis dignissim nulla condimentum; purus nec justo.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "60. Lobortis  - Lobortis dignissim nulla condimentum; purus nec justo."
+        },
+        "61": {
+            "tile_num": "61",
+            "name": "Nascetur ",
+            "short_desc": "Nascetur scelerisque ",
+            "desc": "Nascetur scelerisque maximus dignissim nullam purus.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "61. Nascetur  - Nascetur scelerisque maximus dignissim nullam purus."
+        },
+        "62": {
+            "tile_num": "62",
+            "name": "Enim ",
+            "short_desc": "Enim montes eget ",
+            "desc": "Enim montes eget at commodo, adipiscing erat himenaeos ridiculus.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "62. Enim  - Enim montes eget at commodo, adipiscing erat himenaeos ridiculus."
+        },
+        "63": {
+            "tile_num": "63",
+            "name": "Vel ",
+            "short_desc": "Vel rhoncus amet ",
+            "desc": "Vel rhoncus amet himenaeos gravida nascetur tempor.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "63. Vel  - Vel rhoncus amet himenaeos gravida nascetur tempor."
+        },
+        "64": {
+            "tile_num": "64",
+            "name": "Dis ",
+            "short_desc": "Dis tellus massa ",
+            "desc": "Dis tellus massa habitasse pellentesque dictumst parturient? Aptent erat efficitur consequat dictumst duis vulputate massa litora.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "64. Dis  - Dis tellus massa habitasse pellentesque dictumst parturient? Aptent erat efficitur consequat dictumst duis vulputate massa litora."
+        },
+        "65": {
+            "tile_num": "65",
+            "name": "Justo ",
+            "short_desc": "Justo donec feugiat ",
+            "desc": "Justo donec feugiat lectus maecenas faucibus tempus.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "65. Justo  - Justo donec feugiat lectus maecenas faucibus tempus."
+        },
+        "66": {
+            "tile_num": "66",
+            "name": "Accumsan ",
+            "short_desc": "Accumsan facilisi ",
+            "desc": "Accumsan facilisi lobortis nisl per, curabitur tempus ac.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "66. Accumsan  - Accumsan facilisi lobortis nisl per, curabitur tempus ac."
+        },
+        "67": {
+            "tile_num": "67",
+            "name": "Litora ",
+            "short_desc": "Litora montes et ",
+            "desc": "Litora montes et luctus per senectus a.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "67. Litora  - Litora montes et luctus per senectus a."
+        },
+        "68": {
+            "tile_num": "68",
+            "name": "Auctor ",
+            "short_desc": "Auctor platea mus ",
+            "desc": "Auctor platea mus sit viverra venenatis ullamcorper.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "68. Auctor  - Auctor platea mus sit viverra venenatis ullamcorper."
+        },
+        "69": {
+            "tile_num": "69",
+            "name": "Molestie ",
+            "short_desc": "Molestie conubia ",
+            "desc": "Molestie conubia eleifend at ex maximus penatibus condimentum velit.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "69. Molestie  - Molestie conubia eleifend at ex maximus penatibus condimentum velit."
+        },
+        "70": {
+            "tile_num": "70",
+            "name": "In ",
+            "short_desc": "In sem odio blandit ",
+            "desc": "In sem odio blandit per platea diam vulputate enim odio.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "70. In  - In sem odio blandit per platea diam vulputate enim odio."
+        },
+        "71": {
+            "tile_num": "71",
+            "name": "Sem ",
+            "short_desc": "Sem turpis rutrum ",
+            "desc": "Sem turpis rutrum ultrices risus ridiculus suspendisse nam sociosqu natoque? Sociosqu magnis sociosqu ipsum; litora justo quam semper.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "71. Sem  - Sem turpis rutrum ultrices risus ridiculus suspendisse nam sociosqu natoque? Sociosqu magnis sociosqu ipsum; litora justo quam semper."
+        },
+        "72": {
+            "tile_num": "72",
+            "name": "Viverra ",
+            "short_desc": "Viverra ligula ",
+            "desc": "Viverra ligula vehicula dictum himenaeos pellentesque; at ante nibh.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "72. Viverra  - Viverra ligula vehicula dictum himenaeos pellentesque; at ante nibh."
+        },
+        "73": {
+            "tile_num": "73",
+            "name": "Ex ",
+            "short_desc": "Ex aptent leo eros, ",
+            "desc": "Ex aptent leo eros, sed curabitur mi aenean.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "73. Ex  - Ex aptent leo eros, sed curabitur mi aenean."
+        },
+        "74": {
+            "tile_num": "74",
+            "name": "Nascetur ",
+            "short_desc": "Nascetur fermentum ",
+            "desc": "Nascetur fermentum morbi praesent justo, sapien tellus mattis lorem.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "74. Nascetur  - Nascetur fermentum morbi praesent justo, sapien tellus mattis lorem."
+        },
+        "75": {
+            "tile_num": "75",
+            "name": "Gravida ",
+            "short_desc": "Gravida gravida ",
+            "desc": "Gravida gravida elit inceptos pulvinar hendrerit.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "75. Gravida  - Gravida gravida elit inceptos pulvinar hendrerit."
+        },
+        "76": {
+            "tile_num": "76",
+            "name": "Ridiculus ",
+            "short_desc": "Ridiculus nullam ",
+            "desc": "Ridiculus nullam quisque conubia velit venenatis sollicitudin.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "76. Ridiculus  - Ridiculus nullam quisque conubia velit venenatis sollicitudin."
+        },
+        "77": {
+            "tile_num": "77",
+            "name": "Proin ",
+            "short_desc": "Proin suspendisse ",
+            "desc": "Proin suspendisse diam viverra sem sit vitae habitasse habitasse pellentesque.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "77. Proin  - Proin suspendisse diam viverra sem sit vitae habitasse habitasse pellentesque."
+        },
+        "78": {
+            "tile_num": "78",
+            "name": "Lorem ",
+            "short_desc": "Lorem ex convallis ",
+            "desc": "Lorem ex convallis est adipiscing accumsan in dis ligula ipsum.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "78. Lorem  - Lorem ex convallis est adipiscing accumsan in dis ligula ipsum."
+        },
+        "79": {
+            "tile_num": "79",
+            "name": "Ultrices ",
+            "short_desc": "Ultrices euismod ",
+            "desc": "Ultrices euismod potenti lorem torquent tortor volutpat aptent fermentum augue.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "79. Ultrices  - Ultrices euismod potenti lorem torquent tortor volutpat aptent fermentum augue."
+        },
+        "80": {
+            "tile_num": "80",
+            "name": "Tristique ",
+            "short_desc": "Tristique sodales ",
+            "desc": "Tristique sodales blandit orci diam porta dui risus bibendum.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "80. Tristique  - Tristique sodales blandit orci diam porta dui risus bibendum."
+        },
+        "81": {
+            "tile_num": "81",
+            "name": "Fusce ",
+            "short_desc": "Fusce litora himenaeos; ",
+            "desc": "Fusce litora himenaeos; ullamcorper volutpat risus elementum.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "81. Fusce  - Fusce litora himenaeos; ullamcorper volutpat risus elementum."
+        },
+        "82": {
+            "tile_num": "82",
+            "name": "Risus ",
+            "short_desc": "Risus viverra id ",
+            "desc": "Risus viverra id senectus dictum turpis vulputate cras imperdiet primis.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "82. Risus  - Risus viverra id senectus dictum turpis vulputate cras imperdiet primis."
+        },
+        "83": {
+            "tile_num": "83",
+            "name": "Lorem ",
+            "short_desc": "Lorem senectus ",
+            "desc": "Lorem senectus enim id lobortis primis curae euismod lobortis.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "83. Lorem  - Lorem senectus enim id lobortis primis curae euismod lobortis."
+        },
+        "84": {
+            "tile_num": "84",
+            "name": "Tempor ",
+            "short_desc": "Tempor placerat ",
+            "desc": "Tempor placerat netus; feugiat diam felis euismod.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "84. Tempor  - Tempor placerat netus; feugiat diam felis euismod."
+        },
+        "85": {
+            "tile_num": "85",
+            "name": "Semper ",
+            "short_desc": "Semper accumsan ",
+            "desc": "Semper accumsan feugiat suspendisse tempus sociosqu augue in euismod.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "85. Semper  - Semper accumsan feugiat suspendisse tempus sociosqu augue in euismod."
+        },
+        "86": {
+            "tile_num": "86",
+            "name": "Convallis ",
+            "short_desc": "Convallis magna ",
+            "desc": "Convallis magna vitae lacinia aenean tempor vivamus ligula efficitur sed.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "86. Convallis  - Convallis magna vitae lacinia aenean tempor vivamus ligula efficitur sed."
+        },
+        "87": {
+            "tile_num": "87",
+            "name": "Suspendisse ",
+            "short_desc": "Suspendisse lorem ",
+            "desc": "Suspendisse lorem ante platea cubilia adipiscing fringilla commodo potenti.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "87. Suspendisse  - Suspendisse lorem ante platea cubilia adipiscing fringilla commodo potenti."
+        },
+        "88": {
+            "tile_num": "88",
+            "name": "Odio ",
+            "short_desc": "Odio adipiscing ",
+            "desc": "Odio adipiscing litora felis diam etiam proin molestie mollis.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "88. Odio  - Odio adipiscing litora felis diam etiam proin molestie mollis."
+        },
+        "89": {
+            "tile_num": "89",
+            "name": "Non ",
+            "short_desc": "Non porttitor fusce ",
+            "desc": "Non porttitor fusce finibus nunc ultricies.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "89. Non  - Non porttitor fusce finibus nunc ultricies."
+        },
+        "90": {
+            "tile_num": "90",
+            "name": "Tristique ",
+            "short_desc": "Tristique sodales ",
+            "desc": "Tristique sodales blandit orci diam porta dui risus bibendum.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "90. Tristique  - Tristique sodales blandit orci diam porta dui risus bibendum."
+        },
+        "91": {
+            "tile_num": "91",
+            "name": "Fusce ",
+            "short_desc": "Fusce litora himenaeos; ",
+            "desc": "Fusce litora himenaeos; ullamcorper volutpat risus elementum.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "91. Fusce  - Fusce litora himenaeos; ullamcorper volutpat risus elementum."
+        },
+        "92": {
+            "tile_num": "92",
+            "name": "Risus ",
+            "short_desc": "Risus viverra id ",
+            "desc": "Risus viverra id senectus dictum turpis vulputate cras imperdiet primis.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "92. Risus  - Risus viverra id senectus dictum turpis vulputate cras imperdiet primis."
+        },
+        "93": {
+            "tile_num": "93",
+            "name": "Lorem ",
+            "short_desc": "Lorem senectus ",
+            "desc": "Lorem senectus enim id lobortis primis curae euismod lobortis.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "93. Lorem  - Lorem senectus enim id lobortis primis curae euismod lobortis."
+        },
+        "94": {
+            "tile_num": "94",
+            "name": "Tempor ",
+            "short_desc": "Tempor placerat ",
+            "desc": "Tempor placerat netus; feugiat diam felis euismod.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "94. Tempor  - Tempor placerat netus; feugiat diam felis euismod."
+        },
+        "95": {
+            "tile_num": "95",
+            "name": "Semper ",
+            "short_desc": "Semper accumsan ",
+            "desc": "Semper accumsan feugiat suspendisse tempus sociosqu augue in euismod.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "95. Semper  - Semper accumsan feugiat suspendisse tempus sociosqu augue in euismod."
+        },
+        "96": {
+            "tile_num": "96",
+            "name": "Convallis ",
+            "short_desc": "Convallis magna ",
+            "desc": "Convallis magna vitae lacinia aenean tempor vivamus ligula efficitur sed.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "96. Convallis  - Convallis magna vitae lacinia aenean tempor vivamus ligula efficitur sed."
+        },
+        "97": {
+            "tile_num": "97",
+            "name": "Suspendisse ",
+            "short_desc": "Suspendisse lorem ",
+            "desc": "Suspendisse lorem ante platea cubilia adipiscing fringilla commodo potenti.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "97. Suspendisse  - Suspendisse lorem ante platea cubilia adipiscing fringilla commodo potenti."
+        },
+        "98": {
+            "tile_num": "98",
+            "name": "Odio ",
+            "short_desc": "Odio adipiscing ",
+            "desc": "Odio adipiscing litora felis diam etiam proin molestie mollis.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "98. Odio  - Odio adipiscing litora felis diam etiam proin molestie mollis."
+        },
+        "99": {
+            "tile_num": "99",
+            "name": "Non ",
+            "short_desc": "Non porttitor fusce ",
+            "desc": "Non porttitor fusce finibus nunc ultricies.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "99. Non  - Non porttitor fusce finibus nunc ultricies."
+        },
+        "100": {
+            "tile_num": "100",
+            "name": "Non ",
+            "short_desc": "Non porttitor fusce ",
+            "desc": "Non porttitor fusce finibus nunc ultricies.",
+            "sabotage": "",
+            "item_names": "",
+            "discord_name": "100. Non  - Non porttitor fusce finibus nunc ultricies."
         }
     },
     "posts": {
         "score-board": {
             "id": 1292637097030717493,
-            "content": "Raw Dogs: 91\nRats N Batts: 101\nVarlamores Whores: 99"
+            "content": "Team 1: 100\nTeam 2: 0\nTeam 3: 0\nTeam 4: 0\nTeam 5: 0\nTeam 6: 0\nTeam 7: 0"
         }
     }
 }
