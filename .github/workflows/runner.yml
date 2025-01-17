@@ -20,12 +20,12 @@ jobs:
 
       - name: Copy local files
         run: |
-          cp /opt/appdata/discord-bots/config.py . &&
-          cp /opt/appdata/discord-bots/token.json . &&
-          cp /opt/appdata/discord-bots/credentials.json .
+          cp /opt/bingo_bot/config.py . &&
+          cp /opt/bingo_bot/token.json . &&
+          cp /opt/bingo_bot/credentials.json .
         
       - name: Build Container
-        run: docker-compose -f /opt/discord-compose.yml build --no-cache
+        run: docker-compose -f /opt/bingo_bot/discord-compose.yml build --no-cache
 
       - name: Start up docker compose
         run: docker-compose -f /opt/bingo_bot/discord-compose.yml up -d
