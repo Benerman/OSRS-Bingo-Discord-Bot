@@ -89,6 +89,14 @@ CNL_SHORTCUTS = (
     (17, 7)
 )
 
+IGNORED_CATEGORIES = [
+    "welcome",
+    "admin",
+    "bot",
+    "archived",
+    "general"
+]
+
 default_settings_dict = {
     "bot_mode": {"bot_options": ["candyland", "normal"], "current": "candyland"},
     "tiles": {"url": "", "spreadsheet_id": "", "items": {}},
@@ -145,6 +153,23 @@ def create_discord_friendly_name(text):
         .replace(",", "")
     )
 
+def chunk_text(text, chunk_size=3996, split_line=False):
+    """Splits text into chunks of a specified size."""
+    return [text[i:i + chunk_size] for i in range(0, len(text), chunk_size)]
+
+def chunk_item_list_text(text_list, chunk_size=3896):
+    output = []
+    while True:
+        chunk = ""
+        for item in text_list:
+            if len(f"{chunk}\n{item}\n") > chunk_size:
+                output.append(chunk)
+                chunk = f"{item}\n"
+            else:
+                chunk = f"{chunk}{item}\n"
+        break
+    output.append(chunk)
+    return output
 
 def create_settings_json():
     """
@@ -801,9 +826,7 @@ async def update_server_score_board_channel(interaction: discord.Interaction, se
             print(msg)
             if msg.author == bot.user:
                 msg_id = msg.id
-                print(f"{msg_id =}")
                 msg_webhook = msg.webhook_id
-                print(f"{msg_webhook =}")
     try:
         message = await score_card_ch.fetch_message(msg_id)
     except discord.errors.NotFound as e:
@@ -982,6 +1005,29 @@ async def team_names_autocomplete(
         if current.lower() in team_name.lower()
     ]
 
+async def change_team_names_autocomplete(
+    interaction: discord.Interaction, current: str
+) -> List[app_commands.Choice[str]]:
+    """
+    Autocompletes team names based on the current input.
+    For Changing Team Name, it lists all categoires for bingo discord too
+
+    Args:
+        interaction (discord.Interaction): The interaction object.
+        current (str): The current input string.
+
+    Returns:
+        List[app_commands.Choice[str]]: A list of app_commands.Choice objects representing the autocompleted team names.
+    """
+    settings = load_settings_json()
+    team_names = [x for x in settings["teams"].keys()]
+    all_categories = [c.name for c in interaction.guild.categories if not c.name.lower() in IGNORED_CATEGORIES]
+    all_options = team_names + [x for x in all_categories if x not in team_names]
+    return [
+        app_commands.Choice(name=team_name, value=team_name)
+        for team_name in all_options
+        if current.lower() in team_name.lower()
+    ]
 
 async def process_sheet_autocomplete(
     interaction: discord.Interaction, current: str
@@ -1071,7 +1117,7 @@ async def roll(interaction: discord.Interaction):
     )
     score_altered = None
     # check which bot mode
-    if settings['bot_mode'] == "chutes and ladders":
+    if settings['bot_mode']['current'] == "chutes and ladders":
         # check for shortcuts
         current = settings["teams"][team_name]["current"]
         score = calculate_shortcut(current)
@@ -1094,7 +1140,7 @@ async def roll(interaction: discord.Interaction):
         )
         return
     elif settings["teams"][team_name]["current"] > total_tiles:
-        if settings['bot_mode'] == 'candyland':
+        if settings['bot_mode']['current'] == 'candyland':
             # This makes the last tile mandatory
             settings["teams"][team_name]["current"] = total_tiles
             # roll_info = settings['items'][str(settings['teams'][team_name]['current'])]
@@ -1177,7 +1223,7 @@ async def roll(interaction: discord.Interaction):
         )
         await ch.send(embed=embed)
 
-    if settings['bot_mode'] == 'candyland':
+    if settings['bot_mode']['current'] == 'candyland':
         # Add updating the TEAMS bingo card channel
         await update_team_bingo_card_channel(interaction, team_name, roll, settings)
 
@@ -1276,9 +1322,7 @@ async def reroll(interaction: discord.Interaction):
             await ch.send(embed=embed)
 
             # Check if Sabotage Tile
-            if sabotage := settings["items"][
-                str(settings["teams"][team_name]["current"])
-            ]["sabotage"]:
+            if sabotage := settings["items"][str(settings["teams"][team_name]["current"])]["sabotage"]:
                 print(sabotage)
                 if "-" in sabotage:
                     settings = update_roll_settings(
@@ -1747,7 +1791,7 @@ async def delete_team(interaction: discord.Interaction, team_name: str):
 
 
 @has_role("Bingo Moderator")
-@app_commands.autocomplete(team_name=team_names_autocomplete)
+@app_commands.autocomplete(team_name=change_team_names_autocomplete)
 @bot.tree.command(name="change_team_name", description=f"Change team name.")
 async def change_team_name(
     interaction: discord.Interaction, team_name: str, new_team_name: str
@@ -1767,27 +1811,26 @@ async def change_team_name(
     """
     settings = load_settings_json()
     team_names = [x for x in settings["teams"].keys()]
-    team_number = team_names.index(team_name) + 1
+    # team_number = team_names.index(team_name) + 1
     await interaction.response.defer(thinking=True)
     # if not interaction.channel.category.name.lower() == "admin":
     #     await interaction.followup.send(
     #         f"Use this command in {mod_channel} and ADMIN section"
     #     )
     #     return
-    if not team_name in team_names:
-        await interaction.followup.send(
-            f"Team Name: {team_name} is not found in {team_names}\nPlease Try again"
-        )
-    if not team_name in team_names:
+    if not new_team_name:
+        await interaction.followup.send(f'No "new_team_name" provided, Please try again')
+        return
+    team_cat = discord.utils.get(interaction.guild.categories, name=team_name)
+    if not team_cat:
+        await interaction.followup.send(f'No Category found for "{team_name}"')
+        return
+    elif not team_name in team_names:
         await interaction.followup.send(
             f"Team Name: {team_name} is not found in {team_names}\nPlease Try again"
         )
         return
     # Update Settings
-    if not new_team_name:
-        await interaction.followup.send(
-            f'No "new_team_name" provided, Please try again'
-        )
     teams_index = dict(
         zip(settings["teams"].keys(), range(len(settings["teams"].keys())))
     )
@@ -1876,13 +1919,12 @@ async def update_tiles_channels(interaction: discord.Interaction, team_name: str
 
 
 async def create_discord_text_channel(
-        interaction: discord.Interaction,
-        channel_name: str,
-        description: str, 
-        cat: discord.CategoryChannel, 
-        overwrites: discord.PermissionOverwrite
-    ):
-
+    interaction: discord.Interaction,
+    channel_name: str,
+    description: str, 
+    cat: discord.CategoryChannel, 
+    overwrites: discord.PermissionOverwrite
+):
     chan = await interaction.guild.create_text_channel(
         name=channel_name,
         topic=description,
@@ -2184,20 +2226,39 @@ async def post_tiles(interaction: discord.Interaction):
             # tile['short_desc']
             desc = tile["desc"]
             item_list.append(f"## {name}\n{desc}")
+    edited = False
+    # chunked_text = chunk_text(tile_text, chunk_size=399)
+    # print(chunked_text)
+    chunked_list = chunk_item_list_text(item_list)
+    print(f"{len(chunked_list) = }")
+    # print(f"{len(chunked_list[0]) = }")
 
     i = 0
     async for m in tile_list_ch.history(oldest_first=True):
         if m.author == bot.user and i == 0:
-            await m.edit(content='\n\n'.join(item_list[:len(item_list)//2]))
-        if m.author == bot.user and i == 1:
-            await m.edit(content='\n\n'.join(item_list[len(item_list)//2:]))
-            break
-        i += 1   
-    # if len('\n'.join(item_list)) > 4096:
-    #     await tile_list_ch.send(content='All Tiles\n\n'.join(item_list[:len(item_list)//2]))
-    #     await tile_list_ch.send(content=''.join(item_list[len(item_list)//2:]))
-    # else:
-    #     await tile_list_ch.send(content='All Tiles\n\n'.join(item_list))
+            edited = True
+            embed = discord.Embed(description=f'# All Tiles\n\n{chunked_list[i]}')
+            await m.edit(embed=embed)
+        elif m.author == bot.user:
+            embed = discord.Embed(description=f"{chunked_list[i]}")
+            await m.edit(embed=embed)
+        i += 1
+    if edited:
+        print(f"{i = }")
+        print(f"{len(chunked_list) > (i + 1) = }")
+        if len(chunked_list) > i:
+            # send remaining messages needed
+            for x in range(i, len(chunked_list)):
+                embed = discord.Embed(description=f"{chunked_list[x]}")
+                await tile_list_ch.send(embed=embed)
+    else:
+        for i in range(len(chunked_list)):
+            if i == 0:
+                embed = discord.Embed(description=f'# All Tiles\n\n{chunked_list[i]}')
+                await tile_list_ch.send(embed=embed)
+            else:
+                embed = discord.Embed(description=f"{chunked_list[i]}")
+                await tile_list_ch.send(embed=embed)
 
     await interaction.followup.send(f"Posted {len(settings['items'])} tiles to channel {tile_list_ch.mention}")
 
