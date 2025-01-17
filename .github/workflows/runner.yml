@@ -10,7 +10,10 @@ jobs:
     environment: production
 
     steps:
-      - name: Stop docker compose
+      - name: Stop other docker compose
+        run: docker-compose -f /opt/docker-compose.yml down
+        
+      - name: Stop bingo bot docker compose
         run: docker-compose -f /opt/discord-compose.yml down
         
       - name: Checkout
@@ -29,6 +32,9 @@ jobs:
 
       - name: Start up docker compose
         run: docker-compose -f /opt/discord-compose.yml up -d
+        
+      - name: Start up docker compose
+        run: docker-compose -f /opt/docker-compose.yml up -d
         
       - name: Cleanup Unused Images
         run: docker image prune -f
