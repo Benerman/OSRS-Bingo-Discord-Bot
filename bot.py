@@ -524,7 +524,7 @@ def generate_team_assignment_text(all_roles, total_teams) -> str:
     content = []
     all_roles.sort(key=lambda x: x.name)
     for i, role in enumerate(all_roles):
-        print(i, role.name)
+        # print(i, role.name)
         if i >= total_teams:
             continue
         formatted_text = f"# {role.name}:\n{' '.join([f'<@{str(r.id)}>' for r in role.members])}\n"
@@ -618,7 +618,7 @@ async def mark_team_icons_on_board(interaction: discord.Interaction) -> str:
         score = team_scores[i][1]
         if score == 0:
             # do not draw on board
-            print(f'skipping {team_name} due to score: 0')
+            # print(f'skipping {team_name} due to score: 0')
             continue
         # check if score exists for other teams
         shared_tile = False if all_scores.count(score) == 1 else True
@@ -651,6 +651,18 @@ async def mark_team_icons_on_board(interaction: discord.Interaction) -> str:
     settings["board_latest"] = new_image_path
     update_settings_json(settings)
     return new_image_path
+
+
+async def purge_images(type: str) -> str:
+    settings = load_settings_json()
+    if type == "chutes and ladders":
+        folder_path = os.path.join(os.path.dirname(os.path.abspath(settings['board_template'])), "generated")
+        old_image_files = [x for x in os.listdir(folder_path) if "CNL-" in x]
+        for file in old_image_files:
+            os.remove(os.path.join(folder_path, file))
+        return f"Removed {len(old_image_files)} image files."
+    else:
+        return f"Bot mode is not supported. Current Mode: {settings['bot_mode']['current']}"
 
 # ======================================= Discord Interaction Functions ====================================================
 
@@ -749,7 +761,7 @@ async def post_or_update_bingo_card(
             else:
                 if not processed:
                     print("image didnt exist, posting new image")
-                    print(settings["teams"][team_name]["image"])
+                    # print(settings["teams"][team_name]["image"])
                     if update and row and column:
                         settings = mark_on_image_tile_complete(
                             team_name, row=row, column=column
@@ -823,7 +835,7 @@ async def update_server_score_board_channel(interaction: discord.Interaction, se
     else:
         # ch_id = 1108133466350030858
         async for msg in score_card_ch.history(oldest_first=True):
-            print(msg)
+            # print(msg)
             if msg.author == bot.user:
                 msg_id = msg.id
                 msg_webhook = msg.webhook_id
@@ -1148,7 +1160,7 @@ async def roll(interaction: discord.Interaction):
         else:
             # bounce back CNL Tile 98 + 6 > 98 + 2 = 100 -4 = 96 > Tile 96
             score_altered = "bounce back-"
-            new_score = 2 * settings['board_bounds']['total_tiles'] - settings["teams"][team_name]["current"]
+            new_score = 2 * settings['board_bounds']['tile_count'] - settings["teams"][team_name]["current"]
             settings["teams"][team_name]["current"] = new_score
 
     update_settings_json(settings)
@@ -1276,6 +1288,7 @@ async def reroll(interaction: discord.Interaction):
                 f"{settings['teams'][team_name]['current']}-{settings['items'][str(settings['teams'][team_name]['current'])]['name']}"
             )
             print(f"{name = }")
+
             # prev_ch = discord.utils.get(interaction.channel.category.channels, name=name)
             # messages = [x async for x in prev_ch.history(limit=2)]
             # if prev_ch and len(messages) == 1:
@@ -1748,7 +1761,7 @@ async def delete_team(interaction: discord.Interaction, team_name: str):
             )
             num_deleted = 0
             cats = interaction.guild.categories
-            print([c.name for c in cats])
+            # print([c.name for c in cats])
             for cat in cats:
                 if cat.name.lower() == self.team_name.lower():
                     await interaction.message.edit(
@@ -1892,12 +1905,12 @@ async def update_tiles_channels(interaction: discord.Interaction, team_name: str
         )
         return
     cats = interaction.guild.categories
-    print([c.name for c in cats])
+    # print([c.name for c in cats])
     channels = await get_default_channels(interaction)
     updated_num = 0
     for cat in cats:
         if cat.name.lower() == team_name.lower():
-            print('team cat found', cat.name)
+            # print('team cat found', cat.name)
             for ch in cat.channels:
                 # look for first message in channel and update it
                 if ch.type == discord.ChannelType.text and ch.name in [
@@ -2014,11 +2027,9 @@ async def create_team_channels(interaction: discord.Interaction, team_name: str)
     # all_channels = []
     channels = await get_default_channels(interaction)
     for channel in channels:
-        print(f"{channel = }")
         settings = load_settings_json()
         if settings["bot_mode"]["current"] == "candyland" or settings["bot_mode"]["current"] == "chutes and ladders":
             channel_name = f"team-{team_number}-{channel}"
-            print(f"{channel_name = }")
             if channel_name == f"team-{team_number}-chat":
                 overwrites = overwrites_w_out_spectator
             else:
@@ -2227,12 +2238,7 @@ async def post_tiles(interaction: discord.Interaction):
             desc = tile["desc"]
             item_list.append(f"## {name}\n{desc}")
     edited = False
-    # chunked_text = chunk_text(tile_text, chunk_size=399)
-    # print(chunked_text)
     chunked_list = chunk_item_list_text(item_list)
-    print(f"{len(chunked_list) = }")
-    # print(f"{len(chunked_list[0]) = }")
-
     i = 0
     async for m in tile_list_ch.history(oldest_first=True):
         if m.author == bot.user and i == 0:
@@ -2244,8 +2250,6 @@ async def post_tiles(interaction: discord.Interaction):
             await m.edit(embed=embed)
         i += 1
     if edited:
-        print(f"{i = }")
-        print(f"{len(chunked_list) > (i + 1) = }")
         if len(chunked_list) > i:
             # send remaining messages needed
             for x in range(i, len(chunked_list)):
@@ -2537,6 +2541,9 @@ async def post_bingo_card(
     """
     await interaction.response.defer(thinking=True)
     settings = load_settings_json()
+    if settings['bot_mode']['current'] == "normal":
+        await interaction.followup.send(f"Not in a bingo mode that requires this. Current Mode: {settings['bot_mode']['current']}")
+        return
     team_names = [x for x in settings["teams"].keys()]
     update = False
     i = 0
@@ -2613,20 +2620,18 @@ async def upload_board_image(interaction: discord.Interaction, file: discord.Att
         # check game style
         if settings["bot_mode"]["current"] == "chutes and ladders":
             image_path = os.path.join(IMAGE_TEMPLATE_PATH, "bingo_card_image.png")
-            for team_name in team_names:
-                settings["teams"][team_name]["board"] = image_path
+            settings["board_template"] = image_path
         else:
             image_path = os.path.join(IMAGE_PATH, "bingo_card_image.png")
+            for team_name in team_names:
+                settings["teams"][team_name]["image"] = image_path
 
         # download attachment
         with open(image_path, "wb") as f:
             await file.save(f)
         # update all settings['teams'][team_name]['image']
-        for team_name in team_names:
-            settings["teams"][team_name]["image"] = image_path
         update_settings_json(settings)
         await interaction.followup.send(f"Default Bingo Card Image has been updated")
-        update_settings_json(settings)
 
 
 @has_role("Bingo Moderator")
@@ -2696,7 +2701,8 @@ async def set_board_bounds(
     interaction: discord.Interaction,
     tile_count: int,
     tile_size: int,
-    team_icon_offset: int,
+    team_icon_x_offset: int,
+    team_icon_y_offset: int,
     x: int,
     y: int,
     x_left_offset: int,
@@ -2712,7 +2718,8 @@ async def set_board_bounds(
     - interaction: The discord interaction object.
     - tile_count: Number of tiles on the board.
     - tile_size: Size of square tile.
-    - team_icon_offset: Distance to offset team icons so they overlay with good visibility.
+    - team_icon_x_offset: adjusting the icon's offset from horizontal, left edge of tile
+    - team_icon_y_offset: adjusting the icon's offset from vertical, top edge of tile
     - x: The x-coordinate of the image.
     - y: The y-coordinate of the image.
     - x_left_offset: The left offset of the image.
@@ -2730,7 +2737,8 @@ async def set_board_bounds(
     if (
         tile_count == ""
         or tile_size == ""
-        or team_icon_offset == ""
+        or team_icon_x_offset == ""
+        or team_icon_y_offset == ""
         or x_left_offset == ""
         or y_top_offset == ""
         or x_right_offset == ""
@@ -2744,10 +2752,11 @@ async def set_board_bounds(
     else:
         # update all settings['teams'][team_name]['image']
         for team_name in team_names:
-            settings["teams"][team_name]["board_bounds"] = {
+            settings["board_bounds"] = {
                 "tile_count": tile_count,
                 "tile_size": tile_size,
-                "tile_icon_offset": tile_icon_offset, 
+                "team_icon_x_offset": team_icon_x_offset,
+                "team_icon_y_offset": team_icon_y_offset,
                 "x_offset": x_left_offset,
                 "y_offset": y_top_offset,
                 "x_right_offset": x_right_offset,
@@ -2774,9 +2783,9 @@ async def sync(interaction: discord.Interaction):
     Returns:
     None
     """
-    print("sync command")
-    await interaction.response.defer(thinking=True)
+    await interaction.response.defer(thinking=False)
     await bot.tree.sync()
+    print("sync command")
     await interaction.followup.send("Command tree synced.")
 
 
@@ -2855,7 +2864,8 @@ async def reset_bingo_settings(interaction: discord.Interaction):
 
         @discord.ui.button(label="Don't Reset", style=discord.ButtonStyle.danger)
         async def abort_reset(
-            self, interaction: discord.Interaction, button: discord.ui.Button
+            self, interaction: discord.Interaction,
+            button: discord.ui.Button
         ):
             for child in self.children:
                 child.disabled = True
@@ -2864,9 +2874,10 @@ async def reset_bingo_settings(interaction: discord.Interaction):
                 view=self,
             )
 
-        @discord.ui.button(label="Enable Rolling", style=discord.ButtonStyle.green)
+        @discord.ui.button(label="Reset", style=discord.ButtonStyle.green)
         async def reset_settings(
-            self, interaction: discord.Interaction, button: discord.ui.Button
+            self, interaction: discord.Interaction,
+            button: discord.ui.Button
         ):
             settings = load_settings_json()
             old_settings = load_settings_json()
@@ -2909,6 +2920,10 @@ async def reset_bingo_settings(interaction: discord.Interaction):
                 content=f"Reset Bingo Settings.\nPrevious Settings:\n{json.dumps(old_settings, indent=4)}",
                 view=self,
             )
+    await interaction.response.send_message(
+        embed=discord.Embed(description=f'Confirm Reset of all Teams scores and settings:'),
+        view=ConfirmReset(),
+    )
 
 async def process_team_assignment_updates(interaction: discord.Interaction):
     settings = load_settings_json()
@@ -2917,10 +2932,7 @@ async def process_team_assignment_updates(interaction: discord.Interaction):
     for role in interaction.guild.roles:
         if role.name in ROLES:
             all_roles.append(role)
-    print(f"{all_roles = }")
-    
     team_assignment_channel = discord.utils.get(interaction.guild.channels, name="team-assignments")
-
     if not team_assignment_channel:
         await interaction.followup.send('No Team Assignment Channel found')
         return
@@ -2949,6 +2961,17 @@ async def update_team_assignment(interaction: discord.Interaction):
     """
     await interaction.response.defer(thinking=True)
     await process_team_assignment_updates(interaction)
+
+@has_role("Bingo Moderator")
+@bot.tree.command(name="purge_chutes_and_ladders_images", description=f"Clears out the old images from chutes and ladders game mode board.")
+async def purge_chutes_and_ladders_images(interaction: discord.Interaction):
+
+    await interaction.response.defer(thinking=True)
+    status = await purge_images(type="chutes and ladders")
+    await interaction.followup.send(status)
+
+
+
 
 
 if __name__ == '__main__':
