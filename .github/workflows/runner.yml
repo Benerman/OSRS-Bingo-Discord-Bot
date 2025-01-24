@@ -17,6 +17,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
+          path: /opt/bingo_bot
 
       - name: Copy local files
         run: |
