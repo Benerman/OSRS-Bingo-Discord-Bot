@@ -89,7 +89,7 @@
         "gutter": 15
     },
     "board_template": "/home/benerman/github/OSRS-Bingo-Discord-Bot/template_images/bingo_card_image.png",
-    "board_latest": "/home/benerman/github/OSRS-Bingo-Discord-Bot/template_images/generated/CNL-2025-01-24 12:08:19.086926.png",
+    "board_latest": "/home/benerman/github/OSRS-Bingo-Discord-Bot/template_images/generated/CNL-2025-01-24 16:37:44.482851.png",
     "board_bounds": {
         "tile_count": 100,
         "tile_size": 100,
@@ -1008,7 +1008,7 @@
     "posts": {
         "score-board": {
             "id": 1292637097030717493,
-            "content": "Team 1: 44\nTeam 2: 100\nTeam 3: 0\nTeam 4: 0\nTeam 5: 0\nTeam 6: 0\nTeam 7: 0"
+            "content": "Team 1: 8\nTeam 2: 0\nTeam 3: 0\nTeam 4: 0\nTeam 5: 0\nTeam 6: 0\nTeam 7: 0"
         }
     }
 }

@@ -441,6 +441,7 @@ def mark_on_image_tile_complete(team_name: str, row: int, column: int) -> None:
     image_path = os.path.abspath(settings["teams"][team_name]["image"])
     if not os.path.exists(image_path):
         image_path = os.path.join(IMAGE_PATH, "bingo_card_image.png")
+        settings["teams"][team_name]["image"] = image_path
     image_bounds = settings["image_bounds"]
     img = Image.open(image_path)
     x_offset = image_bounds["x_offset"] if image_bounds["x_offset"] else 0
@@ -587,6 +588,7 @@ async def mark_team_icons_on_board(interaction: discord.Interaction) -> str:
     image_path_src = os.path.abspath(settings['board_template'])
     if not os.path.exists(image_path_src):
         image_path_src = os.path.join(IMAGE_TEMPLATE_PATH, "bingo_card_image.png")
+        settings['board_template'] = image_path_src
     board_bounds = settings["board_bounds"]
     img_board = Image.open(image_path_src)
     tile_count = board_bounds['tile_count']
@@ -1215,19 +1217,18 @@ async def roll(interaction: discord.Interaction):
     name = create_discord_friendly_name(
         f"{settings['teams'][team_name]['current']}-{score_altered if score_altered else ''}{settings['items'][str(settings['teams'][team_name]['current'])]['name']}"
     )
-    await interaction.followup.send(
-        f"## {dice_emoji} Team: {team_name} rolled:  {dice_emoji}  __**{roll}**__\
-        \n## Congrats, your new tile is:  {green_square}  __**{settings['teams'][team_name]['current']}**__\
-        \nYour previous tile was: {settings['teams'][team_name]['prev']}\
-        \n# {name.replace('-', ' ').title()}"
-        # f"Rolling Dice:\n# {roll}\nfor team: {team_name}\nCongrats, your new tile is:\n# {settings['teams'][team_name]['current']} and from previous tile was:\n# {settings['teams'][team_name]['prev']}\n{title}"
-    )
     ch = await interaction.channel.clone(name=name)
     embed = create_tile_embed(
         tiles=settings["items"],
         tile_number=str(settings["teams"][team_name]["current"]),
     )
     await ch.send(embed=embed)
+    await interaction.followup.send(
+        f"## {dice_emoji} Team: {team_name} rolled:  {dice_emoji}  __**{roll}**__\
+        \n## Congrats, your new tile is:  {green_square}  __**{settings['teams'][team_name]['current']}**__  {ch.mention}\
+        \nYour previous tile was: {settings['teams'][team_name]['prev']}"
+        # f"Rolling Dice:\n# {roll}\nfor team: {team_name}\nCongrats, your new tile is:\n# {settings['teams'][team_name]['current']} and from previous tile was:\n# {settings['teams'][team_name]['prev']}\n{title}"
+    )
 
     # Check if Sabotage Tile
     if sabotage := settings["items"][str(settings["teams"][team_name]["current"])]["sabotage"] and settings['bot_mode'] == 'candyland':
