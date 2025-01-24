@@ -608,7 +608,7 @@ async def mark_team_icons_on_board(interaction: discord.Interaction) -> str:
         width = board_bounds["x"]
         height = board_bounds["y"]
     # add team_icon starting at highest team number to 1
-    icon_path = os.path.dirname(os.path.abspath(settings['board_template']))
+    icon_path = os.path.dirname(image_path_src)
     icon_team_files = [x for x in os.listdir(icon_path) if "CNL_Team" in x]
     icon_team_files.sort()
     icon_team_files.reverse()
