@@ -415,7 +415,7 @@ def create_tile_embed(tiles: dict, tile_number: str) -> discord.Embed:
     # if len(multi_img_urls) > 1:
     # img_url = multi_img_urls[0]
     embed = discord.Embed(
-        title=f"{itm['tile_num']} - {itm['name']} - {itm['short_desc']}",
+        title=f"{itm['tile_num']} - {itm['name']}{f' - {itm['short_desc']}' if itm['short_desc'] else ''}",
         description=itm["desc"],
         color=0xF7E302,
         # url=multi_wiki_urls[0]
@@ -665,6 +665,47 @@ async def purge_images(type: str) -> str:
         return f"Removed {len(old_image_files)} image files."
     else:
         return f"Bot mode is not supported. Current Mode: {settings['bot_mode']['current']}"
+
+async def send_or_update_tiles_channel(tile_list_ch, settings):
+    item_list = []
+    for tile in settings["items"].values():
+        if settings["bot_mode"]["current"] == "candyland" or settings["bot_mode"]["current"] == "chutes and ladders":
+            num = tile["tile_num"]
+            name = tile["name"]
+            # tile['short_desc']
+            desc = tile["desc"]
+            item_list.append(f"## {num} - {name}\n{desc}")
+        else:
+            name = tile["name"]
+            # tile['short_desc']
+            desc = tile["desc"]
+            item_list.append(f"## {name}\n{desc}")
+    edited = False
+    chunked_list = chunk_item_list_text(item_list)
+    i = 0
+    async for m in tile_list_ch.history(oldest_first=True):
+        if m.author == bot.user and i == 0:
+            edited = True
+            embed = discord.Embed(description=f'# All Tiles\n\n{chunked_list[i]}')
+            await m.edit(embed=embed)
+        elif m.author == bot.user:
+            embed = discord.Embed(description=f"{chunked_list[i]}")
+            await m.edit(embed=embed)
+        i += 1
+    if edited:
+        if len(chunked_list) > i:
+            # send remaining messages needed
+            for x in range(i, len(chunked_list)):
+                embed = discord.Embed(description=f"{chunked_list[x]}")
+                await tile_list_ch.send(embed=embed)
+    else:
+        for i in range(len(chunked_list)):
+            if i == 0:
+                embed = discord.Embed(description=f'# All Tiles\n\n{chunked_list[i]}')
+                await tile_list_ch.send(embed=embed)
+            else:
+                embed = discord.Embed(description=f"{chunked_list[i]}")
+                await tile_list_ch.send(embed=embed)
 
 # ======================================= Discord Interaction Functions ====================================================
 
@@ -1888,6 +1929,10 @@ async def update_tiles_channels(interaction: discord.Interaction, team_name: str
     None
     """
     settings = load_settings_json()
+    # tile_list_ch = discord.utils.get(interaction.guild.channels, name="tile-list")
+
+    # await send_or_update_tiles_channel(tile_list_ch, settings)
+
     team_names = [x for x in settings['teams'].keys()]
     team_number = team_names.index(team_name) + 1
     await interaction.response.defer(thinking=True)
@@ -2219,6 +2264,8 @@ async def update_score(interaction: discord.Interaction):
     await interaction.response.send_message("Updated!")
 
 
+
+
 @has_role("Bingo Moderator")
 @bot.tree.command(name="post_tiles", description=f"Post all the tiles to #tile-list channel")
 async def post_tiles(interaction: discord.Interaction):
@@ -2234,46 +2281,8 @@ async def post_tiles(interaction: discord.Interaction):
     await interaction.response.defer(thinking=True)
     settings = load_settings_json()
     tile_list_ch = discord.utils.get(interaction.guild.channels, name="tile-list")
-    item_list = []
-    for tile in settings["items"].values():
-        if settings["bot_mode"]["current"] == "candyland" or settings["bot_mode"]["current"] == "chutes and ladders":
-            num = tile["tile_num"]
-            name = tile["name"]
-            # tile['short_desc']
-            desc = tile["desc"]
-            item_list.append(f"## {num} - {name}\n{desc}")
-        else:
-            name = tile["name"]
-            # tile['short_desc']
-            desc = tile["desc"]
-            item_list.append(f"## {name}\n{desc}")
-    edited = False
-    chunked_list = chunk_item_list_text(item_list)
-    i = 0
-    async for m in tile_list_ch.history(oldest_first=True):
-        if m.author == bot.user and i == 0:
-            edited = True
-            embed = discord.Embed(description=f'# All Tiles\n\n{chunked_list[i]}')
-            await m.edit(embed=embed)
-        elif m.author == bot.user:
-            embed = discord.Embed(description=f"{chunked_list[i]}")
-            await m.edit(embed=embed)
-        i += 1
-    if edited:
-        if len(chunked_list) > i:
-            # send remaining messages needed
-            for x in range(i, len(chunked_list)):
-                embed = discord.Embed(description=f"{chunked_list[x]}")
-                await tile_list_ch.send(embed=embed)
-    else:
-        for i in range(len(chunked_list)):
-            if i == 0:
-                embed = discord.Embed(description=f'# All Tiles\n\n{chunked_list[i]}')
-                await tile_list_ch.send(embed=embed)
-            else:
-                embed = discord.Embed(description=f"{chunked_list[i]}")
-                await tile_list_ch.send(embed=embed)
 
+    await send_or_update_tiles_channel(tile_list_ch, settings)
     await interaction.followup.send(f"Posted {len(settings['items'])} tiles to channel {tile_list_ch.mention}")
 
 async def toggle_roll_choice(interaction: discord.Interaction, reroll=False):
@@ -2635,7 +2644,6 @@ async def upload_board_image(interaction: discord.Interaction, file: discord.Att
     None
     """
     settings = load_settings_json()
-    team_names = [x for x in settings["teams"].keys()]
     await interaction.response.defer(thinking=True)
     if not file:
         await interaction.followup.send(
@@ -2643,6 +2651,7 @@ async def upload_board_image(interaction: discord.Interaction, file: discord.Att
         )
         return
     else:
+        team_names = [x for x in settings["teams"].keys()]
         # check game style
         if settings["bot_mode"]["current"] == "chutes and ladders":
             image_path = os.path.join(IMAGE_TEMPLATE_PATH, "bingo_card_image.png")
