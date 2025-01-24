@@ -117,6 +117,8 @@ mod_channel = "bot-commands"
 thumb = "\N{THUMBS UP SIGN}"
 thumbs_down = "\N{THUMBS DOWN SIGN}"
 
+dice_emoji = ":game_die:"
+green_square = ":green_square:"
 
 # ======================================= Utility Commands ====================================================
 
@@ -1148,7 +1150,7 @@ async def roll(interaction: discord.Interaction):
         # Checks if last prev tile was the last tile of the bingo
         # await message.add_reaction("\n{TADA}")
         await interaction.followup.send(
-            f'Congrats {discord.utils.get(interaction.guild.roles, name=team_name).mention} you have finished all your tiles! {discord.utils.get(interaction.guild.roles, name="Bingo Moderator").mention}'
+            f'# Congrats {discord.utils.get(interaction.guild.roles, name=team_name).mention}\nyou have finished all your tiles! {discord.utils.get(interaction.guild.roles, name="Bingo Moderator").mention}'
         )
         return
     elif settings["teams"][team_name]["current"] > total_tiles:
@@ -1165,12 +1167,15 @@ async def roll(interaction: discord.Interaction):
 
     update_settings_json(settings)
 
-    title = formatted_title(settings, team_name)
-    await interaction.followup.send(
-        f"Rolling Dice: {roll} for team: {team_name}\nCongrats, your new tile is: {settings['teams'][team_name]['current']} and old tile was: {settings['teams'][team_name]['prev']}\n{title}"
-    )
     name = create_discord_friendly_name(
         f"{settings['teams'][team_name]['current']}-{score_altered if score_altered else ''}{settings['items'][str(settings['teams'][team_name]['current'])]['name']}"
+    )
+    await interaction.followup.send(
+        f"## {dice_emoji} Team: {team_name} rolled:  {dice_emoji}  __**{roll}**__\
+        \n## Congrats, your new tile is:  {green_square}  __**{settings['teams'][team_name]['current']}**__\
+        \nYour previous tile was: {settings['teams'][team_name]['prev']}\
+        \n# {name.replace('-', ' ').title()}"
+        # f"Rolling Dice:\n# {roll}\nfor team: {team_name}\nCongrats, your new tile is:\n# {settings['teams'][team_name]['current']} and from previous tile was:\n# {settings['teams'][team_name]['prev']}\n{title}"
     )
     ch = await interaction.channel.clone(name=name)
     embed = create_tile_embed(
@@ -1220,14 +1225,13 @@ async def roll(interaction: discord.Interaction):
                 prev=settings["teams"][team_name]["current"],
                 current=int(sabotage),
             )
-        title = formatted_title(settings, team_name)
-        await interaction.channel.send(
-            f"\n{'SABOTAGED' if sabotage != 'reroll' else 'SKIPPED'}:\nRolling Dice: {roll} for team: {team_name}\nCongrats, your new tile is: {settings['teams'][team_name]['current']} and old tile was: {settings['teams'][team_name]['prev']}\n{title}"
-        )
-
         name = create_discord_friendly_name(
             f"{settings['teams'][team_name]['current']}-{settings['items'][str(settings['teams'][team_name]['current'])]['name']}"
         )
+        await interaction.channel.send(
+            f"\n{'SABOTAGED' if sabotage != 'reroll' else 'SKIPPED'}:\nRolling Dice: {roll} for team: {team_name}\nCongrats, your new tile is: {settings['teams'][team_name]['current']} and old tile was: {settings['teams'][team_name]['prev']}\n{name}"
+        )
+
         ch = await interaction.channel.clone(name=name)
         embed = create_tile_embed(
             tiles=settings["items"],
@@ -1944,9 +1948,15 @@ async def create_discord_text_channel(
         category=cat,
         overwrites=overwrites,
     )
+    if "dice-roll" in channel_name:
+        # find carl-bot and remove from dice roll
+        # carl_bot_member = discord.utils.get(interaction.guild.members, id="235148962103951360")
+        # print(carl_bot_member.name)
+        # await chan.set_permissions(carl_bot_member, read_messages=False, manage_messages=False)
+        pass
     if description:
         await chan.send(f"{description}")
-    if channel_name == "photo-dump" or channel_name == "drop-spam":
+    if "photo-dump" in channel_name or "drop-spam" in channel_name:
         webhook = await chan.create_webhook(name=channel_name)
         message_1 = await chan.send(
             f"Here are instructions for adding Discord Rare Drop Notification to Runelite\
@@ -2445,11 +2455,24 @@ async def tile_completed(interaction: discord.Interaction):
     await interaction.response.defer(thinking=True)
     settings = load_settings_json()
     # Check tile is completed.
+    if not settings['running']:
+        await interaction.response.send(f'Bingo is not currently running. No action has occurred. ')
+        return
+    if settings['bot_mode']['current'] in ['candyland', 'chutes and ladders']:
+        await interaction.response.send(f'This has not been implemented... No action has occurred')
+        return
+    else:
+        # normal bingo mode
+        # some way to track which tile is being marked completed and where to mark is required.
+        pass
     # Update settings or however this is tracked.
+    
     # Update score in settings
     # Update score in scoreboard channel
+    # Make a channel for Unverified completed Tiles for moderators. requires two dif moderators to react
+
     await interaction.followup.send(
-        f"Tile is: {'COMPLETED' if settings['running'] == True else 'CHANGED TO INCOMPLETE'}\nScore will be updated accordingly"
+        f"Tile is marked: COMPLETED\nScore will be updated accordingly"
     )
 
 
@@ -2486,9 +2509,9 @@ async def version(
 
 @has_role("Bingo Moderator")
 @app_commands.autocomplete(team_name=team_names_autocomplete)
-@bot.tree.command(name="mark_tile_completed",
+@bot.tree.command(name="mark_specific_tile_completed",
     description=f"Mark a tile as completed on the bingo board, Column A-E. Row 1-5. 'A1' for example.")
-async def mark_tile_completed(interaction: discord.Interaction, team_name: str, location: str):
+async def mark_specific_tile_completed(interaction: discord.Interaction, team_name: str, location: str):
     """
     Marks a tile as completed for a specific team and updates the Bingo Card.
 
@@ -2500,10 +2523,13 @@ async def mark_tile_completed(interaction: discord.Interaction, team_name: str, 
     Returns:
     None
     """
+    await interaction.response.defer(thinking=True)
     settings = load_settings_json()
+    if settings['bot_mode']['current'] != "normal":
+        await interaction.followup.send(f"This command only works when Bot is in mode 'normal'. Current Mode: {settings['bot_mode']['current']}")
+        return
     team_names = [x for x in settings["teams"].keys()]
     team_number = team_names.index(team_name) + 1
-    await interaction.response.defer(thinking=True)
     row, col = await parse_table_location(location)
     if row == 0 or col == 0:
         update = False
@@ -2917,7 +2943,7 @@ async def reset_bingo_settings(interaction: discord.Interaction):
             for child in self.children:
                 child.disabled = True
             await interaction.response.edit_message(
-                content=f"Reset Bingo Settings.\nPrevious Settings:\n{json.dumps(old_settings, indent=4)}",
+                content=f"# Reset Bingo Settings.", #\nPrevious Settings:\n{json.dumps(old_settings, indent=4)}",
                 view=self,
             )
     await interaction.response.send_message(
