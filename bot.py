@@ -439,6 +439,8 @@ def mark_on_image_tile_complete(team_name: str, row: int, column: int) -> None:
     # Open the image
     settings = load_settings_json()
     image_path = os.path.abspath(settings["teams"][team_name]["image"])
+    if not os.path.exists(image_path):
+        image_path = os.path.join(IMAGE_PATH, "bingo_card_image.png")
     image_bounds = settings["image_bounds"]
     img = Image.open(image_path)
     x_offset = image_bounds["x_offset"] if image_bounds["x_offset"] else 0
@@ -583,6 +585,8 @@ async def mark_team_icons_on_board(interaction: discord.Interaction) -> str:
         await interaction.followup.send("Error: Bot mode is set to something other than 'chutes and ladders'")
         return 
     image_path_src = os.path.abspath(settings['board_template'])
+    if not os.path.exists(image_path_src):
+        image_path_src = os.path.join(IMAGE_TEMPLATE_PATH, "bingo_card_image.png")
     board_bounds = settings["board_bounds"]
     img_board = Image.open(image_path_src)
     tile_count = board_bounds['tile_count']
