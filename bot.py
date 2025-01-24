@@ -415,7 +415,7 @@ def create_tile_embed(tiles: dict, tile_number: str) -> discord.Embed:
     # if len(multi_img_urls) > 1:
     # img_url = multi_img_urls[0]
     embed = discord.Embed(
-        title=f"{itm['tile_num']} - {itm['name']}{f' - {itm['short_desc']}' if itm['short_desc'] else ''}",
+        title=f"{itm['tile_num']} - {itm['name']}{' - '.join(itm['short_desc']) if itm['short_desc'] else ''}",
         description=itm["desc"],
         color=0xF7E302,
         # url=multi_wiki_urls[0]
