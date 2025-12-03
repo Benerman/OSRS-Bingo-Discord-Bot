@@ -13,3 +13,9 @@ actions-runnner/
 settings.json
 .venv/
 template_images/generated/
+lib/
+lib64/
+bin/
+include/
+lib64
+pyvenv.cfg

@@ -14,6 +14,9 @@ import asyncio
 from discord import Role
 from typing import List, Optional
 from PIL import Image, ImageDraw
+import csv
+import requests
+from io import StringIO
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -320,57 +323,80 @@ def format_item_list(contents, tile_list: list) -> list:
     return contents
 
 
+# def load_sheet(SAMPLE_SPREADSHEET_ID, RANGE="A1:Z1000"):
+#     """
+#     Load the Google Sheet data.
+
+#     Args:
+#         SAMPLE_SPREADSHEET_ID (str): The ID of the Google Sheet.
+#         RANGE (str, optional): The range of cells to retrieve. Defaults to "A1:Z100".
+
+#     Returns:
+#         list: The values from the Google Sheet.
+#     """
+#     creds = None
+#     # The file token.json stores the user's access and refresh tokens, and is
+#     # created automatically when the authorization flow completes for the first
+#     # time.
+#     if os.path.exists("token.json"):
+#         creds = Credentials.from_authorized_user_file("token.json", SCOPES)
+#     # If there are no (valid) credentials available, let the user log in.
+#     if not creds or not creds.valid:
+#         if creds and creds.expired and creds.refresh_token:
+#             creds.refresh(Request())
+#         else:
+#             flow = InstalledAppFlow.from_client_secrets_file("credentials.json", SCOPES)
+#             creds = flow.run_local_server(port=0)
+#         # Save the credentials for the next run
+#         with open("token.json", "w") as token:
+#             print("updated token")
+#             token.write(creds.to_json())
+    
+#     try:
+#         service = build("sheets", "v4", credentials=creds)
+
+#         # Call the Sheets API
+#         sheet = service.spreadsheets()
+#         result = (
+#             sheet.values()
+#             .get(spreadsheetId=SAMPLE_SPREADSHEET_ID, range=RANGE)
+#             .execute()
+#         )
+#         values = result.get("values", [])
+
+#         if not values:
+#             print("No data found.")
+#             return
+
+#         for row in values:
+#             print(row)
+#         return values
+
+#     except HttpError as err:
+#         print(err)
+
+
 def load_sheet(SAMPLE_SPREADSHEET_ID, RANGE="A1:Z1000"):
     """
-    Load the Google Sheet data.
+    Load public Google Sheet data without authentication using CSV export.
 
     Args:
         SAMPLE_SPREADSHEET_ID (str): The ID of the Google Sheet.
-        RANGE (str, optional): The range of cells to retrieve. Defaults to "A1:Z100".
+        RANGE (str, optional): Ignored, kept for compatibility.
 
     Returns:
         list: The values from the Google Sheet.
     """
-    creds = None
-    # The file token.json stores the user's access and refresh tokens, and is
-    # created automatically when the authorization flow completes for the first
-    # time.
-    if os.path.exists("token.json"):
-        creds = Credentials.from_authorized_user_file("token.json", SCOPES)
-    # If there are no (valid) credentials available, let the user log in.
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file("credentials.json", SCOPES)
-            creds = flow.run_local_server(port=0)
-        # Save the credentials for the next run
-        with open("token.json", "w") as token:
-            print("updated token")
-            token.write(creds.to_json())
-    
-    try:
-        service = build("sheets", "v4", credentials=creds)
-
-        # Call the Sheets API
-        sheet = service.spreadsheets()
-        result = (
-            sheet.values()
-            .get(spreadsheetId=SAMPLE_SPREADSHEET_ID, range=RANGE)
-            .execute()
-        )
-        values = result.get("values", [])
-
-        if not values:
-            print("No data found.")
-            return
-
-        for row in values:
-            print(row)
-        return values
-
-    except HttpError as err:
-        print(err)
+    # Use gid=0 for the first sheet, change if needed
+    url = f"https://docs.google.com/spreadsheets/d/{SAMPLE_SPREADSHEET_ID}/export?format=csv&gid=0"
+    response = requests.get(url)
+    if response.status_code == 200:
+        f = StringIO(response.text)
+        reader = csv.reader(f)
+        return list(reader)
+    else:
+        print(f"Failed to fetch sheet: {response.status_code} {response.text}")
+        return []
 
 
 def update_tiles_url(contents: dict, url: str, *, process_sheet: bool = False) -> dict:
