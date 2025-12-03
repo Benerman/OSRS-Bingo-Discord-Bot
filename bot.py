@@ -2122,6 +2122,7 @@ async def create_team_channels(interaction: discord.Interaction, team_name: str)
                 overwrites = overwrites_with_spectator
         else:
             channel_name = channel["name"]
+            description = channel["description"]
             if channel_name == "chat":
                 # TODO update this
                 # raise Exception("This is not implemented yet, update proper perms")
@@ -2137,7 +2138,6 @@ async def create_team_channels(interaction: discord.Interaction, team_name: str)
             )
         else:
             #TODO update this to be relevant, doesnt work for candyland and CNL
-            description = ""
             await create_discord_text_channel(interaction, channel_name, description, cat, overwrites)
         
         # all_channels.append(chan)
