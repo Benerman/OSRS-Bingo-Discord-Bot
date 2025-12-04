@@ -5,15 +5,15 @@
             "normal",
             "chutes and ladders"
         ],
-        "current": "chutes and ladders"
+        "current": "normal"
     },
     "tiles": {
-        "url": "https://docs.google.com/spreadsheets/d/1e3yjodlyqWPuHeBQbL4bT8oHg5BxZOI3WlZ8_4cox8s/edit?usp=drivesdk",
-        "spreadsheet_id": "1e3yjodlyqWPuHeBQbL4bT8oHg5BxZOI3WlZ8_4cox8s",
+        "url": "https://docs.google.com/spreadsheets/d/160aL1kik9ineP83aX9X0lmdZu9EZ92nNYWyHeyGgrts/edit?usp=sharing",
+        "spreadsheet_id": "160aL1kik9ineP83aX9X0lmdZu9EZ92nNYWyHeyGgrts",
         "items": {}
     },
     "running": true,
-    "rerolling": true,
+    "rerolling": false,
     "total_teams": 7,
     "teams": {
         "Team 1": {
@@ -105,910 +105,136 @@
     },
     "items": {
         "1": {
-            "tile_num": "1",
-            "name": "1 to 38",
-            "short_desc": "1 to 38",
-            "desc": "Jump ahead to Tile 38",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "1. 1 to 38 - Jump ahead to Tile 38"
+            "name": "Please Sign Here",
+            "desc": "ANY 2 Oathplate Armour or Soulflame Horn",
+            "discord_name": "Please Sign Here - ANY 2 Oathplate Armour or Soulflame Horn"
         },
         "2": {
-            "tile_num": "2",
-            "name": "Sweet dreams are made of these",
-            "short_desc": "",
-            "desc": "2 separate gem drops from Nightmare",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "2. Sweet dreams are made of these - 2 separate gem drops from Nightmare"
+            "name": "TOAed Out",
+            "desc": "Any 1 mega rare (shadow) Or 2 semi rare (Masori, Ward) Or 3 rare (Lightbearer, fang,).",
+            "discord_name": "TOAed Out - Any 1 mega rare (shadow) Or 2 semi rare (Masori, Ward) Or 3 rare (Lightbearer, fang,)."
         },
         "3": {
-            "tile_num": "3",
-            "name": "The Living Dead",
-            "short_desc": "",
-            "desc": "Broken Zombie Axe OR Helm",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "3. The Living Dead - Broken Zombie Axe OR Helm"
+            "name": "Muspah Duty",
+            "desc": "3 Venator Shards",
+            "discord_name": "Muspah Duty - 3 Venator Shards"
         },
         "4": {
-            "tile_num": "4",
-            "name": "4 to 14",
-            "short_desc": "4 to 14",
-            "desc": "Jump ahead to Tile 14",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "4. 4 to 14 - Jump ahead to Tile 14"
+            "name": "Issa Me",
+            "desc": "2 Huey Uniques\nNo dupes",
+            "discord_name": "Issa Me - 2 Huey Uniques\nNo dupes"
         },
         "5": {
-            "tile_num": "5",
-            "name": "Chaotic Wisdom Robe",
-            "short_desc": "",
-            "desc": "Elder Chaos Robe(Any)",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "5. Chaotic Wisdom Robe - Elder Chaos Robe(Any)"
+            "name": "New Boot gOoFiN",
+            "desc": "Get any 5 -\nMedium clue boots, Hard clue boots, Bandos boots, Beginner clue boots, 2 cerb crystal boots (just need crystal), Gilded boots, 2 granite boots, Black Tourmaline Core, Mystic dusk boots (only dusk)",
+            "discord_name": "New Boot gOoFiN - Get any 5 -\nMedium clue boots, Hard clue boots, Bandos boots, Beginner clue boots, 2 cerb crystal boots (just need crystal), Gilded boots, 2 granite boots, Black Tourmaline Core, Mystic dusk boots (only dusk)"
         },
         "6": {
-            "tile_num": "6",
-            "name": "Knowledge is power",
-            "short_desc": "",
-            "desc": "A page for all three tomes",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "6. Knowledge is power - A page for all three tomes"
+            "name": "TOBBY is very sorry",
+            "desc": "Any 1 mega rare (Scythe). Or 2 semi rare (justi, sang, rapier). Or 3 rare (Avernic).",
+            "discord_name": "TOBBY is very sorry - Any 1 mega rare (Scythe). Or 2 semi rare (justi, sang, rapier). Or 3 rare (Avernic)."
         },
         "7": {
-            "tile_num": "7",
-            "name": "Hash Slinging Slasher",
-            "short_desc": "",
-            "desc": "Glacial Temotli from Amoxlialtl and Sulphur Blades",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "7. Hash Slinging Slasher - Glacial Temotli from Amoxlialtl and Sulphur Blades"
+            "name": "Dragon WUT?!",
+            "desc": "Dragon cannon barrel, metal sheet, or dragon hook",
+            "discord_name": "Dragon WUT?! - Dragon cannon barrel, metal sheet, or dragon hook"
         },
         "8": {
-            "tile_num": "8",
-            "name": "Rather KMS",
-            "short_desc": "",
-            "desc": "Any GoTR unique (No pearls or pouch) or 100 Abbyssal(SS Needed)",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "8. Rather KMS - Any GoTR unique (No pearls or pouch) or 100 Abbyssal(SS Needed)"
+            "name": "Venom Master 3",
+            "desc": "3 Araxxor drops - fang or halberd pieces. Halberd pieces can be dupes.",
+            "discord_name": "Venom Master 3 - 3 Araxxor drops - fang or halberd pieces. Halberd pieces can be dupes."
         },
         "9": {
-            "tile_num": "9",
-            "name": "9 to 31",
-            "short_desc": "9 to 31",
-            "desc": "Jump ahead to Tile 31",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "9. 9 to 31 - Jump ahead to Tile 31"
+            "name": "Ring Ring Ring",
+            "desc": "1 vestige(Or 3 gold rings) AND Virtus Piece",
+            "discord_name": "Ring Ring Ring - 1 vestige(Or 3 gold rings) AND Virtus Piece"
         },
         "10": {
-            "tile_num": "10",
-            "name": "Run(e) the Trio",
-            "short_desc": "",
-            "desc": "Rune full helm, platebody, AND platelegs drops from Vet'ion, Venenatis, and Callisto",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "10. Run(e) the Trio - Rune full helm, platebody, AND platelegs drops from Vet'ion, Venenatis, and Callisto"
+            "name": "Not so scary nightmare",
+            "desc": "Any Weapon or armour unique from Nightmare / PNM",
+            "discord_name": "Not so scary nightmare - Any Weapon or armour unique from Nightmare / PNM"
         },
         "11": {
-            "tile_num": "11",
-            "name": "Thermussy ",
-            "short_desc": "",
-            "desc": "Thermy or Kraken Unique",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "11. Thermussy  - Thermy or Kraken Unique"
+            "name": "Crystallized",
+            "desc": "5 Armour seeds or 1 enh from CG / G.",
+            "discord_name": "Crystallized - 5 Armour seeds or 1 enh from CG / G."
         },
         "12": {
-            "tile_num": "12",
-            "name": "Skill Check",
-            "short_desc": "",
-            "desc": "5 Elite CA's Completed (Excluding KC)",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "12. Skill Check - 5 Elite CA's Completed (Excluding KC)"
+            "name": "Bird Person",
+            "desc": "Any Nex Unique",
+            "discord_name": "Bird Person - Any Nex Unique"
         },
         "13": {
-            "tile_num": "13",
-            "name": "Arghhhh Brains",
-            "short_desc": "",
-            "desc": "2 Right eye patch from a *Zombie pirate*, 1 for each eye",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "13. Arghhhh Brains - 2 Right eye patch from a *Zombie pirate*, 1 for each eye"
+            "name": "Dig Deep",
+            "desc": "1 Delve Boss unique(Excluding Tears and Teleport)",
+            "discord_name": "Dig Deep - 1 Delve Boss unique(Excluding Tears and Teleport)"
         },
         "14": {
-            "tile_num": "14",
-            "name": "Just the beginning",
-            "short_desc": "",
-            "desc": "3 Beginner Clue Uniques",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "14. Just the beginning - 3 Beginner Clue Uniques"
+            "name": "Worthy Opponents Only",
+            "desc": "3 Colo unique",
+            "discord_name": "Worthy Opponents Only - 3 Colo unique"
         },
         "15": {
-            "tile_num": "15",
-            "name": "Skull Candy",
-            "short_desc": "",
-            "desc": "Any Rev Weapon or Amulet OR 2 diff Ancient Drops(Crystal, Emblem, Effigy, etc)",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "15. Skull Candy - Any Rev Weapon or Amulet OR 2 diff Ancient Drops(Crystal, Emblem, Effigy, etc)"
+            "name": "VOID",
+            "desc": "Any VW piece\n\nOr all 3 Boss uniques for rev weapons",
+            "discord_name": "VOID - Any VW piece\n\nOr all 3 Boss uniques for rev weapons"
         },
         "16": {
-            "tile_num": "16",
-            "name": "Nom Nom Nom",
-            "short_desc": "",
-            "desc": "7 Chewed Bones",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "16. Nom Nom Nom - 7 Chewed Bones"
+            "name": "reverently devoted",
+            "desc": "Rev weapon or 20m gp in totems.\n\nAncient Crystal and avarice count as 1.5M gp each",
+            "discord_name": "reverently devoted - Rev weapon or 20m gp in totems.\n\nAncient Crystal and avarice count as 1.5M gp each"
         },
         "17": {
-            "tile_num": "17",
-            "name": "17 back to 7",
-            "short_desc": "17 back to 7",
-            "desc": "Fall back down to Tile 7",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "17. 17 back to 7 - Fall back down to Tile 7"
+            "name": "You'll Need These",
+            "desc": "1 synapse and 1 zenyte",
+            "discord_name": "You'll Need These - 1 synapse and 1 zenyte"
         },
         "18": {
-            "tile_num": "18",
-            "name": "Attack Attack",
-            "short_desc": "",
-            "desc": "5 Dragon Defenders",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "18. Attack Attack - 5 Dragon Defenders"
+            "name": "RussFlow",
+            "desc": "Unique from any slayer superior.",
+            "discord_name": "RussFlow - Unique from any slayer superior."
         },
         "19": {
-            "tile_num": "19",
-            "name": "Salty Rats",
-            "short_desc": "",
-            "desc": "Brine Sabre",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "19. Salty Rats - Brine Sabre"
+            "name": "Any COXers",
+            "desc": "Any 1 mega rare (Tbow, maul, Kodai). Or 2 semi rare (Claws, dihn\u00e2\u0080\u0099s, dhcb, ancestral, buckler). Or 3 rare (prayer scrolls).",
+            "discord_name": "Any COXers - Any 1 mega rare (Tbow, maul, Kodai). Or 2 semi rare (Claws, dihn\u00e2\u0080\u0099s, dhcb, ancestral, buckler). Or 3 rare (prayer scrolls)."
         },
         "20": {
-            "tile_num": "20",
-            "name": "Mjolnir",
-            "short_desc": "",
-            "desc": "Dragon Warhammer",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "20. Mjolnir - Dragon Warhammer"
+            "name": "DOOTY Bucket Galore",
+            "desc": "Bottomless comp bucket, giant club, Bryo essence, or royal titans unique(Excluding pages and amulet)",
+            "discord_name": "DOOTY Bucket Galore - Bottomless comp bucket, giant club, Bryo essence, or royal titans unique(Excluding pages and amulet)"
         },
         "21": {
-            "tile_num": "21",
-            "name": "21 to 42",
-            "short_desc": "21 to 42",
-            "desc": "Jump ahead to Tile 42",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "21. 21 to 42 - Jump ahead to Tile 42"
+            "name": "FK da boots",
+            "desc": "ANY 2 - \nBandos Top, Bottoms, Hilt\nNO BOOTS",
+            "discord_name": "FK da boots - ANY 2 - \nBandos Top, Bottoms, Hilt\nNO BOOTS"
         },
         "22": {
-            "tile_num": "22",
-            "name": "Medium Schmedium",
-            "short_desc": "",
-            "desc": "2 Medium Clue Uniques",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "22. Medium Schmedium - 2 Medium Clue Uniques"
+            "name": "Back with the Bots",
+            "desc": "Any zalcano unique",
+            "discord_name": "Back with the Bots - Any zalcano unique"
         },
         "23": {
-            "tile_num": "23",
-            "name": "Ward Shart",
-            "short_desc": "",
-            "desc": "Wildy Shield Shard",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "23. Ward Shart - Wildy Shield Shard"
+            "name": "Oops I sharded",
+            "desc": "Any full odium or mal shield",
+            "discord_name": "Oops I sharded - Any full odium or mal shield"
         },
         "24": {
-            "tile_num": "24",
-            "name": "Why is it spicy",
-            "short_desc": "",
-            "desc": "Full spice of every color from Hell Rat(Excluding Behemeths)",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "24. Why is it spicy - Full spice of every color from Hell Rat(Excluding Behemeths)"
+            "name": "Get some Scales",
+            "desc": "Tanz fang, magic fang, serp visage, onyx, or any mutagen.",
+            "discord_name": "Get some Scales - Tanz fang, magic fang, serp visage, onyx, or any mutagen."
         },
         "25": {
-            "tile_num": "25",
-            "name": "Nexussy ",
-            "short_desc": "",
-            "desc": "Any Nex Unique OR 500 Nihil Shards(Any Source)",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "25. Nexussy  - Any Nex Unique OR 500 Nihil Shards(Any Source)"
-        },
-        "26": {
-            "tile_num": "26",
-            "name": "Medium Fashion",
-            "short_desc": "",
-            "desc": "Any trimmed mith armor from a *Medium Clue Casket*",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "26. Medium Fashion - Any trimmed mith armor from a *Medium Clue Casket*"
-        },
-        "27": {
-            "tile_num": "27",
-            "name": "Ooo, candy",
-            "short_desc": "",
-            "desc": "1 Blood Shard",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "27. Ooo, candy - 1 Blood Shard"
-        },
-        "28": {
-            "tile_num": "28",
-            "name": "28 to 84",
-            "short_desc": "28 to 84",
-            "desc": "Jump ahead to Tile 84",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "28. 28 to 84 - Jump ahead to Tile 84"
-        },
-        "29": {
-            "tile_num": "29",
-            "name": "Open The Door!",
-            "short_desc": "",
-            "desc": "2 Strange Old Lockpick",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "29. Open The Door! - 2 Strange Old Lockpick"
-        },
-        "30": {
-            "tile_num": "30",
-            "name": "Pay to win",
-            "short_desc": "",
-            "desc": "2 Master CA's Completed (Excluding KC)",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "30. Pay to win - 2 Master CA's Completed (Excluding KC)"
-        },
-        "31": {
-            "tile_num": "31",
-            "name": "2 Gallon and rubber bands",
-            "short_desc": "",
-            "desc": "Dynamite from CoX AND Coconut Milk from TOA",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "31. 2 Gallon and rubber bands - Dynamite from CoX AND Coconut Milk from TOA"
-        },
-        "32": {
-            "tile_num": "32",
-            "name": "The Russflow",
-            "short_desc": "",
-            "desc": "Slayer weapon(Trident, Whip, Leaf, Abby Dagger,\n Bludg piece, Granite Hammer, Nox Halberd,\n Smoke Battlestaff, Dragon knife, D Thrownaxe,\nD Sword, Dark Bow, Brine Sabre, any Superior Staff,\n granite Maul, Granite Sword,Sulphur Blades, Warped Sceptre,\nGlacial Toms,)",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "32. The Russflow - Slayer weapon(Trident, Whip, Leaf, Abby Dagger,\n Bludg piece, Granite Hammer, Nox Halberd,\n Smoke Battlestaff, Dragon knife, D Thrownaxe,\nD Sword, Dark Bow, Brine Sabre, any Superior Staff,\n granite Maul, Granite Sword,Sulphur Blades, Warped Sceptre,\nGlacial Toms,)"
-        },
-        "33": {
-            "tile_num": "33",
-            "name": "God Shart",
-            "short_desc": "",
-            "desc": "Any godsword shard from any source",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "33. God Shart - Any godsword shard from any source"
-        },
-        "34": {
-            "tile_num": "34",
-            "name": "Could be a 3rd age long sword.",
-            "short_desc": "",
-            "desc": "1 Elite Clue Unique",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "34. Could be a 3rd age long sword. - 1 Elite Clue Unique"
-        },
-        "35": {
-            "tile_num": "35",
-            "name": "Stories of the gods",
-            "short_desc": "",
-            "desc": "2 different God Pages From Clues",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "35. Stories of the gods - 2 different God Pages From Clues"
-        },
-        "36": {
-            "tile_num": "36",
-            "name": "Are you not Entertained ",
-            "short_desc": "",
-            "desc": "Colosseum unique(No Quiver, No Splinters)",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "36. Are you not Entertained  - Colosseum unique(No Quiver, No Splinters)"
-        },
-        "37": {
-            "tile_num": "37",
-            "name": "Moonlight Peril",
-            "short_desc": "",
-            "desc": "2 Moons of Peril Uniques(Dupes Count)",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "37. Moonlight Peril - 2 Moons of Peril Uniques(Dupes Count)"
-        },
-        "38": {
-            "tile_num": "38",
-            "name": "Fuck",
-            "short_desc": "",
-            "desc": "2 unsired",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "38. Fuck - 2 unsired"
-        },
-        "39": {
-            "tile_num": "39",
-            "name": "Brothers where art thou",
-            "short_desc": "",
-            "desc": "2 different Barrows Unique(Excluding Bolt Rack)",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "39. Brothers where art thou - 2 different Barrows Unique(Excluding Bolt Rack)"
-        },
-        "40": {
-            "tile_num": "40",
-            "name": "Minimum Security Prison",
-            "short_desc": "",
-            "desc": "Crystal Seed from CG(Any)",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "40. Minimum Security Prison - Crystal Seed from CG(Any)"
-        },
-        "41": {
-            "tile_num": "41",
-            "name": "A gift from the Gods",
-            "short_desc": "",
-            "desc": "Any GWD Armor Piece",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "41. A gift from the Gods - Any GWD Armor Piece"
-        },
-        "42": {
-            "tile_num": "42",
-            "name": "Money Chicken",
-            "short_desc": "",
-            "desc": "Corp drop over 500k",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "42. Money Chicken - Corp drop over 500k"
-        },
-        "43": {
-            "tile_num": "43",
-            "name": "Das BOOT!!!!",
-            "short_desc": "",
-            "desc": "Clue Boots(any tier)",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "43. Das BOOT!!!! - Clue Boots(any tier)"
-        },
-        "44": {
-            "tile_num": "44",
-            "name": "Beefcake",
-            "short_desc": "",
-            "desc": "Any Raid Armor Drop",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "44. Beefcake - Any Raid Armor Drop"
-        },
-        "45": {
-            "tile_num": "45",
-            "name": "Upgrades, people, upgrades.",
-            "short_desc": "",
-            "desc": "Any Rev Weapon Upgrade from Wildy Bosses",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "45. Upgrades, people, upgrades. - Any Rev Weapon Upgrade from Wildy Bosses"
-        },
-        "46": {
-            "tile_num": "46",
-            "name": "Thoughts and prayers",
-            "short_desc": "",
-            "desc": "Any Raid Boost(Prayer Scrolls, Thread, Avernic, Gem)",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "46. Thoughts and prayers - Any Raid Boost(Prayer Scrolls, Thread, Avernic, Gem)"
-        },
-        "47": {
-            "tile_num": "47",
-            "name": "It Burns",
-            "short_desc": "",
-            "desc": "Tormented Demons Drop(Claw or Synapse)",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "47. It Burns - Tormented Demons Drop(Claw or Synapse)"
-        },
-        "48": {
-            "tile_num": "48",
-            "name": "Any Any's",
-            "short_desc": "",
-            "desc": "Any Raid Purple",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "48. Any Any's - Any Raid Purple"
-        },
-        "49": {
-            "tile_num": "49",
-            "name": "Mr Balls",
-            "short_desc": "",
-            "desc": "Onyx(Cut or Uncut)",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "49. Mr Balls - Onyx(Cut or Uncut)"
-        },
-        "50": {
-            "tile_num": "50",
-            "name": "Krakussy ",
-            "short_desc": "",
-            "desc": "Trident of seas OR tentacle(any source)",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "50. Krakussy  - Trident of seas OR tentacle(any source)"
-        },
-        "51": {
-            "tile_num": "51",
-            "name": "51 to 67",
-            "short_desc": "51 to 67",
-            "desc": "Jump ahead to Tile 67",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "51. 51 to 67 - Jump ahead to Tile 67"
-        },
-        "52": {
-            "tile_num": "52",
-            "name": "Dragussy",
-            "short_desc": "",
-            "desc": "Any Dragonkin Unique(Hydra, Wyrm, Drake, KBD,\nWyvern[Excl. granite], Vork, Huey, Metallic,)",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "52. Dragussy - Any Dragonkin Unique(Hydra, Wyrm, Drake, KBD,\nWyvern[Excl. granite], Vork, Huey, Metallic,)"
-        },
-        "53": {
-            "tile_num": "53",
-            "name": "Master of puppets",
-            "short_desc": "",
-            "desc": "1 Master Clue Unique",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "53. Master of puppets - 1 Master Clue Unique"
-        },
-        "54": {
-            "tile_num": "54",
-            "name": "54 back to 34",
-            "short_desc": "54 back to 34",
-            "desc": "Fall back down to Tile 34",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "54. 54 back to 34 - Fall back down to Tile 34"
-        },
-        "55": {
-            "tile_num": "55",
-            "name": "We Gem Bois",
-            "short_desc": "",
-            "desc": "Any Gem from DT2 Bosses",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "55. We Gem Bois - Any Gem from DT2 Bosses"
-        },
-        "56": {
-            "tile_num": "56",
-            "name": "En Garde!",
-            "short_desc": "",
-            "desc": "Any Raid Weapon/Shield Slot",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "56. En Garde! - Any Raid Weapon/Shield Slot"
-        },
-        "57": {
-            "tile_num": "57",
-            "name": "Getting Krilted",
-            "short_desc": "",
-            "desc": "1 Krill Unqiue",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "57. Getting Krilted - 1 Krill Unqiue"
-        },
-        "58": {
-            "tile_num": "58",
-            "name": "Reading Rainbow",
-            "short_desc": "",
-            "desc": "Any Tome",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "58. Reading Rainbow - Any Tome"
-        },
-        "59": {
-            "tile_num": "59",
-            "name": "Cursed to become stone",
-            "short_desc": "",
-            "desc": "Any Zalcano Unique OR 100 Onyx Bolt Tips",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "59. Cursed to become stone - Any Zalcano Unique OR 100 Onyx Bolt Tips"
-        },
-        "60": {
-            "tile_num": "60",
-            "name": "Money snek ",
-            "short_desc": "",
-            "desc": "Zulrah Unique(Excl Scales, and Tellies)",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "60. Money snek  - Zulrah Unique(Excl Scales, and Tellies)"
-        },
-        "61": {
-            "tile_num": "61",
-            "name": "White light simulator",
-            "short_desc": "",
-            "desc": "25KC Cox",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "61. White light simulator - 25KC Cox"
-        },
-        "62": {
-            "tile_num": "62",
-            "name": "62 back to 19",
-            "short_desc": "62 back to 19",
-            "desc": "Fall back down to Tile 19",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "62. 62 back to 19 - Fall back down to Tile 19"
-        },
-        "63": {
-            "tile_num": "63",
-            "name": "Mind the gap",
-            "short_desc": "",
-            "desc": "25KC TOA",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "63. Mind the gap - 25KC TOA"
-        },
-        "64": {
-            "tile_num": "64",
-            "name": "64 back to 60",
-            "short_desc": "64 back to 60",
-            "desc": "Fall back down to Tile 60",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "64. 64 back to 60 - Fall back down to Tile 60"
-        },
-        "65": {
-            "tile_num": "65",
-            "name": "Maidenless",
-            "short_desc": "",
-            "desc": "10KC TOB",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "65. Maidenless - 10KC TOB"
-        },
-        "66": {
-            "tile_num": "66",
-            "name": "Moosypoosy ",
-            "short_desc": "",
-            "desc": "1 Shard, Icon, and Cache from Muspah",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "66. Moosypoosy  - 1 Shard, Icon, and Cache from Muspah"
-        },
-        "67": {
-            "tile_num": "67",
-            "name": "We struck Granite",
-            "short_desc": "",
-            "desc": "Any GG Unique from Boss(Excluding Granite Dust)",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "67. We struck Granite - Any GG Unique from Boss(Excluding Granite Dust)"
-        },
-        "68": {
-            "tile_num": "68",
-            "name": "Huey, Dewey, & Louie ",
-            "short_desc": "",
-            "desc": "1 Huey unique or 50 Huasca Seeds",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "68. Huey, Dewey, & Louie  - 1 Huey unique or 50 Huasca Seeds"
-        },
-        "69": {
-            "tile_num": "69",
-            "name": "Mixing it up",
-            "short_desc": "",
-            "desc": "10KC Cox AND 10KC TOA",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "69. Mixing it up - 10KC Cox AND 10KC TOA"
-        },
-        "70": {
-            "tile_num": "70",
-            "name": "Looks like a bug. Hits like a truck",
-            "short_desc": "",
-            "desc": "1 RNG KQ Unique(excl 256 kc tattered head)",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "70. Looks like a bug. Hits like a truck - 1 RNG KQ Unique(excl 256 kc tattered head)"
-        },
-        "71": {
-            "tile_num": "71",
-            "name": "71 to 91",
-            "short_desc": "71 to 91",
-            "desc": "Jump ahead to Tile 91",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "71. 71 to 91 - Jump ahead to Tile 91"
-        },
-        "72": {
-            "tile_num": "72",
-            "name": "Betrayer or zamorak",
-            "short_desc": "",
-            "desc": "Piece of Rune from Skotizo(Armor or Runite Bar)",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "72. Betrayer or zamorak - Piece of Rune from Skotizo(Armor or Runite Bar)"
-        },
-        "73": {
-            "tile_num": "73",
-            "name": "Fetch me their souls",
-            "short_desc": "",
-            "desc": "12 Cerb Tellies or 1 Crystal/Stone",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "73. Fetch me their souls - 12 Cerb Tellies or 1 Crystal/Stone"
-        },
-        "74": {
-            "tile_num": "74",
-            "name": "Hardly Clueless",
-            "short_desc": "",
-            "desc": "4 Hard Clue Uniques",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "74. Hardly Clueless - 4 Hard Clue Uniques"
-        },
-        "75": {
-            "tile_num": "75",
-            "name": "Franken Berry",
-            "short_desc": "",
-            "desc": "2 of any berry drop from any *Canafis citizen*",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "75. Franken Berry - 2 of any berry drop from any *Canafis citizen*"
-        },
-        "76": {
-            "tile_num": "76",
-            "name": "Mummified",
-            "short_desc": "",
-            "desc": "Casket from a *Mummy*",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "76. Mummified - Casket from a *Mummy*"
-        },
-        "77": {
-            "tile_num": "77",
-            "name": "Surely 2/3",
-            "short_desc": "",
-            "desc": "Chromium Ingot",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "77. Surely 2/3 - Chromium Ingot"
-        },
-        "78": {
-            "tile_num": "78",
-            "name": "Too Ezzzz",
-            "short_desc": "",
-            "desc": "3 Easy Clue Uniques",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "78. Too Ezzzz - 3 Easy Clue Uniques"
-        },
-        "79": {
-            "tile_num": "79",
-            "name": "Whiplash",
-            "short_desc": "",
-            "desc": "3 abyssal whip",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "79. Whiplash - 3 abyssal whip"
-        },
-        "80": {
-            "tile_num": "80",
-            "name": "80 to 100",
-            "short_desc": "80 to 100",
-            "desc": "Jump ahead to Tile 100",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "80. 80 to 100 - Jump ahead to Tile 100"
-        },
-        "81": {
-            "tile_num": "81",
-            "name": "The key to nothing great.",
-            "short_desc": "",
-            "desc": "10 Brimstone Keys",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "81. The key to nothing great. - 10 Brimstone Keys"
-        },
-        "82": {
-            "tile_num": "82",
-            "name": "The key to restoration",
-            "short_desc": "",
-            "desc": "1.5k of red spider eggs from bosses",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "82. The key to restoration - 1.5k of red spider eggs from bosses"
-        },
-        "83": {
-            "tile_num": "83",
-            "name": "Orb of Disappointment",
-            "short_desc": "",
-            "desc": "3 Awakeners Orbs from any source",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "83. Orb of Disappointment - 3 Awakeners Orbs from any source"
-        },
-        "84": {
-            "tile_num": "84",
-            "name": "The Winning Strat",
-            "short_desc": "",
-            "desc": "20 Scurrius Spines",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "84. The Winning Strat - 20 Scurrius Spines"
-        },
-        "85": {
-            "tile_num": "85",
-            "name": "Dick pick",
-            "short_desc": "",
-            "desc": "D Pick",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "85. Dick pick - D Pick"
-        },
-        "86": {
-            "tile_num": "86",
-            "name": "Dragon Deez",
-            "short_desc": "",
-            "desc": "3 Dragon Halberd from Boss/Chest Rolls",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "86. Dragon Deez - 3 Dragon Halberd from Boss/Chest Rolls"
-        },
-        "87": {
-            "tile_num": "87",
-            "name": "87 back to 24",
-            "short_desc": "87 back to 24",
-            "desc": "Fall back down to Tile 24",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "87. 87 back to 24 - Fall back down to Tile 24"
-        },
-        "88": {
-            "tile_num": "88",
-            "name": "Imbue this",
-            "short_desc": "",
-            "desc": "2 Wilderness Slayer Uniques",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "88. Imbue this - 2 Wilderness Slayer Uniques"
-        },
-        "89": {
-            "tile_num": "89",
-            "name": "Demonize deez nuts",
-            "short_desc": "",
-            "desc": "Demonic Gorilla Drop",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "89. Demonize deez nuts - Demonic Gorilla Drop"
-        },
-        "90": {
-            "tile_num": "90",
-            "name": "Pot Fart Cloud",
-            "short_desc": "",
-            "desc": "Pet Chaos Elemental",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "90. Pot Fart Cloud - Pet Chaos Elemental"
-        },
-        "91": {
-            "tile_num": "91",
-            "name": "Joggers",
-            "short_desc": "",
-            "desc": "Mystic Set(Any kind, Boots, Gloves, Legs, Chest, and Hat)",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "91. Joggers - Mystic Set(Any kind, Boots, Gloves, Legs, Chest, and Hat)"
-        },
-        "92": {
-            "tile_num": "92",
-            "name": "Murderer!!! Thief!!!",
-            "short_desc": "",
-            "desc": "Enhanced Telly Seed from Elves(Combat) and Pickpocket(SS Needed)",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "92. Murderer!!! Thief!!! - Enhanced Telly Seed from Elves(Combat) and Pickpocket(SS Needed)"
-        },
-        "93": {
-            "tile_num": "93",
-            "name": "93 back to 73",
-            "short_desc": "93 back to 73",
-            "desc": "Fall back down to Tile 73",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "93. 93 back to 73 - Fall back down to Tile 73"
-        },
-        "94": {
-            "tile_num": "94",
-            "name": "JalYt ",
-            "short_desc": "",
-            "desc": "5 Fire capes or Jad Pet",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "94. JalYt  - 5 Fire capes or Jad Pet"
-        },
-        "95": {
-            "tile_num": "95",
-            "name": "95 back to 75",
-            "short_desc": "95 back to 75",
-            "desc": "Fall back down to Tile 75",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "95. 95 back to 75 - Fall back down to Tile 75"
-        },
-        "96": {
-            "tile_num": "96",
-            "name": "Put a ring on it",
-            "short_desc": "",
-            "desc": "Any Boss Ring Drop Unique",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "96. Put a ring on it - Any Boss Ring Drop Unique"
-        },
-        "97": {
-            "tile_num": "97",
-            "name": "Got flax?",
-            "short_desc": "",
-            "desc": "7k Flax from Zulrah",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "97. Got flax? - 7k Flax from Zulrah"
-        },
-        "98": {
-            "tile_num": "98",
-            "name": "98 back to 79",
-            "short_desc": "98 back to 79",
-            "desc": "Fall back down to Tile 79",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "98. 98 back to 79 - Fall back down to Tile 79"
-        },
-        "99": {
-            "tile_num": "99",
-            "name": "Rumors to fly",
-            "short_desc": "",
-            "desc": "5 Quetzal Feed",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "99. Rumors to fly - 5 Quetzal Feed"
-        },
-        "100": {
-            "tile_num": "100",
-            "name": "Squeak ",
-            "short_desc": "",
-            "desc": "Cheese from Scurrius",
-            "sabotage": "",
-            "item_names": "",
-            "discord_name": "100. Squeak  - Cheese from Scurrius"
+            "name": "Double Tap",
+            "desc": "Get all - Dual macuahuitl, Glacial temotli, Sulphur blades, Earthbound tecpatl",
+            "discord_name": "Double Tap - Get all - Dual macuahuitl, Glacial temotli, Sulphur blades, Earthbound tecpatl"
         }
     },
     "posts": {
         "score-board": {
-            "id": 1292637097030717493,
-            "content": "Team 1: 8\nTeam 2: 0\nTeam 3: 0\nTeam 4: 0\nTeam 5: 0\nTeam 6: 0\nTeam 7: 0"
+            "id": 1445272240060104806,
+            "content": "Team 1: 0\nTeam 2: 0\nTeam 3: 0\nTeam 4: 0\nTeam 5: 0\nTeam 6: 0\nTeam 7: 0"
         }
-    }
+    },
+    "brief_team_channels": true
 }

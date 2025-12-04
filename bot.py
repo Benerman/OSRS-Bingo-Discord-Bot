@@ -763,6 +763,8 @@ async def get_default_channels(interaction: discord.Interaction):
             discord_safe_names = [
                 {"name": name, "description": ""} for name in DEFAULT_CHANNELS
             ]
+            if settings["brief_teams_channels"]:
+                return discord_safe_names
             discord_safe_names += [
                 {
                     "name": create_discord_friendly_name(itm["name"]),
@@ -2478,6 +2480,31 @@ async def check_roll_enabled(interaction: discord.Interaction):
             Rerolling is {'ENABLED' if settings['rerolling'] == True else 'DISABLED'}"
     )
 
+@has_role("Bingo Moderator")
+@bot.tree.command(name="brief_team_channels",
+    description=f"Toggles the brief team channels setting. Prevents tiles from being posted in team categories.")
+async def brief_team_channels(interaction: discord.Interaction):
+    """
+    Toggles the brief team channels setting and sends a response indicating the new status.
+
+    Parameters:
+    interaction (discord.Interaction): The interaction object representing the user's interaction with the bot.
+
+    Returns:
+    None
+    """
+    await interaction.response.defer(thinking=True)
+    settings = load_settings_json()
+    if settings.get("brief_team_channels", False):
+        settings["brief_team_channels"] = False
+    else:
+        settings["brief_team_channels"] = True
+    save_settings_json(settings)
+    await interaction.followup.send(
+        f"Brief team channels are now {'ENABLED' if settings['brief_team_channels'] else 'DISABLED'}."
+    )
+
+    
 
 @has_role("Bingo Moderator")
 @bot.tree.command(name="tile_completed", description=f"Marks a channel's tile as completed(Normal)")
