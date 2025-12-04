@@ -2481,11 +2481,11 @@ async def check_roll_enabled(interaction: discord.Interaction):
     )
 
 @has_role("Bingo Moderator")
-@bot.tree.command(name="brief_team_channels",
-    description=f"Toggles the brief team channels setting. Prevents tiles from being posted in team categories.")
-async def brief_team_channels(interaction: discord.Interaction):
+@bot.tree.command(name="brief_teams_channels",
+    description=f"Toggles the brief teams channels setting. Prevents tiles from being posted in team categories.")
+async def brief_teams_channels(interaction: discord.Interaction):
     """
-    Toggles the brief team channels setting and sends a response indicating the new status.
+    Toggles the brief teams channels setting and sends a response indicating the new status.
 
     Parameters:
     interaction (discord.Interaction): The interaction object representing the user's interaction with the bot.
@@ -2495,13 +2495,13 @@ async def brief_team_channels(interaction: discord.Interaction):
     """
     await interaction.response.defer(thinking=True)
     settings = load_settings_json()
-    if settings.get("brief_team_channels", False):
-        settings["brief_team_channels"] = False
+    if settings.get("brief_teams_channels", False):
+        settings["brief_teams_channels"] = False
     else:
-        settings["brief_team_channels"] = True
+        settings["brief_teams_channels"] = True
     save_settings_json(settings)
     await interaction.followup.send(
-        f"Brief team channels are now {'ENABLED' if settings['brief_team_channels'] else 'DISABLED'}."
+        f"Brief teams channels are now {'ENABLED' if settings['brief_teams_channels'] else 'DISABLED'}."
     )
 
     
