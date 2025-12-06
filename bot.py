@@ -525,7 +525,8 @@ def mark_on_image_tile_complete(team_name: str, row: int, column: int) -> None:
 async def parse_table_location(location: str):
     if location == "":
         return 0, 0
-    col, row = location[0], location[1]
+    # TODO IMAGE is backwards from EXCEL
+    row, col = location[0], location[1]
     if col.lower() == "a":
         col = 1
     elif col.lower() == "b":
@@ -538,7 +539,8 @@ async def parse_table_location(location: str):
         col = 5
     else:
         col = 0
-    return int(row), int(col)
+    # return int(row), int(col) # EXCEL VERSION - ROW, COLUMN
+    return int(col), int(row) # IMAGE VERSION - COLUMN, ROW
 
 
 def generate_team_assignment_text(all_roles, total_teams) -> str:
