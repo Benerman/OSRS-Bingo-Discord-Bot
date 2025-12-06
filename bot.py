@@ -526,7 +526,7 @@ async def parse_table_location(location: str):
     if location == "":
         return 0, 0
     # TODO IMAGE is backwards from EXCEL
-    row, col = location[0], location[1]
+    col, row = location[0], location[1]
     if col.lower() == "a":
         col = 1
     elif col.lower() == "b":
@@ -540,7 +540,7 @@ async def parse_table_location(location: str):
     else:
         col = 0
     # return int(row), int(col) # EXCEL VERSION - ROW, COLUMN
-    return int(col), int(row) # IMAGE VERSION - COLUMN, ROW
+    return int(row), int(col) # IMAGE VERSION - COLUMN, ROW
 
 
 def generate_team_assignment_text(all_roles, total_teams) -> str:
