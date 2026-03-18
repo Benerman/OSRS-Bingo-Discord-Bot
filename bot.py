@@ -128,7 +128,7 @@ default_settings_dict = {
     "board_latest": "",
     "items": {},
     "posts": {"score-board": {"id": None, "content": ""}},
-    "brief_team_channels": False,
+    "brief_teams_channels": False,
 }
 
 roll_channel = "dice-roll"
