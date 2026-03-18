@@ -101,17 +101,34 @@ IGNORED_CATEGORIES = [
 ]
 
 default_settings_dict = {
-    "bot_mode": {"bot_options": ["candyland", "normal"], "current": "candyland"},
+    "bot_mode": {"bot_options": ["candyland", "normal", "chutes and ladders"], "current": "candyland"},
     "tiles": {"url": "", "spreadsheet_id": "", "items": {}},
+    "running": True,
+    "rerolling": False,
+    "total_teams": 7,
     "teams": {
-        "Team 1": {"current": 0, "prev": None, "reroll": True, "roll_history": []},
-        "Team 2": {"current": 0, "prev": None, "reroll": True, "roll_history": []},
-        "Team 3": {"current": 0, "prev": None, "reroll": True, "roll_history": []},
-        "Team 4": {"current": 0, "prev": None, "reroll": True, "roll_history": []},
-        "Team 5": {"current": 0, "prev": None, "reroll": True, "roll_history": []},
-        "Team 6": {"current": 0, "prev": None, "reroll": True, "roll_history": []},
-        "Team 7": {"current": 0, "prev": None, "reroll": True, "roll_history": []},
+        "Team 1": {"current": 0, "prev": None, "reroll": True, "roll_history": [], "tiles_completed": []},
+        "Team 2": {"current": 0, "prev": None, "reroll": True, "roll_history": [], "tiles_completed": []},
+        "Team 3": {"current": 0, "prev": None, "reroll": True, "roll_history": [], "tiles_completed": []},
+        "Team 4": {"current": 0, "prev": None, "reroll": True, "roll_history": [], "tiles_completed": []},
+        "Team 5": {"current": 0, "prev": None, "reroll": True, "roll_history": [], "tiles_completed": []},
+        "Team 6": {"current": 0, "prev": None, "reroll": True, "roll_history": [], "tiles_completed": []},
+        "Team 7": {"current": 0, "prev": None, "reroll": True, "roll_history": [], "tiles_completed": []},
     },
+    "image_bounds": {
+        "x_offset": 0, "y_offset": 0, "x_right_offset": 0,
+        "y_bottom_offset": 0, "x": 0, "y": 0, "gutter": 0,
+    },
+    "board_bounds": {
+        "tile_count": 100, "tile_size": 100, "team_icon_x_offset": 0,
+        "team_icon_y_offset": 0, "x_offset": 0, "y_offset": 0,
+        "x_right_offset": 0, "y_bottom_offset": 0, "x": 0, "y": 0, "gutter": 0,
+    },
+    "board_template": "",
+    "board_latest": "",
+    "items": {},
+    "posts": {"score-board": {"id": None, "content": ""}},
+    "brief_team_channels": False,
 }
 
 roll_channel = "dice-roll"
@@ -275,11 +292,14 @@ def formatted_title(settings, team_name):
         str: The formatted title for the tile.
     """
     tile_num = settings["teams"][team_name]["current"]
-    name = settings["items"][str(tile_num)]["name"]
+    item = settings.get("items", {}).get(str(tile_num))
+    if not item:
+        return f"{tile_num} - Unknown Tile"
+    name = item.get("name", "Unknown")
 
-    desc = settings["items"][str(tile_num)].get("short_desc")
+    desc = item.get("short_desc")
     if not desc:
-        desc = settings["items"][str(tile_num)]["desc"]
+        desc = item.get("desc", "")
         return f"{tile_num} - {name}"
     return f"{tile_num} - {name} - {desc}"
 
@@ -909,8 +929,10 @@ async def update_server_score_board_channel(interaction: discord.Interaction, se
     None
     """
     score_card_ch = discord.utils.get(interaction.guild.channels, name="score-board")
-    if settings["posts"]["score-board"]["id"]:
-        msg_id = int(settings["posts"]["score-board"]["id"])
+    posts = settings.get("posts", {})
+    score_board = posts.get("score-board", {})
+    if score_board.get("id"):
+        msg_id = int(score_board["id"])
     else:
         # ch_id = 1108133466350030858
         async for msg in score_card_ch.history(oldest_first=True):
@@ -922,27 +944,31 @@ async def update_server_score_board_channel(interaction: discord.Interaction, se
         message = await score_card_ch.fetch_message(msg_id)
     except discord.errors.NotFound as e:
         msg = await score_card_ch.send(
-            content=settings["posts"]["score-board"]["content"]
+            content=score_board.get("content", "")
         )
         msg_id = msg.id
         message = await score_card_ch.fetch_message(msg_id)
-    if message.content != settings["posts"]["score-board"]["content"]:
+    if message.content != score_board.get("content", ""):
         print("score is out of sync")
-    total_teams = settings["total_teams"]
+    total_teams = settings.get("total_teams", len(settings["teams"]))
     teams_names = [x for x in settings["teams"].keys()]
     teams_scores = [x["current"] for x in settings["teams"].values()]
+    teams_rerolls = [x.get("reroll", 0) for x in settings["teams"].values()]
     content_text = []
     for i in range(len(teams_names)):
         if i >= total_teams:
             continue
         if settings["bot_mode"]["current"] == "candyland":
             row = f"{teams_names[i]}: {teams_scores[i]} - Rerolls remain: {teams_rerolls[i]}"
-            teams_rerolls = [x["reroll"] for x in settings["teams"].values()]
         else:
             row = f"{teams_names[i]}: {teams_scores[i]}"
         content_text.append(row)
     score_text = "\n".join(content_text)
     # process things for Chutes and ladders
+    if "posts" not in settings:
+        settings["posts"] = {}
+    if "score-board" not in settings["posts"]:
+        settings["posts"]["score-board"] = {}
     settings["posts"]["score-board"]["id"] = msg_id
     settings["posts"]["score-board"]["content"] = score_text
     update_settings_json(settings)
@@ -1261,7 +1287,7 @@ async def roll(interaction: discord.Interaction):
     )
 
     # Check if Sabotage Tile
-    if sabotage := settings["items"][str(settings["teams"][team_name]["current"])]["sabotage"] and settings['bot_mode'] == 'candyland':
+    if settings['bot_mode']['current'] == 'candyland' and (sabotage := settings["items"][str(settings["teams"][team_name]["current"])].get("sabotage")):
         print(sabotage)
         if "-" in sabotage:
             settings = update_roll_settings(
@@ -1415,7 +1441,7 @@ async def reroll(interaction: discord.Interaction):
             await ch.send(embed=embed)
 
             # Check if Sabotage Tile
-            if sabotage := settings["items"][str(settings["teams"][team_name]["current"])]["sabotage"]:
+            if sabotage := settings["items"][str(settings["teams"][team_name]["current"])].get("sabotage"):
                 print(sabotage)
                 if "-" in sabotage:
                     settings = update_roll_settings(
