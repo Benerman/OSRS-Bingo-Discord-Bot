@@ -1802,16 +1802,12 @@ async def delete_team(interaction: discord.Interaction, team_name: str):
             Returns:
             - None
             """
-            for child in self.children:
-                if child == button:
-                    continue
-                else:
-                    child.disabled = True
-            button.disabled = True
             self.stop()
             await interaction.response.edit_message(
-                embed=discord.Embed(description='Cancelled "Delete Channels" command'),
-                view=self,
+                embed=discord.Embed(
+                    description=f'Delete of "{self.team_name}" cancelled by {interaction.user.display_name}. Nothing was modified.'
+                ),
+                view=None,
             )
 
         @discord.ui.button(
@@ -1830,63 +1826,48 @@ async def delete_team(interaction: discord.Interaction, team_name: str):
             Returns:
             None
             """
-            for child in self.children:
-                if child == button:
-                    continue
-                else:
-                    child.disabled = True
-            button.disabled = True
+            self.stop()
             settings = load_settings_json()
             error = validate_team_name(self.team_name, settings)
             if error:
-                await interaction.message.edit(
-                    embed=discord.Embed(description=error),
-                    view=self,
+                await interaction.response.edit_message(
+                    embed=discord.Embed(description=error), view=None
                 )
                 return
-            logger.info("Deleting...")
-            await interaction.message.edit(
-                embed=discord.Embed(
-                    description=f"Attempting to Delete {self.team_name}'s channels."
-                ),
-                view=self,
+            # The category is named after the display name when one is set.
+            display = get_team_display_name(settings, self.team_name)
+            # Respond now; deleting channels can take longer than Discord's 3s limit.
+            await interaction.response.edit_message(
+                embed=discord.Embed(description=f'Deleting "{display}" channels...'),
+                view=None,
             )
             num_deleted = 0
-            cats = interaction.guild.categories
-            for cat in cats:
-                if cat.name.lower() == self.team_name.lower():
-                    await interaction.message.edit(
-                        embed=discord.Embed(
-                            description=f"Found {len(cat.channels)} channels. Deleting...."
-                        ),
-                        view=self,
-                    )
-                    for ch in cat.channels:
-                        logger.info(f"Deleting channel: {ch}")
-                        num_deleted += 1
-                        await ch.delete()
-                    await cat.delete()
-                    if num_deleted > 0:
-                        await interaction.message.edit(
-                            embed=discord.Embed(
-                                description=f"Deleted {self.team_name}'s channels. {num_deleted} channel(s) deleted."
-                            ),
-                            view=None,
-                        )
-                else:
-                    logger.info(
-                        f"Skipping {cat.name}\t{self.team_name}\t{cat.name.lower() == self.team_name.lower()}"
-                    )
-            else:
-                if num_deleted == 0:
-                    await interaction.message.edit(
-                        embed=discord.Embed(
-                            description=f"{self.team_name}: No ({num_deleted}) Channels Deleted"
-                        ),
-                        view=None,
-                    )
+            cat = discord.utils.get(interaction.guild.categories, name=display)
+            if cat is None and display != self.team_name:
+                cat = discord.utils.get(interaction.guild.categories, name=self.team_name)
+            if cat is not None:
+                for ch in cat.channels:
+                    logger.info(f"Deleting channel: {ch}")
+                    await ch.delete()
+                    num_deleted += 1
+                await cat.delete()
             logger.info(f"Deleted {num_deleted} Channels")
-            self.stop()
+
+            # Reset the team's display name so it goes back to its team key.
+            async with _settings_lock:
+                settings = load_settings_json()
+                settings["teams"][self.team_name]["display_name"] = ""
+                save_settings_json(settings)
+
+            if cat is None:
+                result = f'No category named "{display}" found. No channels deleted.'
+            else:
+                result = f'Deleted "{display}" category and {num_deleted} channel(s).'
+            if display != self.team_name:
+                result += f'\nTeam name reset to "{self.team_name}".'
+            await interaction.edit_original_response(
+                embed=discord.Embed(description=result)
+            )
 
     await interaction.response.send_message(
         embed=discord.Embed(description=f'Confirm Deletion of Team "{team_name}":'),
