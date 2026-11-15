@@ -270,11 +270,20 @@ def save_settings_json(contents: dict) -> None:
             os.remove(tmp_path)
 
 
-def _reset_all_settings() -> None:
-    """Reset every team's progress in settings.json to defaults."""
+def _reset_all_settings() -> dict:
+    """
+    Reset every team's progress in settings.json to defaults.
+
+    Returns:
+        dict: Team key -> display name it had before the reset, for teams
+        that had a custom display name.
+    """
     settings = load_settings_json()
     settings["total_teams"] = MAX_TEAMS
-    for team in settings["teams"].values():
+    renamed = {}
+    for team_key, team in settings["teams"].items():
+        if team.get("display_name") and team["display_name"] != team_key:
+            renamed[team_key] = team["display_name"]
         team["display_name"] = ""
         team["tiles_completed"] = []
         team["current"] = 0
@@ -283,6 +292,7 @@ def _reset_all_settings() -> None:
         team["roll_history"] = []
         team["image"] = os.path.join(IMAGE_PATH, "bingo_card_image.png")
     save_settings_json(settings)
+    return renamed
 
 
 def get_team_display_name(settings: dict, team_key: str) -> str:
@@ -1792,16 +1802,12 @@ async def delete_team(interaction: discord.Interaction, team_name: str):
             Returns:
             - None
             """
-            for child in self.children:
-                if child == button:
-                    continue
-                else:
-                    child.disabled = True
-            button.disabled = True
             self.stop()
             await interaction.response.edit_message(
-                embed=discord.Embed(description='Cancelled "Delete Channels" command'),
-                view=self,
+                embed=discord.Embed(
+                    description=f'Delete of "{self.team_name}" cancelled by {interaction.user.display_name}. Nothing was modified.'
+                ),
+                view=None,
             )
 
         @discord.ui.button(
@@ -1820,63 +1826,48 @@ async def delete_team(interaction: discord.Interaction, team_name: str):
             Returns:
             None
             """
-            for child in self.children:
-                if child == button:
-                    continue
-                else:
-                    child.disabled = True
-            button.disabled = True
+            self.stop()
             settings = load_settings_json()
             error = validate_team_name(self.team_name, settings)
             if error:
-                await interaction.message.edit(
-                    embed=discord.Embed(description=error),
-                    view=self,
+                await interaction.response.edit_message(
+                    embed=discord.Embed(description=error), view=None
                 )
                 return
-            logger.info("Deleting...")
-            await interaction.message.edit(
-                embed=discord.Embed(
-                    description=f"Attempting to Delete {self.team_name}'s channels."
-                ),
-                view=self,
+            # The category is named after the display name when one is set.
+            display = get_team_display_name(settings, self.team_name)
+            # Respond now; deleting channels can take longer than Discord's 3s limit.
+            await interaction.response.edit_message(
+                embed=discord.Embed(description=f'Deleting "{display}" channels...'),
+                view=None,
             )
             num_deleted = 0
-            cats = interaction.guild.categories
-            for cat in cats:
-                if cat.name.lower() == self.team_name.lower():
-                    await interaction.message.edit(
-                        embed=discord.Embed(
-                            description=f"Found {len(cat.channels)} channels. Deleting...."
-                        ),
-                        view=self,
-                    )
-                    for ch in cat.channels:
-                        logger.info(f"Deleting channel: {ch}")
-                        num_deleted += 1
-                        await ch.delete()
-                    await cat.delete()
-                    if num_deleted > 0:
-                        await interaction.message.edit(
-                            embed=discord.Embed(
-                                description=f"Deleted {self.team_name}'s channels. {num_deleted} channel(s) deleted."
-                            ),
-                            view=None,
-                        )
-                else:
-                    logger.info(
-                        f"Skipping {cat.name}\t{self.team_name}\t{cat.name.lower() == self.team_name.lower()}"
-                    )
-            else:
-                if num_deleted == 0:
-                    await interaction.message.edit(
-                        embed=discord.Embed(
-                            description=f"{self.team_name}: No ({num_deleted}) Channels Deleted"
-                        ),
-                        view=None,
-                    )
+            cat = discord.utils.get(interaction.guild.categories, name=display)
+            if cat is None and display != self.team_name:
+                cat = discord.utils.get(interaction.guild.categories, name=self.team_name)
+            if cat is not None:
+                for ch in cat.channels:
+                    logger.info(f"Deleting channel: {ch}")
+                    await ch.delete()
+                    num_deleted += 1
+                await cat.delete()
             logger.info(f"Deleted {num_deleted} Channels")
-            self.stop()
+
+            # Reset the team's display name so it goes back to its team key.
+            async with _settings_lock:
+                settings = load_settings_json()
+                settings["teams"][self.team_name]["display_name"] = ""
+                save_settings_json(settings)
+
+            if cat is None:
+                result = f'No category named "{display}" found. No channels deleted.'
+            else:
+                result = f'Deleted "{display}" category and {num_deleted} channel(s).'
+            if display != self.team_name:
+                result += f'\nTeam name reset to "{self.team_name}".'
+            await interaction.edit_original_response(
+                embed=discord.Embed(description=result)
+            )
 
     await interaction.response.send_message(
         embed=discord.Embed(description=f'Confirm Deletion of Team "{team_name}":'),
@@ -2876,11 +2867,12 @@ async def reset_bingo_settings(interaction: discord.Interaction):
             self, interaction: discord.Interaction,
             button: discord.ui.Button
         ):
-            for child in self.children:
-                child.disabled = True
             await interaction.response.edit_message(
-                content=f"Aborted Reseting of Settings.\nNothing was modified",
-                view=self,
+                content=None,
+                embed=discord.Embed(
+                    description=f"Reset cancelled by {interaction.user.display_name}. Nothing was modified."
+                ),
+                view=None,
             )
 
         @discord.ui.button(label="Reset", style=discord.ButtonStyle.green)
@@ -2890,17 +2882,40 @@ async def reset_bingo_settings(interaction: discord.Interaction):
         ):
             async with _settings_lock:
                 try:
-                    _reset_all_settings()
+                    renamed = _reset_all_settings()
                 except OSError as e:
                     await interaction.response.edit_message(
-                        content=f"Failed to reset settings: {e}", view=None
+                        content=None,
+                        embed=discord.Embed(description=f"Failed to reset settings: {e}"),
+                        view=None,
                     )
                     return
-            for child in self.children:
-                child.disabled = True
+            # Respond now; renaming categories can take longer than Discord's 3s limit.
             await interaction.response.edit_message(
-                content="# Reset Bingo Settings.",
-                view=self,
+                content=None,
+                embed=discord.Embed(description="Resetting team scores and names..."),
+                view=None,
+            )
+            # Rename team categories back to their default names (Team 1..Team N).
+            problems = []
+            for team_key, old_name in renamed.items():
+                cat = discord.utils.get(interaction.guild.categories, name=old_name)
+                if not cat:
+                    problems.append(f'No category named "{old_name}" for {team_key}')
+                    continue
+                try:
+                    await cat.edit(name=team_key)
+                except discord.HTTPException as e:
+                    logger.error(f'Failed to rename category "{old_name}" to "{team_key}": {e}')
+                    problems.append(f'Could not rename "{old_name}" to "{team_key}": {e}')
+            description = (
+                f"All team scores, settings and team names were reset by "
+                f"{interaction.user.display_name}."
+            )
+            if problems:
+                description += "\n\n" + "\n".join(problems)
+            await interaction.edit_original_response(
+                embed=discord.Embed(description=description)
             )
 
     await interaction.response.send_message(
