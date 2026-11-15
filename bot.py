@@ -133,7 +133,26 @@ default_settings_dict = {
     "items": {},
     "posts": {"score-board": {"id": None, "content": ""}},
     "brief_teams_channels": False,
+    "scoring": {
+        "default_tile_points": 1,
+        "line_bonus": 0,
+        "blackout_bonus": 0,
+        "approvals_required": 1,
+    },
+    "submissions": {"next_id": 1, "items": {}},
 }
+
+# Defaults for settings.json files created before scoring existed.
+DEFAULT_SCORING = dict(default_settings_dict["scoring"])
+
+# Normal mode bingo cards are a 5x5 grid.
+BOARD_SIZE = 5
+
+# Team score changes kept per team for /score history and /score undo.
+SCORE_LOG_LIMIT = 200
+
+# Submissions are reviewed in #submissions, or in #bot-commands if that doesn't exist.
+SUBMISSIONS_CHANNEL = "submissions"
 
 roll_channel = "dice-roll"
 mod_channel = "bot-commands"
@@ -291,7 +310,12 @@ def _reset_all_settings() -> dict:
         team["prev"] = 0
         team["reroll"] = 0
         team["roll_history"] = []
+        team["score_log"] = []
         team["image"] = os.path.join(IMAGE_PATH, "bingo_card_image.png")
+    # Drop the last game's submissions. next_id is kept so old review
+    # messages' buttons can't match a new submission.
+    submissions = settings.setdefault("submissions", {"next_id": 1, "items": {}})
+    submissions["items"] = {}
     save_settings_json(settings)
     return renamed
 
@@ -392,8 +416,7 @@ class ModeratorView(discord.ui.View):
     """A view whose buttons only Bingo Moderators can use."""
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
-        roles = getattr(interaction.user, "roles", [])
-        if discord.utils.get(roles, name=MODERATOR_ROLE):
+        if is_moderator(interaction.user):
             return True
         await interaction.response.send_message(
             f"Only a {MODERATOR_ROLE} can use these buttons.", ephemeral=True
@@ -475,9 +498,9 @@ def format_item_list(contents, tile_list: list) -> list:
     """
     items = {}
     board_mode = contents["bot_mode"]["current"] in ("candyland", "chutes and ladders")
-    # Board modes use 7 columns, normal mode uses 2. Extra columns are ignored
-    # and missing ones are treated as empty.
-    num_columns = 7 if board_mode else 2
+    # Board modes use 7 columns. Normal mode uses name, desc and an optional
+    # points column. Extra columns are ignored and missing ones are treated as empty.
+    num_columns = 7 if board_mode else 3
     tile_index = 0
     for row_index, row in enumerate(tile_list):
         if row_index == 0:
@@ -500,8 +523,10 @@ def format_item_list(contents, tile_list: list) -> list:
                 "discord_name": f"{tile_index}. {name} - {desc}",
             }
         else:
-            name, desc = row
+            name, desc, points = row
             items[tile_index] = {"name": name, "desc": desc, "discord_name": f"{name} - {desc}"}
+            if points.strip():
+                items[tile_index]["points"] = points.strip()
     contents["items"] = items
     return contents
 
@@ -582,73 +607,350 @@ def create_tile_embed(tiles: dict, tile_number: str) -> discord.Embed:
     return embed
 
 
-def mark_on_image_tile_complete(team_name: str, row: int, column: int) -> None:
+def _tile_mark_box(img_size, image_bounds: dict, row: int, column: int) -> (list, int):
     """
-    Mark a tile as complete on the team's image.
+    Get the pixel box for a 5x5 bingo tile and the line width to mark it with.
 
     Args:
-        team_name (str): The name of the team.
-        row (int): The row number of the tile.
-        column (int): The column number of the tile.
+        img_size (tuple): The (width, height) of the card image.
+        image_bounds (dict): settings["image_bounds"] from /set_image_bounds.
+        row (int): The 1-indexed row of the tile.
+        column (int): The 1-indexed column of the tile.
+
+    Returns:
+        tuple: ([x1, y1, x2, y2], line width)
     """
-    # Open the image
-    settings = load_settings_json()
-    image_path = validate_image_path(settings["teams"][team_name]["image"])
-    if not os.path.exists(image_path):
-        image_path = os.path.join(IMAGE_PATH, "bingo_card_image.png")
-        settings["teams"][team_name]["image"] = image_path
-    image_bounds = settings["image_bounds"]
-    img = Image.open(image_path)
-    x_offset = image_bounds["x_offset"] if image_bounds["x_offset"] else 0
-    y_offset = image_bounds["y_offset"] if image_bounds["y_offset"] else 0
-    x_right_offset = (
-        image_bounds["x_right_offset"] if image_bounds["x_right_offset"] else 0
-    )
-    y_bottom_offset = (
-        image_bounds["y_bottom_offset"] if image_bounds["y_bottom_offset"] else 0
-    )
-    gutter = image_bounds["gutter"] if image_bounds["gutter"] else 0
-    if image_bounds["x"] == 0 and image_bounds["y"] == 0:
-        width, height = img.size
-        width = width - (x_offset + x_right_offset + (4 * gutter))
-        height = height - (y_offset + y_bottom_offset + (4 * gutter))
+    x_offset = image_bounds.get("x_offset") or 0
+    y_offset = image_bounds.get("y_offset") or 0
+    x_right_offset = image_bounds.get("x_right_offset") or 0
+    y_bottom_offset = image_bounds.get("y_bottom_offset") or 0
+    gutter = image_bounds.get("gutter") or 0
+    if not image_bounds.get("x") and not image_bounds.get("y"):
+        width, height = img_size
+        width = width - (x_offset + x_right_offset + ((BOARD_SIZE - 1) * gutter))
+        height = height - (y_offset + y_bottom_offset + ((BOARD_SIZE - 1) * gutter))
     else:
         width = image_bounds["x"]
         height = image_bounds["y"]
 
-    line_width = int(width * 0.01 / 2)
+    line_width = max(1, int(width * 0.01 / 2))
+    tile_width = width // BOARD_SIZE
+    tile_height = height // BOARD_SIZE
 
-    # Calculate the dimensions of each bingo tile
-    tile_width = width // 5  # Assuming a 5x5 bingo board
-    tile_height = height // 5
-
-    # Adjust the row and column to be zero-indexed
+    # Zero-indexed row and column
     row -= 1
     column -= 1
-
-    # Calculate the coordinates of the specified bingo tile
     x1 = (column * tile_width) + x_offset + (column * gutter)
     y1 = (row * tile_height) + y_offset + (row * gutter)
     x2 = ((column + 1) * tile_width) + x_offset + (column * gutter)
     y2 = ((row + 1) * tile_height) + y_offset + (row * gutter)
+    return [x1, y1, x2, y2], line_width
 
-    # Create a drawing object
+
+def render_team_card(settings: dict, team_name: str) -> str:
+    """
+    Draw a team's bingo card from the default card image (/upload_board_image)
+    with a red X on every tile in settings["teams"][team]["tiles_completed"].
+    Redrawing from scratch each time means unmarking a tile removes its X.
+    Updates settings["teams"][team]["image"]; the caller saves settings.
+
+    Args:
+        settings (dict): The current settings.
+        team_name (str): The team key.
+
+    Returns:
+        str: The path of the rendered card image.
+    """
+    base_path = os.path.join(IMAGE_PATH, "bingo_card_image.png")
+    if not os.path.exists(base_path):
+        base_path = os.path.join(IMAGE_TEMPLATE_PATH, "bingo_card_image.png")
+    base_path = validate_image_path(base_path)
+    with Image.open(base_path) as base:
+        img = base.convert("RGBA")
     draw = ImageDraw.Draw(img)
-
-    # Draw a red square on the specified bingo tile
-    draw.rectangle([x1, y1, x2, y2], outline="red", width=line_width)
-
-    # Draw an X on the square
-    draw.line([(x1, y1), (x2, y2)], fill="red", width=line_width)
-    draw.line([(x1, y2), (x2, y1)], fill="red", width=line_width)
-
-    # Save the modified image
-    img_name = f"{team_name}-{row+1}-{column+1}.png"
-    new_image_path = os.path.join(os.path.dirname(image_path), img_name)
+    for row, column in settings["teams"][team_name].get("tiles_completed", []):
+        box, line_width = _tile_mark_box(img.size, settings.get("image_bounds", {}), row, column)
+        x1, y1, x2, y2 = box
+        draw.rectangle(box, outline="red", width=line_width)
+        draw.line([(x1, y1), (x2, y2)], fill="red", width=line_width)
+        draw.line([(x1, y2), (x2, y1)], fill="red", width=line_width)
+    os.makedirs(IMAGE_PATH, exist_ok=True)
+    new_image_path = os.path.join(IMAGE_PATH, f"{create_discord_friendly_name(team_name)}-card.png")
     img.save(new_image_path)
     settings["teams"][team_name]["image"] = new_image_path
-    update_settings_json(settings)
-    return settings
+    return new_image_path
+
+
+# ======================================= Scoring ====================================================
+
+
+def is_board_mode(settings: dict) -> bool:
+    """True for the modes where a team's score is its tile on the board."""
+    return settings["bot_mode"]["current"] in ("candyland", "chutes and ladders")
+
+
+def get_scoring(settings: dict) -> dict:
+    """The scoring settings, filled in with defaults for older settings.json files."""
+    return {**DEFAULT_SCORING, **settings.get("scoring", {})}
+
+
+def location_label(row: int, column: int) -> str:
+    """Turn a 1-indexed (row, column) into an Excel-style label such as "A1"."""
+    return f"{'ABCDE'[column - 1]}{row}"
+
+
+def tile_key_for_location(row: int, column: int) -> str:
+    """
+    The settings["items"] key for a 5x5 board location. Tiles are read from
+    the sheet left to right, top to bottom: A1-E1 are tiles 1-5, A2 is tile 6.
+    """
+    return str((row - 1) * BOARD_SIZE + column)
+
+
+def location_for_tile_key(key) -> Optional[tuple]:
+    """The (row, column) of a tile number on the 5x5 board, or None if it is off the board."""
+    index = int(key)
+    if not 1 <= index <= BOARD_SIZE * BOARD_SIZE:
+        return None
+    return (index - 1) // BOARD_SIZE + 1, (index - 1) % BOARD_SIZE + 1
+
+
+def tile_points(settings: dict, item: Optional[dict]) -> int:
+    """A tile's points from the sheet's points column, or the default."""
+    default = get_scoring(settings)["default_tile_points"]
+    try:
+        return int(str((item or {}).get("points", "")).strip())
+    except ValueError:
+        return default
+
+
+def describe_location(settings: dict, row: int, column: int) -> str:
+    """Label for a normal mode tile, e.g. "A1 Zulrah"."""
+    item = settings.get("items", {}).get(tile_key_for_location(row, column))
+    label = location_label(row, column)
+    return f"{label} {item['name']}" if item and item.get("name") else label
+
+
+def completed_lines(tiles) -> int:
+    """Count the completed rows, columns and diagonals on a 5x5 board."""
+    done = {tuple(t) for t in tiles}
+    span = range(1, BOARD_SIZE + 1)
+    lines = [[(r, c) for c in span] for r in span]
+    lines += [[(r, c) for r in span] for c in span]
+    lines.append([(i, i) for i in span])
+    lines.append([(i, BOARD_SIZE + 1 - i) for i in span])
+    return sum(all(cell in done for cell in line) for line in lines)
+
+
+def is_blackout(tiles) -> bool:
+    """True when every tile on the 5x5 board is completed."""
+    return len({tuple(t) for t in tiles}) >= BOARD_SIZE * BOARD_SIZE
+
+
+def clamp_score(settings: dict, value: int) -> int:
+    """Keep a score at 0 or more, and on the board in board modes."""
+    value = max(0, value)
+    if is_board_mode(settings) and settings.get("items"):
+        value = min(value, len(settings["items"]))
+    return value
+
+
+def apply_score_change(
+    settings: dict,
+    team_name: str,
+    *,
+    delta: int = 0,
+    set_to: Optional[int] = None,
+    reason: str = "",
+    by: str = "",
+    kind: str = "manual",
+    tile=None,
+    unmark: bool = False,
+    group: Optional[int] = None,
+) -> dict:
+    """
+    Change a team's score and add an entry to its score log.
+    Call inside edit_settings() so the change is saved.
+
+    Args:
+        settings (dict): The current settings, changed in place.
+        team_name (str): The team key.
+        delta (int): Points to add (negative to remove). Ignored if set_to is given.
+        set_to (int, optional): Set the score to this value instead.
+        reason (str): Why the score changed, shown in history and announcements.
+        by (str): Who made the change.
+        kind (str): "manual", "set", "tile", "bonus" or "undo".
+        tile: The [row, column] of the tile for "tile" entries.
+        unmark (bool): For "tile" entries, True if the tile was unmarked.
+        group (int, optional): Entry ID of the first change in the same action,
+            so /score undo reverts the whole action. Defaults to this entry.
+
+    Returns:
+        dict: The new score log entry.
+    """
+    team = settings["teams"][team_name]
+    before = team.get("current") or 0
+    after = clamp_score(settings, set_to if set_to is not None else before + delta)
+    team["score_seq"] = team.get("score_seq", 0) + 1
+    entry = {
+        "id": team["score_seq"],
+        "group": group if group is not None else team["score_seq"],
+        "kind": kind,
+        "delta": after - before,
+        "before": before,
+        "after": after,
+        "reason": reason,
+        "by": by,
+        "at": int(datetime.datetime.now(datetime.timezone.utc).timestamp()),
+    }
+    if tile is not None:
+        entry["tile"] = list(tile)
+        entry["unmark"] = unmark
+    team["current"] = after
+    log = team.setdefault("score_log", [])
+    log.append(entry)
+    del log[:-SCORE_LOG_LIMIT]
+    return entry
+
+
+def _bonus_changes(settings, team_name, old_tiles, new_tiles, *, by, group) -> list:
+    """Score log entries for rows/columns/diagonals and blackout gained or lost."""
+    scoring = get_scoring(settings)
+    entries = []
+    line_change = completed_lines(new_tiles) - completed_lines(old_tiles)
+    if line_change and scoring["line_bonus"]:
+        entries.append(apply_score_change(
+            settings, team_name,
+            delta=line_change * scoring["line_bonus"],
+            reason=f"{abs(line_change)} line(s) {'completed' if line_change > 0 else 'broken'}",
+            by=by, kind="bonus", group=group,
+        ))
+    blackout_change = int(is_blackout(new_tiles)) - int(is_blackout(old_tiles))
+    if blackout_change and scoring["blackout_bonus"]:
+        entries.append(apply_score_change(
+            settings, team_name,
+            delta=blackout_change * scoring["blackout_bonus"],
+            reason="Blackout" if blackout_change > 0 else "Blackout lost",
+            by=by, kind="bonus", group=group,
+        ))
+    return entries
+
+
+def complete_tile(settings: dict, team_name: str, row: int, column: int, *, by: str, reason: str = "") -> Optional[list]:
+    """
+    Mark a normal mode tile completed and award its points and any line or
+    blackout bonus. Call inside edit_settings().
+
+    Returns:
+        list or None: The score log entries, or None if it was already completed.
+    """
+    tiles = settings["teams"][team_name].setdefault("tiles_completed", [])
+    if [row, column] in tiles:
+        return None
+    old_tiles = [list(t) for t in tiles]
+    tiles.append([row, column])
+    item = settings.get("items", {}).get(tile_key_for_location(row, column))
+    label = describe_location(settings, row, column)
+    entry = apply_score_change(
+        settings, team_name,
+        delta=tile_points(settings, item),
+        reason=f"{label}{f' ({reason})' if reason else ''}",
+        by=by, kind="tile", tile=[row, column],
+    )
+    return [entry] + _bonus_changes(settings, team_name, old_tiles, tiles, by=by, group=entry["id"])
+
+
+def uncomplete_tile(settings: dict, team_name: str, row: int, column: int, *, by: str) -> Optional[list]:
+    """
+    Unmark a normal mode tile and take back the points it gave, including any
+    line or blackout bonus it was part of. Call inside edit_settings().
+
+    Returns:
+        list or None: The score log entries, or None if it wasn't completed.
+    """
+    tiles = settings["teams"][team_name].setdefault("tiles_completed", [])
+    if [row, column] not in tiles:
+        return None
+    old_tiles = [list(t) for t in tiles]
+    tiles.remove([row, column])
+    item = settings.get("items", {}).get(tile_key_for_location(row, column))
+    entry = apply_score_change(
+        settings, team_name,
+        delta=-tile_points(settings, item),
+        reason=f"Unmarked {describe_location(settings, row, column)}",
+        by=by, kind="tile", tile=[row, column], unmark=True,
+    )
+    return [entry] + _bonus_changes(settings, team_name, old_tiles, tiles, by=by, group=entry["id"])
+
+
+def undo_last_score_change(settings: dict, team_name: str, *, by: str) -> (list, list):
+    """
+    Revert the team's most recent score action that hasn't been undone,
+    including all of its entries (e.g. a tile and its line bonus). Undoing a
+    tile mark unmarks it, and undoing an unmark marks it again.
+    Call inside edit_settings().
+
+    Returns:
+        tuple: (the entries that were undone, the new undo entries). Both are
+        empty if there is nothing to undo.
+    """
+    log = settings["teams"][team_name].get("score_log", [])
+    candidates = [e for e in log if e["kind"] != "undo" and not e.get("undone")]
+    if not candidates:
+        return [], []
+    group = candidates[-1]["group"]
+    undone = [e for e in candidates if e["group"] == group]
+    tiles = settings["teams"][team_name].setdefault("tiles_completed", [])
+    new_entries = []
+    undo_group = None
+    for e in reversed(undone):
+        e["undone"] = True
+        if e["kind"] == "tile" and e.get("tile"):
+            if e.get("unmark"):
+                if e["tile"] not in tiles:
+                    tiles.append(e["tile"])
+            elif e["tile"] in tiles:
+                tiles.remove(e["tile"])
+        undo_entry = apply_score_change(
+            settings, team_name,
+            delta=-e["delta"],
+            reason=f"Undo #{e['id']}: {e['reason']}",
+            by=by, kind="undo", group=undo_group,
+        )
+        undo_group = undo_group or undo_entry["id"]
+        new_entries.append(undo_entry)
+    return undone, new_entries
+
+
+def format_score_entries(settings: dict, team_name: str, entries: list) -> str:
+    """One line per score change, e.g. "+3 A1 Zulrah (by Mod) -> 12"."""
+    lines = []
+    for e in entries:
+        sign = "+" if e["delta"] >= 0 else ""
+        lines.append(f"{sign}{e['delta']} {e['reason']} (by {e['by']}) -> {e['after']}")
+    return f"**{get_team_display_name(settings, team_name)}** score update:\n" + "\n".join(lines)
+
+
+def ordinal(n: int) -> str:
+    """1 -> "1st", 2 -> "2nd", 11 -> "11th"."""
+    suffix = "th" if 10 <= n % 100 <= 20 else {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
+    return f"{n}{suffix}"
+
+
+def rank_teams(scores: list) -> list:
+    """
+    Rank (team_key, score) pairs highest first. Tied teams share a place and
+    the next place is skipped (1, 1, 3).
+
+    Returns:
+        list: (place, team_key, score) tuples.
+    """
+    ordered = sorted(scores, key=lambda s: -s[1])
+    ranked = []
+    for i, (key, score) in enumerate(ordered):
+        place = ranked[-1][0] if ranked and ranked[-1][2] == score else i + 1
+        ranked.append((place, key, score))
+    return ranked
 
 
 TABLE_LOCATION_RE = re.compile(r"^\s*([A-Ea-e])\s*([1-5])\s*$")
@@ -915,21 +1217,16 @@ async def post_or_update_bingo_card(
     interaction: discord.Interaction,
     settings: dict,
     team_name: str,
-    *,
-    update: bool = False,
-    row: int = None,
-    column: int = None,
-) -> None:
+) -> Optional[str]:
     """
     Posts or updates a bingo card image for a specific team in a Discord channel.
+    Uses the team's current card image; call render_team_card() first to
+    redraw it after tiles change.
 
     Parameters:
         interaction (discord.Interaction): The interaction object representing the user's interaction with the bot.
         settings (dict): The settings dictionary containing information about the teams and their bingo cards.
         team_name (str): The name of the team for which the bingo card image should be posted or updated.
-        update (bool, optional): Indicates whether the bingo card image should be updated. Defaults to False.
-        row (int, optional): The row number of the tile to be marked as complete. Required if update is True. Defaults to None.
-        column (int, optional): The column number of the tile to be marked as complete. Required if update is True. Defaults to None.
 
     Returns:
         str or None: An error message if the card couldn't be posted, otherwise None.
@@ -944,9 +1241,9 @@ async def post_or_update_bingo_card(
     if bingo_card_chan is None:
         return f'No bingo-card channel found in "{cat.name}".'
 
-    if update and row and column:
-        settings = mark_on_image_tile_complete(team_name, row=row, column=column)
-    image_path = settings["teams"][team_name]["image"]
+    image_path = settings["teams"][team_name].get("image") or os.path.join(IMAGE_PATH, "bingo_card_image.png")
+    if not os.path.exists(image_path):
+        return f'No bingo card image found for "{get_team_display_name(settings, team_name)}". Use /upload_board_image first.'
     # A fixed attachment name so the embed's attachment:// link always matches.
     filename = "bingo_card.png"
     img = discord.File(image_path, filename=filename)
@@ -1005,22 +1302,85 @@ async def update_reroll_team_bingo_card_channel(
 
 
 def build_score_text(settings: dict) -> str:
-    """Build the #score-board message text from the current settings."""
+    """
+    Build the #score-board message text from the current settings: teams
+    ranked highest first, with how far each is behind the leader.
+    """
     total_teams = settings.get("total_teams", len(settings["teams"]))
-    teams_keys = list(settings["teams"].keys())
-    teams_scores = [x["current"] for x in settings["teams"].values()]
-    teams_rerolls = [x.get("reroll", 0) for x in settings["teams"].values()]
-    content_text = []
-    for i in range(len(teams_keys)):
-        if i >= total_teams:
-            continue
-        name = get_team_display_name(settings, teams_keys[i])
-        if settings["bot_mode"]["current"] == "candyland":
-            row = f"{name}: {teams_scores[i]} - Rerolls remain: {teams_rerolls[i]}"
+    team_keys = list(settings["teams"].keys())[:total_teams]
+    if not team_keys:
+        return ""
+    mode = settings["bot_mode"]["current"]
+    ranked = rank_teams([(key, settings["teams"][key].get("current") or 0) for key in team_keys])
+    leader_score = ranked[0][2]
+    board_tiles = len(settings.get("items", {}))
+    if mode == "chutes and ladders":
+        board_tiles = settings.get("board_bounds", {}).get("tile_count") or board_tiles
+
+    lines = ["## Scoreboard"]
+    for place, key, score in ranked:
+        team = settings["teams"][key]
+        name = get_team_display_name(settings, key)
+        if is_board_mode(settings):
+            row = f"**{ordinal(place)}** {name} - Tile **{score}**"
+            if board_tiles:
+                row += f"/{board_tiles}"
+            if mode == "candyland":
+                row += f" | Rerolls: {team.get('reroll', 0)}"
         else:
-            row = f"{name}: {teams_scores[i]}"
-        content_text.append(row)
-    return "\n".join(content_text)
+            row = f"**{ordinal(place)}** {name} - **{score}** pts"
+            row += f" | {len(team.get('tiles_completed', []))}/{BOARD_SIZE * BOARD_SIZE} tiles"
+        if score < leader_score:
+            row += f" | {leader_score - score} behind"
+        lines.append(row)
+    lines.append(f"-# Updated <t:{int(datetime.datetime.now(datetime.timezone.utc).timestamp())}:R>")
+    return "\n".join(lines)
+
+
+def find_team_text_channel(
+    guild: discord.Guild, settings: dict, team_name: str, suffix: str
+) -> Optional[discord.TextChannel]:
+    """Find a text channel in the team's category whose name ends with suffix, e.g. "chat"."""
+    cat = find_team_category(guild, settings, team_name)
+    if cat is None:
+        return None
+    return discord.utils.find(lambda ch: ch.name.endswith(suffix), cat.text_channels)
+
+
+async def announce_to_team(guild: discord.Guild, settings: dict, team_name: str, text: str) -> None:
+    """Post a message in the team's chat channel, if it has one."""
+    channel = find_team_text_channel(guild, settings, team_name, "chat")
+    if channel is None:
+        logger.info(f"No chat channel for {team_name}; skipped announcement")
+        return
+    try:
+        await channel.send(text, allowed_mentions=discord.AllowedMentions.none())
+    except discord.HTTPException as e:
+        logger.error(f"Failed to announce to {team_name}: {e}")
+
+
+async def publish_score_change(
+    interaction: discord.Interaction, team_name: str, entries: list, *, card_changed: bool = False
+) -> list:
+    """
+    After a score change: refresh the team's bingo card (if tiles changed),
+    the #score-board, and tell the team in its chat channel.
+
+    Returns:
+        list: Problems to report to the moderator, if any.
+    """
+    settings = load_settings_json()
+    problems = []
+    if card_changed:
+        error = await post_or_update_bingo_card(interaction, settings, team_name)
+        if error:
+            problems.append(f"Bingo card not updated: {error}")
+    error = await update_server_score_board_channel(interaction)
+    if error:
+        problems.append(f"Scoreboard not updated: {error}")
+    if entries:
+        await announce_to_team(interaction.guild, settings, team_name, format_score_entries(settings, team_name, entries))
+    return problems
 
 
 async def update_server_score_board_channel(interaction: discord.Interaction) -> Optional[str]:
@@ -2192,17 +2552,10 @@ async def set_tile(interaction: discord.Interaction, team_name: str, tile: int):
     Returns:
     None
     """
-    await interaction.response.defer(thinking=True)
     if tile < 0:
         tile = 1
-    async with edit_settings() as settings:
-        error = validate_team_name(team_name, settings)
-        if not error:
-            settings["teams"][team_name]["current"] = tile
-    if error:
-        await interaction.followup.send(error)
-        return
-    await interaction.followup.send(f"Updated tile for Team: {team_name} to {tile}")
+    # Goes through the score log so /score history and /score undo include it.
+    await _change_score(interaction, team_name, set_to=tile, reason="/set_tile", kind="set")
 
 
 @has_role("Bingo Moderator")
@@ -2492,28 +2845,6 @@ async def brief_teams_channels(interaction: discord.Interaction):
     
 
 @has_role("Bingo Moderator")
-@bot.tree.command(name="tile_completed", description=f"Marks a channel's tile as completed(Normal)")
-async def tile_completed(interaction: discord.Interaction):
-    """
-    Updates the tile completion status and score in the settings and scoreboard channel.
-    NOT IMPLEMENTED YET
-
-    Parameters:
-    interaction (discord.Interaction): The interaction object representing the user's interaction with the bot.
-
-    Returns:
-    None
-    """
-    # TODO: Not implemented. Planned: track which tile is completed, update the
-    # score in settings and #score-board, and have two different moderators
-    # verify completions. Until then, say so instead of claiming success.
-    await interaction.response.send_message(
-        "This command has not been implemented yet. No action has occurred.",
-        ephemeral=True,
-    )
-
-
-@has_role("Bingo Moderator")
 @bot.tree.command(name="version", description=f"Change the Bot's Bingo Version or view current.")
 async def version(
     interaction: discord.Interaction,
@@ -2549,7 +2880,8 @@ async def version(
     description=f"Mark a tile as completed on the bingo board, Column A-E. Row 1-5. 'A1' for example.")
 async def mark_specific_tile_completed(interaction: discord.Interaction, team_name: str, location: str):
     """
-    Marks a tile as completed for a specific team and updates the Bingo Card.
+    Marks a tile as completed for a specific team, adds its points (and any
+    line or blackout bonus), and updates the Bingo Card and #score-board.
 
     Parameters:
     - interaction (discord.Interaction): The interaction object representing the user's interaction with the bot.
@@ -2575,21 +2907,8 @@ async def mark_specific_tile_completed(interaction: discord.Interaction, team_na
         )
         return
     row, col = parsed
-    if [row, col] in settings["teams"][team_name]["tiles_completed"]:
-        await interaction.followup.send(
-            f"Team: {get_team_display_name(settings, team_name)}'s tile {location.strip().upper()} is already marked as completed."
-        )
-        return
-    settings["teams"][team_name]["tiles_completed"].append([row, col])
-    update_settings_json(settings)
-    error = await post_or_update_bingo_card(
-        interaction, settings, team_name, update=True, row=row, column=col
-    )
-    if error:
-        await interaction.followup.send(f"Tile was recorded as completed, but the Bingo Card wasn't updated: {error}")
-        return
     await interaction.followup.send(
-        f"Team: {get_team_display_name(settings, team_name)}'s tile {location.strip().upper()} has been marked as completed and updated in the Bingo Card Channel"
+        await set_tile_completion(interaction, team_name, row, col, completed=True)
     )
 
 
@@ -2615,9 +2934,6 @@ async def post_bingo_card(
     """
     await interaction.response.defer(thinking=True)
     settings = load_settings_json()
-    if settings['bot_mode']['current'] == "normal":
-        await interaction.followup.send(f"Not in a bingo mode that requires this. Current Mode: {settings['bot_mode']['current']}")
-        return
     team_names = list(settings["teams"].keys())
     if for_all_teams or team_name is None:
         targets = team_names[: settings["total_teams"]]
@@ -3045,6 +3361,648 @@ async def purge_chutes_and_ladders_images(interaction: discord.Interaction):
 
 
 
+
+
+# ======================================= Score Commands ====================================================
+
+
+async def set_tile_completion(
+    interaction: discord.Interaction, team_name: str, row: int, column: int, *, completed: bool, reason: str = ""
+) -> str:
+    """
+    Mark or unmark a normal mode tile, update the score, bingo card,
+    #score-board and team chat.
+
+    Returns:
+        str: The message to show the moderator.
+    """
+    by = interaction.user.display_name
+    card_error = None
+    async with edit_settings() as settings:
+        if completed:
+            entries = complete_tile(settings, team_name, row, column, by=by, reason=reason)
+        else:
+            entries = uncomplete_tile(settings, team_name, row, column, by=by)
+        if entries is not None:
+            try:
+                render_team_card(settings, team_name)
+            except (OSError, ValueError) as e:
+                logger.error(f"Failed to draw bingo card for {team_name}: {e}")
+                card_error = f"Bingo card image could not be drawn: {e}"
+    display = get_team_display_name(settings, team_name)
+    label = describe_location(settings, row, column)
+    if entries is None:
+        return f"{display}'s tile {label} is {'already' if completed else 'not'} marked as completed."
+    problems = await publish_score_change(interaction, team_name, entries, card_changed=card_error is None)
+    if card_error:
+        problems.insert(0, card_error)
+    total = sum(e["delta"] for e in entries)
+    message = (
+        f"{'Marked' if completed else 'Unmarked'} {display}'s tile {label}: "
+        f"{total:+d} pts, score is now {entries[-1]['after']}."
+    )
+    return "\n".join([message] + problems)
+
+
+async def _change_score(
+    interaction: discord.Interaction,
+    team_name: str,
+    *,
+    delta: int = 0,
+    set_to: Optional[int] = None,
+    reason: str,
+    kind: str = "manual",
+) -> None:
+    """Shared body of /score add, /score remove, /score set and /set_tile."""
+    await interaction.response.defer(thinking=True)
+    entry = None
+    async with edit_settings() as settings:
+        error = validate_team_name(team_name, settings)
+        if not error:
+            entry = apply_score_change(
+                settings, team_name, delta=delta, set_to=set_to,
+                reason=reason, by=interaction.user.display_name, kind=kind,
+            )
+    if error:
+        await interaction.followup.send(error)
+        return
+    problems = await publish_score_change(interaction, team_name, [entry])
+    lines = [format_score_entries(settings, team_name, [entry])]
+    requested = set_to if set_to is not None else entry["before"] + delta
+    if requested != entry["after"]:
+        lines.append(f"Score was limited to {entry['after']} (it can't go below 0{' or past the last tile' if is_board_mode(settings) else ''}).")
+    if is_board_mode(settings):
+        lines.append("In this mode the score is the team's tile. No tile channel was created.")
+    await interaction.followup.send("\n".join(lines + problems))
+
+
+score_group = app_commands.Group(
+    name="score", description="Change and review team scores.", guild_only=True
+)
+
+
+@score_group.command(name="add", description="Add points to a team. In candyland/chutes and ladders this moves the team forward.")
+@app_commands.describe(points="Points to add", reason="Why, shown to the team and in /score history")
+@app_commands.autocomplete(team_name=team_names_autocomplete)
+@has_role(MODERATOR_ROLE)
+async def score_add(
+    interaction: discord.Interaction,
+    team_name: str,
+    points: app_commands.Range[int, 1, 100000],
+    reason: Optional[str] = None,
+):
+    """Add points to a team's score."""
+    await _change_score(interaction, team_name, delta=points, reason=reason or "Added by moderator")
+
+
+@score_group.command(name="remove", description="Remove points from a team. In candyland/chutes and ladders this moves the team back.")
+@app_commands.describe(points="Points to remove", reason="Why, shown to the team and in /score history")
+@app_commands.autocomplete(team_name=team_names_autocomplete)
+@has_role(MODERATOR_ROLE)
+async def score_remove(
+    interaction: discord.Interaction,
+    team_name: str,
+    points: app_commands.Range[int, 1, 100000],
+    reason: Optional[str] = None,
+):
+    """Remove points from a team's score."""
+    await _change_score(interaction, team_name, delta=-points, reason=reason or "Removed by moderator")
+
+
+@score_group.command(name="set", description="Set a team's score. In candyland/chutes and ladders this sets the team's tile.")
+@app_commands.describe(points="The new score", reason="Why, shown to the team and in /score history")
+@app_commands.autocomplete(team_name=team_names_autocomplete)
+@has_role(MODERATOR_ROLE)
+async def score_set(
+    interaction: discord.Interaction,
+    team_name: str,
+    points: app_commands.Range[int, 0, 100000],
+    reason: Optional[str] = None,
+):
+    """Set a team's score."""
+    await _change_score(interaction, team_name, set_to=points, reason=reason or "Set by moderator", kind="set")
+
+
+@score_group.command(name="undo", description="Undo a team's last score change, including tile marks and their bonuses.")
+@app_commands.autocomplete(team_name=team_names_autocomplete)
+@has_role(MODERATOR_ROLE)
+async def score_undo(interaction: discord.Interaction, team_name: str):
+    """Undo a team's most recent score change."""
+    await interaction.response.defer(thinking=True)
+    undone, new_entries = [], []
+    card_changed = False
+    card_error = None
+    async with edit_settings() as settings:
+        error = validate_team_name(team_name, settings)
+        if not error:
+            undone, new_entries = undo_last_score_change(settings, team_name, by=interaction.user.display_name)
+            if any(e["kind"] == "tile" for e in undone) and not is_board_mode(settings):
+                try:
+                    render_team_card(settings, team_name)
+                    card_changed = True
+                except (OSError, ValueError) as e:
+                    card_error = f"Bingo card image could not be drawn: {e}"
+    if error:
+        await interaction.followup.send(error)
+        return
+    if not undone:
+        await interaction.followup.send(f"{get_team_display_name(settings, team_name)} has no score changes to undo.")
+        return
+    problems = await publish_score_change(interaction, team_name, new_entries, card_changed=card_changed)
+    if card_error:
+        problems.insert(0, card_error)
+    await interaction.followup.send("\n".join([format_score_entries(settings, team_name, new_entries)] + problems))
+
+
+@score_group.command(name="history", description="Show a team's recent score changes.")
+@app_commands.describe(count="How many changes to show")
+@app_commands.autocomplete(team_name=team_names_autocomplete)
+@has_role(MODERATOR_ROLE)
+async def score_history(
+    interaction: discord.Interaction,
+    team_name: str,
+    count: app_commands.Range[int, 1, 25] = 10,
+):
+    """Show a team's score log, newest first. Undone changes are struck through."""
+    settings = load_settings_json()
+    error = validate_team_name(team_name, settings)
+    if error:
+        await interaction.response.send_message(error, ephemeral=True)
+        return
+    team = settings["teams"][team_name]
+    log = team.get("score_log", [])[-count:]
+    lines = []
+    for e in reversed(log):
+        line = f"`#{e['id']}` {e['delta']:+d} -> {e['after']} | {e['reason'][:80]} | {e['by']} | <t:{e['at']}:R>"
+        if e.get("undone"):
+            line = f"~~{line}~~"
+        lines.append(line)
+    embed = discord.Embed(
+        title=f"{get_team_display_name(settings, team_name)} score history (now {team.get('current') or 0})",
+        description="\n".join(lines) or "No score changes yet.",
+        color=0xF7E302,
+    )
+    await interaction.response.send_message(embed=embed, ephemeral=True)
+
+
+@score_group.command(name="config", description="View or change tile points, line/blackout bonuses and approvals needed.")
+@app_commands.describe(
+    default_tile_points="Points for a tile when the sheet has no points column value",
+    line_bonus="Extra points for each completed row, column or diagonal (0 = off)",
+    blackout_bonus="Extra points for completing every tile (0 = off)",
+    approvals_required="Different moderators needed to approve a /submit",
+)
+@has_role(MODERATOR_ROLE)
+async def score_config(
+    interaction: discord.Interaction,
+    default_tile_points: Optional[app_commands.Range[int, 0, 10000]] = None,
+    line_bonus: Optional[app_commands.Range[int, 0, 10000]] = None,
+    blackout_bonus: Optional[app_commands.Range[int, 0, 10000]] = None,
+    approvals_required: Optional[app_commands.Range[int, 1, 5]] = None,
+):
+    """Show the scoring settings, changing any that were given."""
+    changes = {
+        "default_tile_points": default_tile_points,
+        "line_bonus": line_bonus,
+        "blackout_bonus": blackout_bonus,
+        "approvals_required": approvals_required,
+    }
+    changes = {k: v for k, v in changes.items() if v is not None}
+    async with edit_settings() as settings:
+        scoring = get_scoring(settings)
+        scoring.update(changes)
+        settings["scoring"] = scoring
+    lines = [f"{'Updated scoring' if changes else 'Scoring'} settings:"]
+    lines += [f"- {k}: {v}" for k, v in scoring.items()]
+    if changes:
+        lines.append("Changes apply to tiles marked from now on. Existing scores are not recalculated.")
+    await interaction.response.send_message("\n".join(lines), ephemeral=True)
+
+
+bot.tree.add_command(score_group)
+
+
+@has_role(MODERATOR_ROLE)
+@app_commands.autocomplete(team_name=team_names_autocomplete)
+@bot.tree.command(name="unmark_tile_completed",
+    description="Unmark a completed tile on the bingo board and take back its points. 'A1' for example.")
+async def unmark_tile_completed(interaction: discord.Interaction, team_name: str, location: str):
+    """
+    Unmarks a completed tile for a team, removes its points (and any line or
+    blackout bonus it was part of) and redraws the Bingo Card.
+    """
+    await interaction.response.defer(thinking=True)
+    settings = load_settings_json()
+    if settings['bot_mode']['current'] != "normal":
+        await interaction.followup.send(f"This command only works when Bot is in mode 'normal'. Current Mode: {settings['bot_mode']['current']}")
+        return
+    error = validate_team_name(team_name, settings)
+    if error:
+        await interaction.followup.send(error)
+        return
+    parsed = parse_table_location(location)
+    if parsed is None:
+        await interaction.followup.send(
+            f'"{location}" is not a valid tile. Use a column A-E and a row 1-5, e.g. "A1".'
+        )
+        return
+    row, col = parsed
+    await interaction.followup.send(
+        await set_tile_completion(interaction, team_name, row, col, completed=False)
+    )
+
+
+# ======================================= Submissions ====================================================
+
+
+def is_moderator(user) -> bool:
+    """True if the member has the Bingo Moderator role."""
+    return discord.utils.get(getattr(user, "roles", []), name=MODERATOR_ROLE) is not None
+
+
+def get_submissions(settings: dict) -> dict:
+    """settings["submissions"], created for older settings.json files."""
+    return settings.setdefault("submissions", {"next_id": 1, "items": {}})
+
+
+def channel_slug(text: str) -> str:
+    """Normalise a channel or tile name for comparison, e.g. "Zulrah's Pet!" -> "zulrah-s-pet"."""
+    return re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
+
+
+def submission_tile_label(settings: dict, tile_key: str) -> str:
+    """Label for a submitted tile: "A1 Zulrah" in normal mode, "Tile 12 Zulrah" in board modes."""
+    item = settings.get("items", {}).get(str(tile_key), {})
+    if is_board_mode(settings):
+        return f"Tile {tile_key}{' ' + item['name'] if item.get('name') else ''}"
+    location = location_for_tile_key(tile_key)
+    return describe_location(settings, *location) if location else f"Tile {tile_key}"
+
+
+def resolve_submission_tile(settings: dict, channel_name: str, tile_arg: Optional[str]) -> (Optional[str], Optional[str]):
+    """
+    Work out which tile a /submit is for: the tile argument if given,
+    otherwise the channel it was used in.
+
+    Returns:
+        tuple: (tile key, None) or (None, error message)
+    """
+    items = settings.get("items", {})
+    if not items:
+        return None, "No tiles are loaded. A moderator needs to run /upload_tiles."
+    if tile_arg:
+        tile_arg = tile_arg.strip()
+        if not is_board_mode(settings):
+            parsed = parse_table_location(tile_arg)
+            if parsed:
+                return tile_key_for_location(*parsed), None
+        if tile_arg.isdigit() and tile_arg in items:
+            if not is_board_mode(settings) and location_for_tile_key(tile_arg) is None:
+                return None, f"Tile {tile_arg} is not on the 5x5 board."
+            return tile_arg, None
+        hint = "a tile number" if is_board_mode(settings) else "a location A1-E5"
+        return None, f'"{tile_arg}" is not a tile. Use {hint}.'
+    if is_board_mode(settings):
+        # Rolled tile channels are named "<tile>-<name>"
+        match = re.match(r"^(\d+)-", channel_name)
+        if match and match.group(1) in items:
+            return match.group(1), None
+    else:
+        slug = channel_slug(channel_name)
+        for key, item in items.items():
+            if item.get("name") and channel_slug(create_discord_friendly_name(item["name"])) == slug:
+                if location_for_tile_key(key) is None:
+                    return None, f"Tile {key} is not on the 5x5 board."
+                return key, None
+    return None, "Use /submit in the tile's channel, or say which tile with the tile option."
+
+
+SUBMISSION_COLORS = {"pending": 0xF7E302, "approved": 0x2ECC71, "rejected": 0xE74C3C}
+
+
+def build_submission_embed(settings: dict, sub: dict) -> discord.Embed:
+    """The review message embed for a submission."""
+    required = get_scoring(settings)["approvals_required"]
+    embed = discord.Embed(
+        title=f"Submission #{sub['id']}: {get_team_display_name(settings, sub['team'])} - {submission_tile_label(settings, sub['tile'])}",
+        description=sub.get("note") or None,
+        color=SUBMISSION_COLORS.get(sub["status"], 0xF7E302),
+        timestamp=datetime.datetime.fromtimestamp(sub["created_at"], datetime.timezone.utc),
+    )
+    if sub["status"] == "pending":
+        status = f"Pending ({len(sub['approvers'])}/{required} approvals)"
+        if sub["approvers"]:
+            status += f": {', '.join(sub['approvers'])}"
+    elif sub["status"] == "approved":
+        status = f"Approved by {', '.join(sub['approvers'])}"
+        if sub.get("result"):
+            status += f"\n{sub['result']}"
+    else:
+        status = f"Rejected by {sub.get('rejected_by', 'a moderator')}"
+        if sub.get("reason"):
+            status += f": {sub['reason']}"
+    embed.add_field(name="Status", value=status[:1024], inline=False)
+    embed.add_field(name="Submitted by", value=f"<@{sub['submitter_id']}>")
+    embed.add_field(name="Channel", value=f"<#{sub['channel_id']}>")
+    embed.set_image(url=f"attachment://{sub['filename']}")
+    return embed
+
+
+class SubmissionButton(
+    discord.ui.DynamicItem[discord.ui.Button],
+    template=r"bingo:submission:(?P<action>approve|reject):(?P<id>\d+)",
+):
+    """
+    Approve/Reject button on a submission review message. The submission ID is
+    in the custom_id, so the buttons keep working after the bot restarts.
+    """
+
+    def __init__(self, action: str, submission_id: int):
+        approve = action == "approve"
+        super().__init__(
+            discord.ui.Button(
+                label="Approve" if approve else "Reject",
+                style=discord.ButtonStyle.green if approve else discord.ButtonStyle.danger,
+                custom_id=f"bingo:submission:{action}:{submission_id}",
+            )
+        )
+        self.action = action
+        self.submission_id = submission_id
+
+    @classmethod
+    async def from_custom_id(cls, interaction: discord.Interaction, item: discord.ui.Button, match: re.Match, /):
+        return cls(match["action"], int(match["id"]))
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if is_moderator(interaction.user):
+            return True
+        await interaction.response.send_message(
+            f"Only a {MODERATOR_ROLE} can review submissions.", ephemeral=True
+        )
+        return False
+
+    async def callback(self, interaction: discord.Interaction):
+        if self.action == "approve":
+            await approve_submission(interaction, self.submission_id)
+        else:
+            await interaction.response.send_modal(RejectSubmissionModal(self.submission_id))
+
+
+def submission_view(submission_id: int) -> discord.ui.View:
+    """The Approve/Reject buttons for a pending submission."""
+    view = discord.ui.View(timeout=None)
+    view.add_item(SubmissionButton("approve", submission_id))
+    view.add_item(SubmissionButton("reject", submission_id))
+    return view
+
+
+class RejectSubmissionModal(discord.ui.Modal):
+    """Asks the moderator why a submission is rejected."""
+
+    reason = discord.ui.TextInput(
+        label="Reason (shown to the team)",
+        style=discord.TextStyle.paragraph,
+        required=False,
+        max_length=500,
+    )
+
+    def __init__(self, submission_id: int):
+        super().__init__(title=f"Reject submission #{submission_id}")
+        self.submission_id = submission_id
+
+    async def on_submit(self, interaction: discord.Interaction):
+        await reject_submission(interaction, self.submission_id, (self.reason.value or "").strip())
+
+
+async def notify_submitter(sub: dict, text: str) -> None:
+    """Tell the submitter about a decision in the channel they submitted from."""
+    channel = bot.get_channel(sub["channel_id"])
+    if channel is None:
+        return
+    try:
+        await channel.send(f"<@{sub['submitter_id']}> {text}")
+    except discord.HTTPException as e:
+        logger.error(f"Failed to notify submitter of #{sub['id']}: {e}")
+
+
+async def approve_submission(interaction: discord.Interaction, submission_id: int) -> None:
+    """
+    Add the moderator's approval. Once enough different moderators approve,
+    mark the tile completed (normal mode: points, bonuses and bingo card) and
+    tell the team.
+    """
+    by = interaction.user.display_name
+    entries = []
+    card_error = None
+    async with edit_settings() as settings:
+        sub = get_submissions(settings)["items"].get(str(submission_id))
+        if sub is None:
+            outcome = "This submission no longer exists (the bingo may have been reset)."
+        elif sub["status"] != "pending":
+            outcome = f"This submission was already {sub['status']}."
+        elif interaction.user.id == sub["submitter_id"]:
+            outcome = "You can't approve your own submission."
+        elif interaction.user.id in sub["approver_ids"]:
+            outcome = "You already approved this submission. It needs a different moderator."
+        else:
+            outcome = None
+            sub["approver_ids"].append(interaction.user.id)
+            sub["approvers"].append(by)
+            if len(sub["approver_ids"]) >= get_scoring(settings)["approvals_required"]:
+                sub["status"] = "approved"
+                team = settings["teams"][sub["team"]]
+                if is_board_mode(settings):
+                    done = team.setdefault("board_tiles_completed", [])
+                    if int(sub["tile"]) not in done:
+                        done.append(int(sub["tile"]))
+                    sub["result"] = "Tile recorded as completed."
+                else:
+                    row, col = location_for_tile_key(sub["tile"])
+                    entries = complete_tile(
+                        settings, sub["team"], row, col, by=by, reason=f"submission #{submission_id}"
+                    )
+                    if entries is None:
+                        entries = []
+                        sub["result"] = "The tile was already completed, so no points were added."
+                    else:
+                        sub["result"] = f"{sum(e['delta'] for e in entries):+d} pts"
+                        try:
+                            render_team_card(settings, sub["team"])
+                        except (OSError, ValueError) as e:
+                            logger.error(f"Failed to draw bingo card for {sub['team']}: {e}")
+                            card_error = f"Bingo card image could not be drawn: {e}"
+    if outcome:
+        await interaction.response.send_message(outcome, ephemeral=True)
+        return
+    approved = sub["status"] == "approved"
+    await interaction.response.edit_message(
+        embed=build_submission_embed(settings, sub),
+        view=None if approved else submission_view(submission_id),
+    )
+    if not approved:
+        return
+    problems = [card_error] if card_error else []
+    if entries:
+        problems += await publish_score_change(interaction, sub["team"], entries, card_changed=card_error is None)
+    else:
+        await announce_to_team(
+            interaction.guild, settings, sub["team"],
+            f"Submission #{submission_id} for {submission_tile_label(settings, sub['tile'])} was approved.",
+        )
+    await notify_submitter(
+        sub, f"Submission #{submission_id} for {submission_tile_label(settings, sub['tile'])} was approved. {sub.get('result', '')}"
+    )
+    if problems:
+        await interaction.followup.send("\n".join(problems), ephemeral=True)
+
+
+async def reject_submission(interaction: discord.Interaction, submission_id: int, reason: str) -> None:
+    """Reject a pending submission and tell the submitter why."""
+    async with edit_settings() as settings:
+        sub = get_submissions(settings)["items"].get(str(submission_id))
+        if sub is None:
+            outcome = "This submission no longer exists (the bingo may have been reset)."
+        elif sub["status"] != "pending":
+            outcome = f"This submission was already {sub['status']}."
+        else:
+            outcome = None
+            sub["status"] = "rejected"
+            sub["rejected_by"] = interaction.user.display_name
+            sub["reason"] = reason
+    if outcome:
+        await interaction.response.send_message(outcome, ephemeral=True)
+        return
+    await interaction.response.edit_message(embed=build_submission_embed(settings, sub), view=None)
+    await notify_submitter(
+        sub,
+        f"Submission #{submission_id} for {submission_tile_label(settings, sub['tile'])} was rejected"
+        f"{': ' + reason if reason else '.'}",
+    )
+
+
+PROOF_EXTENSIONS = (".png", ".jpg", ".jpeg", ".gif", ".webp")
+
+
+@bot.tree.command(name="submit", description="Submit a screenshot showing your team completed a tile, for moderators to approve.")
+@app_commands.describe(
+    proof="Screenshot showing the tile is completed",
+    tile="Only needed outside the tile's channel: A1-E5, or the tile number in candyland/chutes and ladders",
+    note="Anything the moderators should know",
+)
+@app_commands.guild_only()
+async def submit(
+    interaction: discord.Interaction,
+    proof: discord.Attachment,
+    tile: Optional[str] = None,
+    note: Optional[str] = None,
+):
+    """
+    Sends a tile completion to the review channel (#submissions, or
+    #bot-commands) with Approve/Reject buttons for Bingo Moderators.
+    Must be used in one of the team's channels by a member of the team.
+    """
+    if not (proof.content_type or "").startswith("image/"):
+        await interaction.response.send_message("Please attach an image as proof.", ephemeral=True)
+        return
+    settings = load_settings_json()
+    category = getattr(interaction.channel, "category", None)
+    team_name = get_team_key_by_display_name(settings, category.name) if category else None
+    if not team_name:
+        await interaction.response.send_message("Use /submit in one of your team's channels.", ephemeral=True)
+        return
+    team_role = discord.utils.get(interaction.guild.roles, name=team_name)
+    if team_role not in getattr(interaction.user, "roles", []) and not is_moderator(interaction.user):
+        await interaction.response.send_message("Only members of this team can submit for it.", ephemeral=True)
+        return
+    tile_key, error = resolve_submission_tile(settings, interaction.channel.name, tile)
+    if error:
+        await interaction.response.send_message(error, ephemeral=True)
+        return
+    label = submission_tile_label(settings, tile_key)
+    if not is_board_mode(settings):
+        if list(location_for_tile_key(tile_key)) in settings["teams"][team_name].get("tiles_completed", []):
+            await interaction.response.send_message(f"{label} is already completed for your team.", ephemeral=True)
+            return
+    for existing in get_submissions(settings)["items"].values():
+        if existing["team"] == team_name and existing["tile"] == tile_key and existing["status"] == "pending":
+            await interaction.response.send_message(
+                f"{label} already has a pending submission (#{existing['id']}).", ephemeral=True
+            )
+            return
+    review_channel = discord.utils.get(interaction.guild.text_channels, name=SUBMISSIONS_CHANNEL) or discord.utils.get(
+        interaction.guild.text_channels, name=mod_channel
+    )
+    if review_channel is None:
+        await interaction.response.send_message(
+            f"No #{SUBMISSIONS_CHANNEL} or #{mod_channel} channel to send submissions to. Ask a moderator.", ephemeral=True
+        )
+        return
+
+    await interaction.response.defer(thinking=True)
+    ext = os.path.splitext(proof.filename)[1].lower()
+    filename = f"proof{ext if ext in PROOF_EXTENSIONS else '.png'}"
+    file = await proof.to_file(filename=filename)
+    async with edit_settings() as settings:
+        submissions = get_submissions(settings)
+        submission_id = submissions["next_id"]
+        submissions["next_id"] += 1
+        sub = {
+            "id": submission_id,
+            "team": team_name,
+            "tile": tile_key,
+            "submitter_id": interaction.user.id,
+            "submitter": interaction.user.display_name,
+            "channel_id": interaction.channel.id,
+            "note": (note or "")[:1000],
+            "filename": filename,
+            "status": "pending",
+            "approver_ids": [],
+            "approvers": [],
+            "created_at": int(datetime.datetime.now(datetime.timezone.utc).timestamp()),
+        }
+        submissions["items"][str(submission_id)] = sub
+    try:
+        message = await review_channel.send(
+            embed=build_submission_embed(settings, sub), file=file, view=submission_view(submission_id)
+        )
+    except discord.HTTPException as e:
+        async with edit_settings() as settings:
+            get_submissions(settings)["items"].pop(str(submission_id), None)
+        await interaction.followup.send(f"Could not send the submission for review: {e}")
+        return
+    async with edit_settings() as settings:
+        saved = get_submissions(settings)["items"].get(str(submission_id))
+        if saved is not None:
+            saved["review_channel_id"] = review_channel.id
+            saved["review_message_id"] = message.id
+    await interaction.followup.send(
+        f"Submitted #{submission_id} for {label}. A {MODERATOR_ROLE} will review it."
+    )
+
+
+@has_role(MODERATOR_ROLE)
+@bot.tree.command(name="pending_submissions", description="List tile submissions waiting for review.")
+async def pending_submissions(interaction: discord.Interaction):
+    """Lists pending submissions with links to their review messages."""
+    settings = load_settings_json()
+    lines = []
+    for sub in get_submissions(settings)["items"].values():
+        if sub["status"] != "pending":
+            continue
+        line = f"#{sub['id']} {get_team_display_name(settings, sub['team'])} - {submission_tile_label(settings, sub['tile'])} by {sub['submitter']}"
+        if sub.get("review_message_id"):
+            line += f" [review](https://discord.com/channels/{interaction.guild.id}/{sub['review_channel_id']}/{sub['review_message_id']})"
+        lines.append(line)
+    text = "\n".join(lines) or "No submissions are waiting for review."
+    await interaction.response.send_message(text[:2000], ephemeral=True)
+
+
+async def _setup_hook():
+    # Lets submission buttons sent before a restart keep working.
+    bot.add_dynamic_items(SubmissionButton)
+
+
+bot.setup_hook = _setup_hook
 
 
 if __name__ == '__main__':
