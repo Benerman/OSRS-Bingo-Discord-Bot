@@ -37,7 +37,8 @@ Tiles without a points value are worth `default_tile_points` (see /score config)
     - process_sheet (bool, optional): Whether to process the sheet and update the settings. Defaults to True.
 
 ### /create_team_channels <team_name: str>
-Creates team-specific channels of the tile lists(settings['items'])
+Creates the team's category (named after its display name) and team-specific channels of the tile lists(settings['items']).
+The category's ID is saved, so the bot finds it even if it is renamed. Refuses if the team already has a category; use /delete_team first.
 Adds to channel descriptions and posts message of the tile description.
 Adds some other basic channels specified:
     - DEFAULT_CHANNELS = ["chat", "bingo-card", "drop-spam", "pets", "voice-chat"]
@@ -93,16 +94,15 @@ Updates only team specified.
 Posts the default bingo card image in the specified team's Bingo Card Channel.
 
 ### /change_team_name <team_name: str> <new_team_name: str>
-Changes the name of a team in the settings and updates the corresponding category name.
-Requires the Team Name to be the same as in the settings, will fail if it isn't.
-If fails, change the team name(Category) manually and try running category command again. 
+Changes the team's display name and renames its category. Pick the team from the list (it shows display names).
+If the team has no category yet, only the name is changed and /create_team_channels will use it.
 
     Parameters:
     - team_name (str): The current name of the team to be changed.
     - new_team_name (str): The new name for the team.
 
 ### /delete_team <team_name: str>
-Deletes all channels associated with a team.
+Deletes the team's category and all its channels, resets its display name and forgets the saved category.
 Prompts for user's confirmation on bot's response before deleting the channels.
 
     Parameters:
