@@ -12,6 +12,7 @@ import math
 import config
 import asyncio
 import tempfile
+import errno
 import logging
 from discord import Role
 from typing import List, Optional
@@ -235,20 +236,53 @@ def save_settings_json(contents: dict) -> None:
     """
     Save the settings to the settings.json file.
     Uses atomic write (temp file + rename) to prevent corruption on crash.
+    Falls back to an in-place write when settings.json is a Docker single-file
+    bind mount, where rename onto the mount point fails with EBUSY/EXDEV.
 
     Args:
         contents (dict): The settings to save.
     """
+    data = json.dumps(contents, indent=4)
+    tmp_path = None
     try:
         fd, tmp_path = tempfile.mkstemp(suffix=".json", dir=".")
         with os.fdopen(fd, "w") as f:
-            json.dump(contents, f, indent=4)
-        os.replace(tmp_path, "settings.json")
-    except IOError as e:
+            f.write(data)
+            f.flush()
+            os.fsync(f.fileno())
+        try:
+            os.replace(tmp_path, "settings.json")
+            tmp_path = None
+            return
+        except OSError as e:
+            if e.errno not in (errno.EBUSY, errno.EXDEV):
+                raise
+        # Bind-mounted file: rewrite contents in place instead of renaming.
+        with open("settings.json", "w") as f:
+            f.write(data)
+            f.flush()
+            os.fsync(f.fileno())
+    except OSError as e:
         logger.error(f"Failed to save settings.json: {e}")
-        if os.path.exists(tmp_path):
-            os.remove(tmp_path)
         raise
+    finally:
+        if tmp_path and os.path.exists(tmp_path):
+            os.remove(tmp_path)
+
+
+def _reset_all_settings() -> None:
+    """Reset every team's progress in settings.json to defaults."""
+    settings = load_settings_json()
+    settings["total_teams"] = MAX_TEAMS
+    for team in settings["teams"].values():
+        team["display_name"] = ""
+        team["tiles_completed"] = []
+        team["current"] = 0
+        team["prev"] = 0
+        team["reroll"] = 0
+        team["roll_history"] = []
+        team["image"] = os.path.join(IMAGE_PATH, "bingo_card_image.png")
+    save_settings_json(settings)
 
 
 def get_team_display_name(settings: dict, team_key: str) -> str:
@@ -2854,28 +2888,21 @@ async def reset_bingo_settings(interaction: discord.Interaction):
             self, interaction: discord.Interaction,
             button: discord.ui.Button
         ):
-            settings = load_settings_json()
-            team_names = [x for x in settings["teams"].keys()]
-            settings["total_teams"] = MAX_TEAMS
-            for team_name in team_names:
-                settings["teams"][team_name]["display_name"] = ""
-                settings["teams"][team_name]["tiles_completed"] = []
-                settings["teams"][team_name]["current"] = 0
-                settings["teams"][team_name]["prev"] = 0
-                settings["teams"][team_name]["reroll"] = 0
-                settings["teams"][team_name]["roll_history"] = []
-                settings["teams"][team_name]["image"] = os.path.join(
-                    IMAGE_PATH, "bingo_card_image.png"
-                )
-
-            # delete images in IMAGE_PATH that arent default_bingo_card_image.png
-            update_settings_json(settings)
+            async with _settings_lock:
+                try:
+                    _reset_all_settings()
+                except OSError as e:
+                    await interaction.response.edit_message(
+                        content=f"Failed to reset settings: {e}", view=None
+                    )
+                    return
             for child in self.children:
                 child.disabled = True
             await interaction.response.edit_message(
-                content=f"# Reset Bingo Settings.", #\nPrevious Settings:\n{json.dumps(old_settings, indent=4)}",
+                content="# Reset Bingo Settings.",
                 view=self,
             )
+
     await interaction.response.send_message(
         embed=discord.Embed(description=f'Confirm Reset of all Teams scores and settings:'),
         view=ConfirmReset(),
