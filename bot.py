@@ -1536,6 +1536,15 @@ def general_chat_restrict_overwrites():
 
 # ======================================= Discord Autocomplete Functions ====================================================
 
+# Discord rejects an autocomplete reply with more than 25 choices, or names
+# and values longer than 100 characters, and then shows no options at all.
+MAX_AUTOCOMPLETE_CHOICES = 25
+
+
+def autocomplete_choice(name: str, value: str) -> app_commands.Choice[str]:
+    """A choice trimmed to Discord's 100 character limit."""
+    return app_commands.Choice(name=name[:100], value=value[:100])
+
 
 async def team_names_autocomplete(
     interaction: discord.Interaction, current: str
@@ -1556,8 +1565,8 @@ async def team_names_autocomplete(
     for team_key in settings["teams"]:
         display = get_team_display_name(settings, team_key)
         if current.lower() in display.lower() or current.lower() in team_key.lower():
-            choices.append(app_commands.Choice(name=display, value=team_key))
-    return choices
+            choices.append(autocomplete_choice(display, team_key))
+    return choices[:MAX_AUTOCOMPLETE_CHOICES]
 
 async def change_team_names_autocomplete(
     interaction: discord.Interaction, current: str
@@ -1579,14 +1588,15 @@ async def change_team_names_autocomplete(
     for team_key in settings["teams"]:
         display = get_team_display_name(settings, team_key)
         if current.lower() in display.lower() or current.lower() in team_key.lower():
-            options.append(app_commands.Choice(name=display, value=team_key))
+            options.append(autocomplete_choice(display, team_key))
             seen.add(display)
             seen.add(team_key)
     all_categories = [c.name for c in interaction.guild.categories if c.name.lower() not in IGNORED_CATEGORIES]
     for cat_name in all_categories:
         if cat_name not in seen and current.lower() in cat_name.lower():
-            options.append(app_commands.Choice(name=cat_name, value=cat_name))
-    return options
+            options.append(autocomplete_choice(cat_name, cat_name))
+    # Teams come first, so they are kept when there are too many categories.
+    return options[:MAX_AUTOCOMPLETE_CHOICES]
 
 async def process_sheet_autocomplete(
     interaction: discord.Interaction, current: str
