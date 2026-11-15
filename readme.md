@@ -183,12 +183,13 @@ Undoes the team's last score change. Undoing a tile mark also unmarks the tile a
 ### /score history <team_name> [count]
 Shows recent score changes (only to you). Undone changes are struck through.
 
-### /score config [default_tile_points] [line_bonus] [blackout_bonus] [approvals_required]
-Shows or changes scoring settings. Changes only affect tiles marked afterwards.
+### /score config [default_tile_points] [line_bonus] [blackout_bonus] [approvals_required] [show_tile_count]
+Shows or changes scoring settings. Point and bonus changes only affect tiles marked afterwards.
 - default_tile_points: points for tiles with no points value in the sheet (default 1)
 - line_bonus: extra points for each completed row, column or diagonal (default 0 = off)
 - blackout_bonus: extra points for completing all 25 tiles (default 0 = off)
 - approvals_required: how many different moderators must approve a /submit (default 1)
+- show_tile_count: show tiles completed on #score-board in normal bingo, counted against the tiles loaded, up to 25 (default on)
 
 ## Submissions
 

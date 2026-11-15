@@ -130,6 +130,7 @@ default_settings_dict = {
         "line_bonus": 0,
         "blackout_bonus": 0,
         "approvals_required": 1,
+        "show_tile_count": True,
     },
     "submissions": {"next_id": 1, "items": {}},
 }
@@ -1329,6 +1330,11 @@ def build_score_text(settings: dict) -> str:
     if mode == "chutes and ladders":
         board_tiles = settings.get("board_bounds", {}).get("tile_count") or board_tiles
 
+    show_tile_count = get_scoring(settings)["show_tile_count"]
+    # Count against the tiles actually loaded (up to the 5x5 card), so a
+    # smaller bingo doesn't show "/25".
+    tile_total = min(len(settings.get("items", {})), BOARD_SIZE * BOARD_SIZE) or BOARD_SIZE * BOARD_SIZE
+
     lines = ["## Scoreboard"]
     for place, key, score in ranked:
         team = settings["teams"][key]
@@ -1341,7 +1347,8 @@ def build_score_text(settings: dict) -> str:
                 row += f" | Rerolls: {team.get('reroll', 0)}"
         else:
             row = f"**{ordinal(place)}** {name} - **{score}** pts"
-            row += f" | {len(team.get('tiles_completed', []))}/{BOARD_SIZE * BOARD_SIZE} tiles"
+            if show_tile_count:
+                row += f" | {len(team.get('tiles_completed', []))}/{tile_total} tiles"
         if score < leader_score:
             row += f" | {leader_score - score} behind"
         lines.append(row)
@@ -3550,12 +3557,13 @@ async def score_history(
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
-@score_group.command(name="config", description="View or change tile points, line/blackout bonuses and approvals needed.")
+@score_group.command(name="config", description="View or change tile points, bonuses, approvals and the scoreboard tile count.")
 @app_commands.describe(
     default_tile_points="Points for a tile when the sheet has no points column value",
     line_bonus="Extra points for each completed row, column or diagonal (0 = off)",
     blackout_bonus="Extra points for completing every tile (0 = off)",
     approvals_required="Different moderators needed to approve a /submit",
+    show_tile_count="Show tiles completed (e.g. 3/25) on #score-board in normal bingo",
 )
 @has_role(MODERATOR_ROLE)
 async def score_config(
@@ -3564,13 +3572,16 @@ async def score_config(
     line_bonus: Optional[app_commands.Range[int, 0, 10000]] = None,
     blackout_bonus: Optional[app_commands.Range[int, 0, 10000]] = None,
     approvals_required: Optional[app_commands.Range[int, 1, 5]] = None,
+    show_tile_count: Optional[bool] = None,
 ):
     """Show the scoring settings, changing any that were given."""
+    await interaction.response.defer(ephemeral=True, thinking=True)
     changes = {
         "default_tile_points": default_tile_points,
         "line_bonus": line_bonus,
         "blackout_bonus": blackout_bonus,
         "approvals_required": approvals_required,
+        "show_tile_count": show_tile_count,
     }
     changes = {k: v for k, v in changes.items() if v is not None}
     async with edit_settings() as settings:
@@ -3579,9 +3590,12 @@ async def score_config(
         settings["scoring"] = scoring
     lines = [f"{'Updated scoring' if changes else 'Scoring'} settings:"]
     lines += [f"- {k}: {v}" for k, v in scoring.items()]
-    if changes:
+    if changes.keys() - {"show_tile_count"}:
         lines.append("Changes apply to tiles marked from now on. Existing scores are not recalculated.")
-    await interaction.response.send_message("\n".join(lines), ephemeral=True)
+    if "show_tile_count" in changes:
+        error = await update_server_score_board_channel(interaction)
+        lines.append(error or "#score-board updated.")
+    await interaction.followup.send("\n".join(lines), ephemeral=True)
 
 
 bot.tree.add_command(score_group)
