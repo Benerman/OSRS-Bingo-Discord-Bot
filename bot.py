@@ -2,7 +2,6 @@ import discord
 from discord import app_commands
 from discord.app_commands.checks import has_role
 from discord.ext import commands, tasks
-import requests
 import json
 import re
 import random
@@ -14,13 +13,13 @@ import asyncio
 import tempfile
 import errno
 import logging
+import contextlib
+import aiohttp
 from discord import Role
 from typing import List, Optional
 from PIL import Image, ImageDraw
 import csv
 from io import StringIO
-
-from google.auth.exceptions import RefreshError
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(
@@ -54,6 +53,8 @@ logger.info(f"{IMAGE_PATH = }")
 
 # Async lock for settings.json read/write to prevent race conditions
 _settings_lock = asyncio.Lock()
+
+MODERATOR_ROLE = "Bingo Moderator"
 
 MAX_TEAMS = 7
 
@@ -331,30 +332,87 @@ def get_team_key_by_display_name(settings: dict, display_name: str) -> Optional[
     return None
 
 
-def update_settings_json(
-    contents: dict, *, url: str = None, process_sheet: bool = False
-) -> (str, dict):
+@contextlib.asynccontextmanager
+async def edit_settings():
     """
-    Update the settings in the settings.json file.
+    Load settings.json under the settings lock and save it when the block exits.
+    Use this whenever there is an `await` between loading and saving settings,
+    so a concurrent command (e.g. another team's /roll) can't be overwritten.
+    If the block raises, nothing is saved.
+    """
+    async with _settings_lock:
+        settings = load_settings_json()
+        yield settings
+        save_settings_json(settings)
+
+
+def find_category(guild: discord.Guild, name: str) -> Optional[discord.CategoryChannel]:
+    """Find a category by name, ignoring case."""
+    name = name.lower()
+    return discord.utils.find(lambda c: c.name.lower() == name, guild.categories)
+
+
+def find_team_category(
+    guild: discord.Guild, settings: dict, team_key: str
+) -> Optional[discord.CategoryChannel]:
+    """
+    Find a team's category. Categories are named after the team's display name
+    once one is set (/change_team_name), otherwise after the team key.
+    """
+    display = get_team_display_name(settings, team_key)
+    cat = find_category(guild, display)
+    if cat is None and display != team_key:
+        cat = find_category(guild, team_key)
+    return cat
+
+
+MENTION_RE = re.compile(r"^<@!?(\d+)>$")
+
+
+def parse_member_ids(text: str) -> (List[int], List[str]):
+    """
+    Parse user mentions (<@id> or <@!id>) or raw user IDs from a string.
+
+    Returns:
+        tuple: (member IDs, tokens that could not be parsed)
+    """
+    ids, invalid = [], []
+    for token in text.split():
+        match = MENTION_RE.match(token)
+        if match:
+            ids.append(int(match.group(1)))
+        elif token.isdigit():
+            ids.append(int(token))
+        else:
+            invalid.append(token)
+    return ids, invalid
+
+
+class ModeratorView(discord.ui.View):
+    """A view whose buttons only Bingo Moderators can use."""
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        roles = getattr(interaction.user, "roles", [])
+        if discord.utils.get(roles, name=MODERATOR_ROLE):
+            return True
+        await interaction.response.send_message(
+            f"Only a {MODERATOR_ROLE} can use these buttons.", ephemeral=True
+        )
+        return False
+
+
+def update_settings_json(contents: dict) -> dict:
+    """
+    Save the settings to the settings.json file.
 
     Args:
         contents (dict): The current settings.
-        url (str, optional): The new URL to update. Defaults to None.
-        process_sheet (bool, optional): Whether to process the Google Sheet. Defaults to False.
 
     Returns:
-        tuple: A string indicating the updates made and the updated settings.
+        dict: The saved settings.
     """
-    if process_sheet and url:
-        contents = update_tiles_url(contents, url, process_sheet=True)
-        updates = 'Updated tiles "url", "items", and "spreadsheet_id"'
-    elif url:
-        contents = update_tiles_url(contents, url, process_sheet=False)
-        updates = 'Updated "url" and "spreadsheet_id"'
-    else:
-        save_settings_json(contents)
-        updates = "Updated Team turn information"
-    return updates, contents
+    save_settings_json(contents)
+    return contents
 
 
 def update_roll_settings(roll, team_name, settings, prev, current, reroll=False):
@@ -416,78 +474,89 @@ def format_item_list(contents, tile_list: list) -> list:
         list: The formatted item list.
     """
     items = {}
-    for i, item in enumerate(tile_list):
-        if i == 0:
+    board_mode = contents["bot_mode"]["current"] in ("candyland", "chutes and ladders")
+    # Board modes use 7 columns, normal mode uses 2. Extra columns are ignored
+    # and missing ones are treated as empty.
+    num_columns = 7 if board_mode else 2
+    tile_index = 0
+    for row_index, row in enumerate(tile_list):
+        if row_index == 0:
             # skip header
             continue
-        if contents["bot_mode"]["current"] == "candyland" or contents["bot_mode"]["current"] == "chutes and ladders":
-            tile_num, name, short_desc, desc, sabotage, item_names, diff = item
-            frmt_item = {
-                i: {
-                    "tile_num": tile_num,
-                    "name": name,
-                    "short_desc": short_desc,
-                    "desc": desc,
-                    "sabotage": sabotage,
-                    "item_names": item_names,
-                    "discord_name": f"{i}. {name} - {desc}",
-                }
+        if not any(cell.strip() for cell in row):
+            # skip blank rows so they don't count as tiles
+            continue
+        tile_index += 1
+        row = (list(row) + [""] * num_columns)[:num_columns]
+        if board_mode:
+            tile_num, name, short_desc, desc, sabotage, item_names, diff = row
+            items[tile_index] = {
+                "tile_num": tile_num,
+                "name": name,
+                "short_desc": short_desc,
+                "desc": desc,
+                "sabotage": sabotage,
+                "item_names": item_names,
+                "discord_name": f"{tile_index}. {name} - {desc}",
             }
         else:
-            name, desc = item
-            frmt_item = {
-                i: {"name": name, "desc": desc, "discord_name": f"{name} - {desc}"}
-            }
-        items.update(frmt_item)
+            name, desc = row
+            items[tile_index] = {"name": name, "desc": desc, "discord_name": f"{name} - {desc}"}
     contents["items"] = items
     return contents
 
 
-def load_sheet(SAMPLE_SPREADSHEET_ID, RANGE="A1:Z1000"):
+class SheetLoadError(Exception):
+    """Raised when the Google Sheet can't be downloaded as CSV."""
+
+
+SPREADSHEET_ID_RE = re.compile(r"/spreadsheets/d/([a-zA-Z0-9_-]+)")
+SHEET_GID_RE = re.compile(r"[#&?]gid=(\d+)")
+
+
+def parse_sheet_url(url: str) -> (Optional[str], str):
+    """
+    Get the spreadsheet ID and sheet tab ID (gid) from a Google Sheets URL.
+
+    Returns:
+        tuple: (spreadsheet ID or None if the URL isn't a Google Sheet, gid)
+    """
+    id_match = SPREADSHEET_ID_RE.search(url)
+    gid_match = SHEET_GID_RE.search(url)
+    return (id_match.group(1) if id_match else None), (gid_match.group(1) if gid_match else "0")
+
+
+async def load_sheet(spreadsheet_id: str, gid: str = "0") -> list:
     """
     Load public Google Sheet data without authentication using CSV export.
 
     Args:
-        SAMPLE_SPREADSHEET_ID (str): The ID of the Google Sheet.
-        RANGE (str, optional): Ignored, kept for compatibility.
+        spreadsheet_id (str): The ID of the Google Sheet.
+        gid (str, optional): The sheet tab ID. Defaults to the first tab.
 
     Returns:
-        list: The values from the Google Sheet.
+        list: The rows from the Google Sheet.
+
+    Raises:
+        SheetLoadError: If the sheet can't be downloaded or isn't public.
     """
-    # Use gid=0 for the first sheet, change if needed
-    url = f"https://docs.google.com/spreadsheets/d/{SAMPLE_SPREADSHEET_ID}/export?format=csv&gid=0"
-    response = requests.get(url)
-    if response.status_code == 200:
-        f = StringIO(response.text)
-        reader = csv.reader(f)
-        return list(reader)
-    else:
-        logger.error(f"Failed to fetch sheet: {response.status_code} {response.text}")
-        return []
-
-
-def update_tiles_url(contents: dict, url: str, *, process_sheet: bool = False) -> dict:
-    """
-    Update the tiles URL in the settings and optionally process the Google Sheet.
-
-    Args:
-        contents (dict): The current settings.
-        url (str): The new URL to update.
-        process_sheet (bool, optional): Whether to process the Google Sheet. Defaults to False.
-
-    Returns:
-        dict: The updated settings.
-    """
-    contents["tiles"]["url"] = url
-    spreadsheet_id = url.split("https://docs.google.com/spreadsheets/d/")[-1].split(
-        "/"
-    )[0]
-    contents["tiles"]["spreadsheet_id"] = spreadsheet_id
-    if process_sheet:
-        items = load_sheet(spreadsheet_id)
-        contents = format_item_list(contents, items)
-    save_settings_json(contents)
-    return contents
+    url = f"https://docs.google.com/spreadsheets/d/{spreadsheet_id}/export?format=csv&gid={gid}"
+    timeout = aiohttp.ClientTimeout(total=20)
+    try:
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with session.get(url) as response:
+                text = await response.text()
+                content_type = response.headers.get("Content-Type", "")
+                if response.status != 200 or "text/csv" not in content_type:
+                    # Private sheets redirect to a Google sign-in page.
+                    logger.error(f"Failed to fetch sheet: {response.status} {content_type}")
+                    raise SheetLoadError(
+                        f"Google returned {response.status} ({content_type or 'no content type'}). "
+                        "Check the sheet is shared as 'Anyone with the link'."
+                    )
+    except (aiohttp.ClientError, asyncio.TimeoutError) as e:
+        raise SheetLoadError(f"Could not reach Google Sheets: {e}") from e
+    return list(csv.reader(StringIO(text)))
 
 
 def create_tile_embed(tiles: dict, tile_number: str) -> discord.Embed:
@@ -502,9 +571,12 @@ def create_tile_embed(tiles: dict, tile_number: str) -> discord.Embed:
         discord.Embed: The created Discord embed.
     """
     itm = tiles[tile_number]
+    title = f"{itm.get('tile_num') or tile_number} - {itm.get('name', '')}"
+    if itm.get("short_desc"):
+        title += f" - {itm['short_desc']}"
     embed = discord.Embed(
-        title=f"{itm['tile_num']} - {itm['name']}{' - '.join(itm['short_desc']) if itm['short_desc'] else ''}",
-        description=itm["desc"],
+        title=title[:256],  # Discord's embed title limit
+        description=itm.get("desc", ""),
         color=0xF7E302,
     )
     return embed
@@ -579,24 +651,23 @@ def mark_on_image_tile_complete(team_name: str, row: int, column: int) -> None:
     return settings
 
 
-async def parse_table_location(location: str):
-    if location == "":
-        return 0, 0
-    # TODO IMAGE is backwards from EXCEL
-    col, row = location[0], location[1]
-    if col.lower() == "a":
-        col = 1
-    elif col.lower() == "b":
-        col = 2
-    elif col.lower() == "c":
-        col = 3
-    elif col.lower() == "d":
-        col = 4
-    elif col.lower() == "e":
-        col = 5
-    else:
-        col = 0
-    return int(row), int(col)
+TABLE_LOCATION_RE = re.compile(r"^\s*([A-Ea-e])\s*([1-5])\s*$")
+
+
+def parse_table_location(location: str) -> Optional[tuple]:
+    """
+    Parse an Excel-style 5x5 board location such as "A1" or "e5".
+    Columns are A-E, rows are 1-5.
+
+    Returns:
+        tuple: (row, column), both 1-indexed, or None if the location is invalid.
+    """
+    match = TABLE_LOCATION_RE.match(location or "")
+    if not match:
+        return None
+    col = "abcde".index(match.group(1).lower()) + 1
+    row = int(match.group(2))
+    return row, col
 
 
 def generate_team_assignment_text(all_roles, total_teams, settings=None) -> str:
@@ -707,7 +778,8 @@ async def mark_team_icons_on_board(interaction: discord.Interaction) -> str:
     team_scores = [(x,settings['teams'][x]['current']) for x in settings['teams']]
     team_scores.reverse()
     all_scores = [x[1] for x in team_scores]
-    dupe_scores_processed = 0
+    # How many icons have already been placed on each shared tile
+    dupe_scores_processed = {}
     for i in range(len(team_names)):
         team_name = team_names[i]
         score = team_scores[i][1]
@@ -723,9 +795,10 @@ async def mark_team_icons_on_board(interaction: discord.Interaction) -> str:
         x, y = calculate_location_x_and_y(score)
         offset_width = tile_size - img_team.size[0]
         if shared_tile:
-            offset_multiplier = number_of_tiles - dupe_scores_processed - 1
+            placed = dupe_scores_processed.get(score, 0)
+            offset_multiplier = number_of_tiles - placed - 1
             new_x = x + (board_bounds['team_icon_x_offset'] + offset_multiplier * (math.floor(offset_width / number_of_tiles)))
-            dupe_scores_processed += 1
+            dupe_scores_processed[score] = placed + 1
         else:
             new_x = x + board_bounds['team_icon_x_offset']
         new_y = y + board_bounds['team_icon_y_offset']
@@ -759,44 +832,31 @@ async def purge_images(type: str) -> str:
 
 async def send_or_update_tiles_channel(tile_list_ch, settings):
     item_list = []
+    board_mode = settings["bot_mode"]["current"] in ("candyland", "chutes and ladders")
     for tile in settings["items"].values():
-        if settings["bot_mode"]["current"] == "candyland" or settings["bot_mode"]["current"] == "chutes and ladders":
-            num = tile["tile_num"]
-            name = tile["name"]
-            # tile['short_desc']
-            desc = tile["desc"]
-            item_list.append(f"## {num} - {name}\n{desc}")
+        name = tile.get("name", "")
+        desc = tile.get("desc", "")
+        if board_mode:
+            item_list.append(f"## {tile.get('tile_num', '')} - {name}\n{desc}")
         else:
-            name = tile["name"]
-            # tile['short_desc']
-            desc = tile["desc"]
             item_list.append(f"## {name}\n{desc}")
-    edited = False
     chunked_list = chunk_item_list_text(item_list)
-    i = 0
-    async for m in tile_list_ch.history(oldest_first=True):
-        if m.author == bot.user and i == 0:
-            edited = True
-            embed = discord.Embed(description=f'# All Tiles\n\n{chunked_list[i]}')
-            await m.edit(embed=embed)
-        elif m.author == bot.user:
-            embed = discord.Embed(description=f"{chunked_list[i]}")
-            await m.edit(embed=embed)
-        i += 1
-    if edited:
-        if len(chunked_list) > i:
-            # send remaining messages needed
-            for x in range(i, len(chunked_list)):
-                embed = discord.Embed(description=f"{chunked_list[x]}")
-                await tile_list_ch.send(embed=embed)
-    else:
-        for i in range(len(chunked_list)):
-            if i == 0:
-                embed = discord.Embed(description=f'# All Tiles\n\n{chunked_list[i]}')
-                await tile_list_ch.send(embed=embed)
-            else:
-                embed = discord.Embed(description=f"{chunked_list[i]}")
-                await tile_list_ch.send(embed=embed)
+    # The bot's earlier tile list messages, oldest first. Only the bot's own
+    # messages are counted so other messages in the channel don't shift the order.
+    bot_messages = [
+        m async for m in tile_list_ch.history(limit=None, oldest_first=True)
+        if m.author == bot.user
+    ]
+    for i, chunk in enumerate(chunked_list):
+        description = f"# All Tiles\n\n{chunk}" if i == 0 else chunk
+        embed = discord.Embed(description=description)
+        if i < len(bot_messages):
+            await bot_messages[i].edit(content=None, embed=embed)
+        else:
+            await tile_list_ch.send(embed=embed)
+    # Remove leftover messages from an earlier, longer tile list.
+    for m in bot_messages[len(chunked_list):]:
+        await m.delete()
 
 # ======================================= Discord Interaction Functions ====================================================
 
@@ -872,46 +932,39 @@ async def post_or_update_bingo_card(
         column (int, optional): The column number of the tile to be marked as complete. Required if update is True. Defaults to None.
 
     Returns:
-        None
+        str or None: An error message if the card couldn't be posted, otherwise None.
     """
-    for cat in interaction.guild.categories:
-        if cat.name == team_name:
-            bingo_card_chan = [x for x in cat.channels if x.name == "bingo-card"][0]
-            processed = False
-            async for message in bingo_card_chan.history(limit=1):
-                if message.author == bot.user:
-                    if update and row and column:
-                        settings = mark_on_image_tile_complete(
-                            team_name, row=row, column=column
-                        )
-                        img = discord.File(settings["teams"][team_name]["image"])
-                    else:
-                        img = discord.File(settings["teams"][team_name]["image"])
-                    await message.edit(attachments=[img])
-                    processed = True
-                    logger.info(
-                        f'{"Updated" if update and row and column else "Posted"} {team_name} Bingo Card Image'
-                    )
-            else:
-                if not processed:
-                    logger.info("image didnt exist, posting new image")
-                    if update and row and column:
-                        settings = mark_on_image_tile_complete(
-                            team_name, row=row, column=column
-                        )
-                        img = discord.File(settings["teams"][team_name]["image"])
-                    else:
-                        img = discord.File(settings["teams"][team_name]["image"])
-                    embed = discord.Embed(
-                        title=f"{team_name} Bingo Card",
-                        color=0xF7E302,
-                    )
-                    embed.set_image(
-                        url=f"attachment://{settings['teams'][team_name]['image']}"
-                    )
-                    await bingo_card_chan.send(embed=embed, file=img)
-                else:
-                    logger.info("image was already posted")
+    cat = find_team_category(interaction.guild, settings, team_name)
+    if cat is None:
+        return f'No category found for "{get_team_display_name(settings, team_name)}".'
+    # Normal mode names the channel "bingo-card"; board modes use "team-<n>-bingo-card".
+    bingo_card_chan = discord.utils.find(
+        lambda ch: ch.name.endswith("bingo-card"), cat.text_channels
+    )
+    if bingo_card_chan is None:
+        return f'No bingo-card channel found in "{cat.name}".'
+
+    if update and row and column:
+        settings = mark_on_image_tile_complete(team_name, row=row, column=column)
+    image_path = settings["teams"][team_name]["image"]
+    # A fixed attachment name so the embed's attachment:// link always matches.
+    filename = "bingo_card.png"
+    img = discord.File(image_path, filename=filename)
+    embed = discord.Embed(
+        title=f"{get_team_display_name(settings, team_name)} Bingo Card",
+        color=0xF7E302,
+    )
+    embed.set_image(url=f"attachment://{filename}")
+
+    # Edit the bot's latest card post if there is one, otherwise post a new one.
+    async for message in bingo_card_chan.history(limit=50):
+        if message.author == bot.user and message.embeds and message.embeds[0].title and message.embeds[0].title.endswith("Bingo Card"):
+            await message.edit(embed=embed, attachments=[img])
+            logger.info(f"Updated {team_name} Bingo Card Image")
+            return None
+    await bingo_card_chan.send(embed=embed, file=img)
+    logger.info(f"Posted {team_name} Bingo Card Image")
+    return None
 
 async def update_team_bingo_card_channel(
     interaction: discord.Interaction, team_name, roll, settings, reroll=False
@@ -951,37 +1004,8 @@ async def update_reroll_team_bingo_card_channel(
             )
 
 
-async def update_server_score_board_channel(interaction: discord.Interaction, settings):
-    """
-    Updates the score board channel in the server with the current scores and team information.
-
-    Parameters:
-    - interaction (discord.Interaction): The interaction object representing the command interaction.
-    - settings (dict): The settings dictionary containing the bot configuration.
-
-    Returns:
-    None
-    """
-    score_card_ch = discord.utils.get(interaction.guild.channels, name="score-board")
-    posts = settings.get("posts", {})
-    score_board = posts.get("score-board", {})
-    if score_board.get("id"):
-        msg_id = int(score_board["id"])
-    else:
-        async for msg in score_card_ch.history(oldest_first=True):
-            if msg.author == bot.user:
-                msg_id = msg.id
-                msg_webhook = msg.webhook_id
-    try:
-        message = await score_card_ch.fetch_message(msg_id)
-    except discord.errors.NotFound as e:
-        msg = await score_card_ch.send(
-            content=score_board.get("content", "")
-        )
-        msg_id = msg.id
-        message = await score_card_ch.fetch_message(msg_id)
-    if message.content != score_board.get("content", ""):
-        logger.warning("score is out of sync")
+def build_score_text(settings: dict) -> str:
+    """Build the #score-board message text from the current settings."""
     total_teams = settings.get("total_teams", len(settings["teams"]))
     teams_keys = list(settings["teams"].keys())
     teams_scores = [x["current"] for x in settings["teams"].values()]
@@ -996,23 +1020,58 @@ async def update_server_score_board_channel(interaction: discord.Interaction, se
         else:
             row = f"{name}: {teams_scores[i]}"
         content_text.append(row)
-    score_text = "\n".join(content_text)
-    # process things for Chutes and ladders
-    if "posts" not in settings:
-        settings["posts"] = {}
-    if "score-board" not in settings["posts"]:
-        settings["posts"]["score-board"] = {}
-    settings["posts"]["score-board"]["id"] = msg_id
-    settings["posts"]["score-board"]["content"] = score_text
-    update_settings_json(settings)
-    
+    return "\n".join(content_text)
+
+
+async def update_server_score_board_channel(interaction: discord.Interaction) -> Optional[str]:
+    """
+    Updates the score board channel in the server with the current scores and team information.
+    Always reads the latest settings.json so it never saves a stale copy over
+    another team's roll.
+
+    Parameters:
+    - interaction (discord.Interaction): The interaction object representing the command interaction.
+
+    Returns:
+    str or None: An error message if the score board couldn't be updated, otherwise None.
+    """
+    score_card_ch = discord.utils.get(interaction.guild.text_channels, name="score-board")
+    if score_card_ch is None:
+        logger.warning("No #score-board channel found")
+        return "No #score-board channel found."
+
+    settings = load_settings_json()
+    score_text = build_score_text(settings) or "No scores yet."
+    msg_id = settings.get("posts", {}).get("score-board", {}).get("id")
+
+    # Find the score board message: the stored ID first, then the bot's latest
+    # message in the channel, otherwise post a new one.
+    message = None
+    if msg_id:
+        try:
+            message = await score_card_ch.fetch_message(int(msg_id))
+        except discord.NotFound:
+            message = None
+    if message is None:
+        async for msg in score_card_ch.history(limit=50):
+            if msg.author == bot.user:
+                message = msg
+                break
+    if message is None:
+        message = await score_card_ch.send(content=score_text)
+
+    attachments = []
     if settings["bot_mode"]["current"] == "chutes and ladders":
         img_path = await mark_team_icons_on_board(interaction=interaction)
         if img_path:
-            img = discord.File(img_path)
-            await message.edit(content=score_text, attachments=[img])
-    else:
-        await message.edit(content=score_text, attachments=[])
+            attachments = [discord.File(img_path)]
+    await message.edit(content=score_text, attachments=attachments)
+
+    async with edit_settings() as latest:
+        score_board = latest.setdefault("posts", {}).setdefault("score-board", {})
+        score_board["id"] = message.id
+        score_board["content"] = score_text
+    return None
 
 
 
@@ -1032,12 +1091,10 @@ async def process_all_spectators(interaction, roles, spectator_role, unassign):
     # members = interaction.guild.members
     guild_roles = interaction.guild.roles
     await interaction.followup.send(f'Starting the update for Role "spectator" {"added to" if not unassign else "purged from"}\nThis will take a while(1-5 mins). Standby for update...')
+    # discord.py waits out Discord's rate limits itself, so no manual sleeps here.
     for r in guild_roles:
         if r in roles:
-            for m in r.members:
-                if discord.RateLimited:
-                    logger.warning("Rate Limited, pausing 5s")
-                    await asyncio.sleep(5)
+            for m in list(r.members):
                 await m.remove_roles(r)
                 if not unassign:
                     await m.add_roles(spectator_role)
@@ -1265,18 +1322,7 @@ async def roll(interaction: discord.Interaction):
             prev=settings["teams"][team_name]["current"],
             current=settings["teams"][team_name]["current"] + roll,
         )
-        score_altered = None
-        # check which bot mode
-        if settings['bot_mode']['current'] == "chutes and ladders":
-            # check for shortcuts
-            current = settings["teams"][team_name]["current"]
-            score = calculate_shortcut(current)
-            if score:
-                if score > current:
-                    score_altered = "ladder-"
-                else:
-                    score_altered = "rats-"
-                settings["teams"][team_name]["current"] = score
+        score_altered = ""
 
         # Check win condition
         total_tiles = len(settings["items"])
@@ -1294,6 +1340,15 @@ async def roll(interaction: discord.Interaction):
                 score_altered = "bounce back-"
                 new_score = 2 * settings['board_bounds']['tile_count'] - settings["teams"][team_name]["current"]
                 settings["teams"][team_name]["current"] = new_score
+
+        # Chutes and ladders shortcuts. Checked after the bounce back so a team
+        # that bounces onto a chute or ladder still takes it.
+        if settings['bot_mode']['current'] == "chutes and ladders":
+            current = settings["teams"][team_name]["current"]
+            score = calculate_shortcut(current)
+            if score:
+                score_altered += "ladder-" if score > current else "rats-"
+                settings["teams"][team_name]["current"] = score
 
         update_settings_json(settings)
 
@@ -1368,7 +1423,7 @@ async def roll(interaction: discord.Interaction):
     if settings['bot_mode']['current'] == 'candyland':
         await update_team_bingo_card_channel(interaction, team_name, roll, settings)
 
-    await update_server_score_board_channel(interaction, settings)
+    await update_server_score_board_channel(interaction)
 
 
 @bot.tree.command(name="reroll",
@@ -1513,7 +1568,7 @@ async def reroll(interaction: discord.Interaction):
     await update_team_bingo_card_channel(
         interaction, team_name, roll, settings, reroll=True
     )
-    await update_server_score_board_channel(interaction, settings)
+    await update_server_score_board_channel(interaction)
 
 
 @has_role("Bingo Moderator")
@@ -1543,17 +1598,31 @@ async def set_tiles(
     None
     """
     await interaction.response.defer(thinking=True)
-    settings = load_settings_json()
-    try:
-        processed, settings = update_settings_json(
-            settings,
-            url=sheet_link,
-            process_sheet=process_sheet
+    spreadsheet_id, gid = parse_sheet_url(sheet_link)
+    if not spreadsheet_id:
+        await interaction.followup.send(
+            "That doesn't look like a Google Sheets link. Use the full URL, e.g. https://docs.google.com/spreadsheets/d/<id>/edit"
         )
-        await interaction.followup.send(f"{processed}")
-    except RefreshError:
-        os.remove('token.json')
-        await interaction.followup.send("Error processing or accessing google sheet. Check link sharing perms.")
+        return
+    rows = None
+    if process_sheet:
+        try:
+            rows = await load_sheet(spreadsheet_id, gid)
+        except SheetLoadError as e:
+            await interaction.followup.send(f"Could not load the Google Sheet. Tiles were not changed.\n{e}")
+            return
+    async with edit_settings() as settings:
+        settings["tiles"]["url"] = sheet_link
+        settings["tiles"]["spreadsheet_id"] = spreadsheet_id
+        if rows is not None:
+            format_item_list(settings, rows)
+        tile_count = len(settings["items"])
+    if rows is None:
+        await interaction.followup.send('Updated tiles "url" and "spreadsheet_id". Tiles were not processed.')
+    else:
+        await interaction.followup.send(
+            f'Updated tiles "url", "items", and "spreadsheet_id". Loaded {tile_count} tile(s).'
+        )
 
 
 @app_commands.autocomplete(team_name=team_names_autocomplete)
@@ -1620,25 +1689,34 @@ async def spectators(
     """
     await interaction.response.defer(thinking=True)
     spectator_role = discord.utils.get(interaction.guild.roles, name="spectator")
+    if spectator_role is None:
+        await interaction.followup.send('No "spectator" role found in this server.')
+        return
     roles = [discord.utils.get(interaction.guild.roles, name=rl) for rl in ROLES]
+    roles = [r for r in roles if r is not None]
     roles.append(spectator_role)
-    members = members.split()
-    if members[0] == "@everyone" and unassign:
-        process_all_spectators(interaction, roles, spectator_role, unassign)
-    elif len(members) == 0:
-        await interaction.followup.send(
-            f"Please add @ each member to add them too team"
-        )
-    else:
-        for m in members:
-            m_id = int(m.replace("<", "").replace(">", "").replace("@", ""))
+    if members.split()[:1] == ["@everyone"]:
+        await process_all_spectators(interaction, roles, spectator_role, unassign)
+        return
+    member_ids, invalid = parse_member_ids(members)
+    if not member_ids:
+        await interaction.followup.send("Please @ each member to update.")
+        return
+    updated = 0
+    for m_id in member_ids:
+        try:
             mem = await interaction.guild.fetch_member(m_id)
-            await mem.remove_roles(*roles)
-            if not unassign:
-                await mem.add_roles(spectator_role)
-        await interaction.followup.send(
-            f'Role "spectator" {"added" if not unassign else "removed"} to {len(members)} members'
-        )
+        except discord.NotFound:
+            invalid.append(f"<@{m_id}>")
+            continue
+        await mem.remove_roles(*roles)
+        if not unassign:
+            await mem.add_roles(spectator_role)
+        updated += 1
+    message = f'Role "spectator" {"added to" if not unassign else "removed from"} {updated} member(s)'
+    if invalid:
+        message += f"\nSkipped (not a member mention): {' '.join(invalid)}"
+    await interaction.followup.send(message)
 
 
 @app_commands.autocomplete(team_name=team_names_autocomplete)
@@ -1659,22 +1737,41 @@ async def add_team_role(interaction: discord.Interaction, team_name: str, member
     Returns:
     None
     """
-    settings = load_settings_json()
-    team_names = [x for x in settings["teams"].keys()]
-    team_number = team_names.index(team_name) + 1
     await interaction.response.defer(thinking=True)
+    settings = load_settings_json()
+    error = validate_team_name(team_name, settings)
+    if error:
+        await interaction.followup.send(error)
+        return
+    team_names = list(settings["teams"].keys())
+    team_number = team_names.index(team_name) + 1
     current_role = discord.utils.get(
         interaction.guild.roles, name=f"Team {team_number}"
     )
+    if current_role is None:
+        await interaction.followup.send(f'No "Team {team_number}" role found in this server.')
+        return
     roles = [discord.utils.get(interaction.guild.roles, name=rl) for rl in ROLES]
-    members = members.split()
-    for m in members:
-        m_id = int(m.replace("<", "").replace(">", "").replace("@", ""))
-        mem = await interaction.guild.fetch_member(m_id)
+    roles = [r for r in roles if r is not None]
+    member_ids, invalid = parse_member_ids(members)
+    if not member_ids:
+        await interaction.followup.send("Please @ each member to add to the team.")
+        return
+    added = 0
+    for m_id in member_ids:
+        try:
+            mem = await interaction.guild.fetch_member(m_id)
+        except discord.NotFound:
+            invalid.append(f"<@{m_id}>")
+            continue
         await mem.remove_roles(*roles)
         await mem.add_roles(current_role)
+        added += 1
     await process_team_assignment_updates(interaction)
-    await interaction.followup.send(f'Role "Team {team_number}" added to {len(members)} members')
+    message = f'Role "Team {team_number}" added to {added} member(s)'
+    if invalid:
+        message += f"\nSkipped (not a member mention): {' '.join(invalid)}"
+    await interaction.followup.send(message)
 
 
 async def configure_reroll(interaction: discord.Interaction, team_name: str):
@@ -1690,7 +1787,7 @@ async def configure_reroll(interaction: discord.Interaction, team_name: str):
     None
     """
 
-    class Reroll(discord.ui.View):
+    class Reroll(ModeratorView):
         def __init__(self, *, timeout: Optional[float] = 180):
             super().__init__(timeout=timeout)
 
@@ -1709,9 +1806,9 @@ async def configure_reroll(interaction: discord.Interaction, team_name: str):
             None
             """
             settings = load_settings_json()
-            if settings["teams"][team_name]["reroll"] == 0:
-                await interaction.followup.send(
-                    content="No Rerolls exist for that team."
+            if settings["teams"][team_name]["reroll"] <= 0:
+                await interaction.response.send_message(
+                    content="No Rerolls exist for that team.", ephemeral=True
                 )
             else:
                 settings["teams"][team_name]["reroll"] -= 1
@@ -1725,7 +1822,7 @@ async def configure_reroll(interaction: discord.Interaction, team_name: str):
                     interaction, team_name, settings, used=True
                 )
                 # Add updating the Server's Bingo card Channel
-                await update_server_score_board_channel(interaction, settings)
+                await update_server_score_board_channel(interaction)
 
         @discord.ui.button(label="Give", style=discord.ButtonStyle.green)
         async def give_reroll(
@@ -1753,7 +1850,7 @@ async def configure_reroll(interaction: discord.Interaction, team_name: str):
                 interaction, team_name, settings, used=False
             )
             # Add updating the Server's Bingo card Channel
-            await update_server_score_board_channel(interaction, settings)
+            await update_server_score_board_channel(interaction)
 
     await interaction.response.send_message(
         "Choose an option for Reroll:", view=Reroll()
@@ -1774,7 +1871,7 @@ async def delete_team(interaction: discord.Interaction, team_name: str):
     - team_name (str): The name of the team whose channels are to be deleted.
     """
 
-    class DeleteConfirmation(discord.ui.View):
+    class DeleteConfirmation(ModeratorView):
         """
         A confirmation view for deleting team channels.
 
@@ -1842,9 +1939,7 @@ async def delete_team(interaction: discord.Interaction, team_name: str):
                 view=None,
             )
             num_deleted = 0
-            cat = discord.utils.get(interaction.guild.categories, name=display)
-            if cat is None and display != self.team_name:
-                cat = discord.utils.get(interaction.guild.categories, name=self.team_name)
+            cat = find_team_category(interaction.guild, settings, self.team_name)
             if cat is not None:
                 for ch in cat.channels:
                     logger.info(f"Deleting channel: {ch}")
@@ -1941,39 +2036,40 @@ async def update_tiles_channels(interaction: discord.Interaction, team_name: str
     Returns:
     None
     """
-    settings = load_settings_json()
-    # tile_list_ch = discord.utils.get(interaction.guild.channels, name="tile-list")
-
-    settings = load_settings_json()
     await interaction.response.defer(thinking=True)
+    settings = load_settings_json()
     error = validate_team_name(team_name, settings)
     if error:
         await interaction.followup.send(error)
         return
-    team_names = list(settings["teams"].keys())
-    team_number = team_names.index(team_name) + 1
-    cats = interaction.guild.categories
+    if settings["bot_mode"]["current"] != "normal":
+        await interaction.followup.send(
+            f"This command only works when Bot is in mode 'normal'. Current Mode: {settings['bot_mode']['current']}"
+        )
+        return
     channels = await get_default_channels(interaction)
+    if not channels:
+        # get_default_channels already told the user the tiles are missing
+        return
+    display = get_team_display_name(settings, team_name)
+    cat = find_team_category(interaction.guild, settings, team_name)
+    if cat is None:
+        await interaction.followup.send(f'No category found for "{display}".')
+        return
+    channel_details_by_name = {x["name"]: x for x in channels}
     updated_num = 0
-    for cat in cats:
-        if cat.name.lower() == team_name.lower():
-            for ch in cat.channels:
-                # look for first message in channel and update it
-                if ch.type == discord.ChannelType.text and ch.name in [
-                    x["name"] for x in channels
-                ]:
-                    channel_details = [x for x in channels if x["name"] == ch.name][0]
-                    async for message in ch.history(limit=1):
-                        if message.author == bot.user:
-                            if channel_details["description"] != message.content:
-                                if channel_details["description"] != "":
-                                    await ch.edit(topic=channel_details["description"])
-                                    await message.edit(
-                                        content=f"{channel_details['description']}"
-                                    )
-                                    updated_num += 1
+    for ch in cat.text_channels:
+        channel_details = channel_details_by_name.get(ch.name)
+        if not channel_details or not channel_details["description"]:
+            continue
+        # The tile description is the first message the bot posted in the channel.
+        async for message in ch.history(limit=1, oldest_first=True):
+            if message.author == bot.user and channel_details["description"] != message.content:
+                await ch.edit(topic=channel_details["description"])
+                await message.edit(content=f"{channel_details['description']}")
+                updated_num += 1
     await interaction.followup.send(
-        f"Updated {team_name}'s channels Tiles. {updated_num} channel(s) tiles updated."
+        f"Updated {display}'s channels Tiles. {updated_num} channel(s) tiles updated."
     )
 
 
@@ -2096,26 +2192,17 @@ async def set_tile(interaction: discord.Interaction, team_name: str, tile: int):
     Returns:
     None
     """
-    settings = load_settings_json()
     await interaction.response.defer(thinking=True)
-    error = validate_team_name(team_name, settings)
+    if tile < 0:
+        tile = 1
+    async with edit_settings() as settings:
+        error = validate_team_name(team_name, settings)
+        if not error:
+            settings["teams"][team_name]["current"] = tile
     if error:
         await interaction.followup.send(error)
         return
-    team_names = list(settings["teams"].keys())
-    team_number = team_names.index(team_name) + 1
-    try:
-        tile = int(tile)
-    except ValueError:
-        await interaction.followup.send(
-            f'Unable to process tile "tile": {tile} - Ensure it is a number'
-        )
-        return
-    if tile < 0:
-        tile = 1
-    settings["teams"][team_name]["current"] = tile
     await interaction.followup.send(f"Updated tile for Team: {team_name} to {tile}")
-    update_settings_json(settings)
 
 
 @has_role("Bingo Moderator")
@@ -2136,28 +2223,19 @@ async def set_previous_tile(
     Returns:
     None
     """
-    settings = load_settings_json()
     await interaction.response.defer(thinking=True)
-    error = validate_team_name(team_name, settings)
+    if tile < 0:
+        tile = None
+    async with edit_settings() as settings:
+        error = validate_team_name(team_name, settings)
+        if not error:
+            settings["teams"][team_name]["prev"] = tile
     if error:
         await interaction.followup.send(error)
         return
-    team_names = list(settings["teams"].keys())
-    team_number = team_names.index(team_name) + 1
-    try:
-        tile = int(tile)
-    except ValueError:
-        await interaction.followup.send(
-            f'Unable to process prev tile "tile": {tile} - Ensure it is a number'
-        )
-        return
-    if tile < 0:
-        tile = None
-    settings["teams"][team_name]["prev"] = tile
     await interaction.followup.send(
         f"Updated prev tile for Team: {team_name} to {tile}"
     )
-    update_settings_json(settings)
 
 
 @has_role("Bingo Moderator")
@@ -2195,9 +2273,10 @@ async def update_score(interaction: discord.Interaction):
 
     Returns: None
     """
-    settings = load_settings_json()
-    await update_server_score_board_channel(interaction=interaction, settings=settings)
-    await interaction.response.send_message("Updated!")
+    # Defer first: building the chutes and ladders board can take longer than 3s.
+    await interaction.response.defer(thinking=True)
+    error = await update_server_score_board_channel(interaction=interaction)
+    await interaction.followup.send(error or "Updated!")
 
 
 
@@ -2216,7 +2295,10 @@ async def post_tiles(interaction: discord.Interaction):
     """
     await interaction.response.defer(thinking=True)
     settings = load_settings_json()
-    tile_list_ch = discord.utils.get(interaction.guild.channels, name="tile-list")
+    tile_list_ch = discord.utils.get(interaction.guild.text_channels, name="tile-list")
+    if tile_list_ch is None:
+        await interaction.followup.send("No #tile-list channel found.")
+        return
 
     await send_or_update_tiles_channel(tile_list_ch, settings)
     await interaction.followup.send(f"Posted {len(settings['items'])} tiles to channel {tile_list_ch.mention}")
@@ -2233,7 +2315,7 @@ async def toggle_roll_choice(interaction: discord.Interaction, reroll=False):
         None
     """
 
-    class ToggleRolling(discord.ui.View):
+    class ToggleRolling(ModeratorView):
         """
         A custom UI view for toggling the rolling feature.
 
@@ -2422,27 +2504,12 @@ async def tile_completed(interaction: discord.Interaction):
     Returns:
     None
     """
-    await interaction.response.defer(thinking=True)
-    settings = load_settings_json()
-    # Check tile is completed.
-    if not settings['running']:
-        await interaction.response.send(f'Bingo is not currently running. No action has occurred. ')
-        return
-    if settings['bot_mode']['current'] in ['candyland', 'chutes and ladders']:
-        await interaction.response.send(f'This has not been implemented... No action has occurred')
-        return
-    else:
-        # normal bingo mode
-        # some way to track which tile is being marked completed and where to mark is required.
-        pass
-    # Update settings or however this is tracked.
-    
-    # Update score in settings
-    # Update score in scoreboard channel
-    # Make a channel for Unverified completed Tiles for moderators. requires two dif moderators to react
-
-    await interaction.followup.send(
-        f"Tile is marked: COMPLETED\nScore will be updated accordingly"
+    # TODO: Not implemented. Planned: track which tile is completed, update the
+    # score in settings and #score-board, and have two different moderators
+    # verify completions. Until then, say so instead of claiming success.
+    await interaction.response.send_message(
+        "This command has not been implemented yet. No action has occurred.",
+        ephemeral=True,
     )
 
 
@@ -2497,20 +2564,32 @@ async def mark_specific_tile_completed(interaction: discord.Interaction, team_na
     if settings['bot_mode']['current'] != "normal":
         await interaction.followup.send(f"This command only works when Bot is in mode 'normal'. Current Mode: {settings['bot_mode']['current']}")
         return
-    team_names = [x for x in settings["teams"].keys()]
-    team_number = team_names.index(team_name) + 1
-    row, col = await parse_table_location(location)
-    if row == 0 or col == 0:
-        update = False
-    else:
-        update = True
-        settings["teams"][team_name]["tiles_completed"].append([row, col])
+    error = validate_team_name(team_name, settings)
+    if error:
+        await interaction.followup.send(error)
+        return
+    parsed = parse_table_location(location)
+    if parsed is None:
+        await interaction.followup.send(
+            f'"{location}" is not a valid tile. Use a column A-E and a row 1-5, e.g. "A1".'
+        )
+        return
+    row, col = parsed
+    if [row, col] in settings["teams"][team_name]["tiles_completed"]:
+        await interaction.followup.send(
+            f"Team: {get_team_display_name(settings, team_name)}'s tile {location.strip().upper()} is already marked as completed."
+        )
+        return
+    settings["teams"][team_name]["tiles_completed"].append([row, col])
     update_settings_json(settings)
-    await post_or_update_bingo_card(
-        interaction, settings, team_name, update=update, row=row, column=col
+    error = await post_or_update_bingo_card(
+        interaction, settings, team_name, update=True, row=row, column=col
     )
+    if error:
+        await interaction.followup.send(f"Tile was recorded as completed, but the Bingo Card wasn't updated: {error}")
+        return
     await interaction.followup.send(
-        f"Team: {team_name}'s tile has been marked as completed and updated in the Bingo Card Channel"
+        f"Team: {get_team_display_name(settings, team_name)}'s tile {location.strip().upper()} has been marked as completed and updated in the Bingo Card Channel"
     )
 
 
@@ -2539,24 +2618,26 @@ async def post_bingo_card(
     if settings['bot_mode']['current'] == "normal":
         await interaction.followup.send(f"Not in a bingo mode that requires this. Current Mode: {settings['bot_mode']['current']}")
         return
-    team_names = [x for x in settings["teams"].keys()]
-    update = False
-    i = 0
-    if for_all_teams or team_name == None:
-        for i in range(len(team_names)):
-            if i >= settings["total_teams"]:
-                continue
-            else:
-                await post_or_update_bingo_card(
-                    interaction, settings, team_names[i], update=update, row=0, column=0
-                )
+    team_names = list(settings["teams"].keys())
+    if for_all_teams or team_name is None:
+        targets = team_names[: settings["total_teams"]]
     else:
-        await post_or_update_bingo_card(
-            interaction, settings, team_name, update=update, row=0, column=0
-        )
-    await interaction.followup.send(
-        f"Posted Bingo Card image in {team_name if team_name else ', '.join([team_names[x] for x in range(settings['total_teams'])])}'s Bingo Card Channel"
-    )
+        error = validate_team_name(team_name, settings)
+        if error:
+            await interaction.followup.send(error)
+            return
+        targets = [team_name]
+    posted, problems = [], []
+    for target in targets:
+        error = await post_or_update_bingo_card(interaction, settings, target)
+        if error:
+            problems.append(error)
+        else:
+            posted.append(get_team_display_name(settings, target))
+    message = f"Posted Bingo Card image in {', '.join(posted) or 'no'} Bingo Card Channel(s)"
+    if problems:
+        message += "\n" + "\n".join(problems)
+    await interaction.followup.send(message)
 
 
 @has_role("Bingo Moderator")
@@ -2576,16 +2657,16 @@ async def default_bingo_card(interaction: discord.Interaction, team_name: str):
     """
     await interaction.response.defer(thinking=True)
     settings = load_settings_json()
-    update = False
-    # settings["teams"][team_name]["image"] = os.path.join(
-    #     IMAGE_PATH, "bingo_card_image.png"
-    # )
-    # update_settings_json(settings)
-    await post_or_update_bingo_card(
-        interaction, settings, team_name, update=update, row=0, column=0
-    )
+    error = validate_team_name(team_name, settings)
+    if error:
+        await interaction.followup.send(error)
+        return
+    error = await post_or_update_bingo_card(interaction, settings, team_name)
+    if error:
+        await interaction.followup.send(error)
+        return
     await interaction.followup.send(
-        f"Posted Bingo Card image in {team_name}'s Bingo Card Channel"
+        f"Posted Bingo Card image in {get_team_display_name(settings, team_name)}'s Bingo Card Channel"
     )
 
 
@@ -2603,30 +2684,26 @@ async def upload_board_image(interaction: discord.Interaction, file: discord.Att
     Returns:
     None
     """
-    settings = load_settings_json()
     await interaction.response.defer(thinking=True)
     if not file:
         await interaction.followup.send(
             f"Please attach an image to set as the default Bingo Card Image"
         )
         return
-    else:
-        team_names = [x for x in settings["teams"].keys()]
+    async with edit_settings() as settings:
         # check game style
         if settings["bot_mode"]["current"] == "chutes and ladders":
             image_path = os.path.join(IMAGE_TEMPLATE_PATH, "bingo_card_image.png")
             settings["board_template"] = image_path
         else:
             image_path = os.path.join(IMAGE_PATH, "bingo_card_image.png")
-            for team_name in team_names:
+            # update all settings['teams'][team_name]['image']
+            for team_name in settings["teams"]:
                 settings["teams"][team_name]["image"] = image_path
-
         # download attachment
         with open(image_path, "wb") as f:
             await file.save(f)
-        # update all settings['teams'][team_name]['image']
-        update_settings_json(settings)
-        await interaction.followup.send(f"Default Bingo Card Image has been updated")
+    await interaction.followup.send(f"Default Bingo Card Image has been updated")
 
 
 @has_role("Bingo Moderator")
@@ -2658,9 +2735,9 @@ async def set_image_bounds(
     Returns:
     - None
     """
+    await interaction.response.defer(thinking=True)
     settings = load_settings_json()
     team_names = [x for x in settings["teams"].keys()]
-    await interaction.response.defer(thinking=True)
     if (
         x_left_offset == ""
         or y_top_offset == ""
@@ -2686,7 +2763,6 @@ async def set_image_bounds(
             }
         update_settings_json(settings)
         await interaction.followup.send(f"Image bounds for each team have been updated")
-        update_settings_json(settings)
 
 
 @has_role("Bingo Moderator")
@@ -2726,9 +2802,9 @@ async def set_board_bounds(
     Returns:
     - None
     """
+    await interaction.response.defer(thinking=True)
     settings = load_settings_json()
     team_names = [x for x in settings["teams"].keys()]
-    await interaction.response.defer(thinking=True)
     if (
         tile_count == ""
         or tile_size == ""
@@ -2762,7 +2838,6 @@ async def set_board_bounds(
             }
         update_settings_json(settings)
         await interaction.followup.send(f"Board bounds for each team have been updated")
-        update_settings_json(settings)
 
 
 
@@ -2858,7 +2933,7 @@ async def reset_bingo_settings(interaction: discord.Interaction):
     - None
     """
 
-    class ConfirmReset(discord.ui.View):
+    class ConfirmReset(ModeratorView):
         def __init__(self, *, timeout: Optional[float] = 180):
             super().__init__(timeout=timeout)
 
