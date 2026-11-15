@@ -2876,11 +2876,12 @@ async def reset_bingo_settings(interaction: discord.Interaction):
             self, interaction: discord.Interaction,
             button: discord.ui.Button
         ):
-            for child in self.children:
-                child.disabled = True
             await interaction.response.edit_message(
-                content=f"Aborted Reseting of Settings.\nNothing was modified",
-                view=self,
+                content=None,
+                embed=discord.Embed(
+                    description=f"Reset cancelled by {interaction.user.display_name}. Nothing was modified."
+                ),
+                view=None,
             )
 
         @discord.ui.button(label="Reset", style=discord.ButtonStyle.green)
@@ -2893,14 +2894,17 @@ async def reset_bingo_settings(interaction: discord.Interaction):
                     _reset_all_settings()
                 except OSError as e:
                     await interaction.response.edit_message(
-                        content=f"Failed to reset settings: {e}", view=None
+                        content=None,
+                        embed=discord.Embed(description=f"Failed to reset settings: {e}"),
+                        view=None,
                     )
                     return
-            for child in self.children:
-                child.disabled = True
             await interaction.response.edit_message(
-                content="# Reset Bingo Settings.",
-                view=self,
+                content=None,
+                embed=discord.Embed(
+                    description=f"All team scores and settings were reset by {interaction.user.display_name}."
+                ),
+                view=None,
             )
 
     await interaction.response.send_message(
