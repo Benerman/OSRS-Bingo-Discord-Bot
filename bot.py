@@ -270,11 +270,20 @@ def save_settings_json(contents: dict) -> None:
             os.remove(tmp_path)
 
 
-def _reset_all_settings() -> None:
-    """Reset every team's progress in settings.json to defaults."""
+def _reset_all_settings() -> dict:
+    """
+    Reset every team's progress in settings.json to defaults.
+
+    Returns:
+        dict: Team key -> display name it had before the reset, for teams
+        that had a custom display name.
+    """
     settings = load_settings_json()
     settings["total_teams"] = MAX_TEAMS
-    for team in settings["teams"].values():
+    renamed = {}
+    for team_key, team in settings["teams"].items():
+        if team.get("display_name") and team["display_name"] != team_key:
+            renamed[team_key] = team["display_name"]
         team["display_name"] = ""
         team["tiles_completed"] = []
         team["current"] = 0
@@ -283,6 +292,7 @@ def _reset_all_settings() -> None:
         team["roll_history"] = []
         team["image"] = os.path.join(IMAGE_PATH, "bingo_card_image.png")
     save_settings_json(settings)
+    return renamed
 
 
 def get_team_display_name(settings: dict, team_key: str) -> str:
@@ -2891,7 +2901,7 @@ async def reset_bingo_settings(interaction: discord.Interaction):
         ):
             async with _settings_lock:
                 try:
-                    _reset_all_settings()
+                    renamed = _reset_all_settings()
                 except OSError as e:
                     await interaction.response.edit_message(
                         content=None,
@@ -2899,12 +2909,32 @@ async def reset_bingo_settings(interaction: discord.Interaction):
                         view=None,
                     )
                     return
+            # Respond now; renaming categories can take longer than Discord's 3s limit.
             await interaction.response.edit_message(
                 content=None,
-                embed=discord.Embed(
-                    description=f"All team scores and settings were reset by {interaction.user.display_name}."
-                ),
+                embed=discord.Embed(description="Resetting team scores and names..."),
                 view=None,
+            )
+            # Rename team categories back to their default names (Team 1..Team N).
+            problems = []
+            for team_key, old_name in renamed.items():
+                cat = discord.utils.get(interaction.guild.categories, name=old_name)
+                if not cat:
+                    problems.append(f'No category named "{old_name}" for {team_key}')
+                    continue
+                try:
+                    await cat.edit(name=team_key)
+                except discord.HTTPException as e:
+                    logger.error(f'Failed to rename category "{old_name}" to "{team_key}": {e}')
+                    problems.append(f'Could not rename "{old_name}" to "{team_key}": {e}')
+            description = (
+                f"All team scores, settings and team names were reset by "
+                f"{interaction.user.display_name}."
+            )
+            if problems:
+                description += "\n\n" + "\n".join(problems)
+            await interaction.edit_original_response(
+                embed=discord.Embed(description=description)
             )
 
     await interaction.response.send_message(
