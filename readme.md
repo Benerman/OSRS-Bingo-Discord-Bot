@@ -15,11 +15,16 @@ Listing out the commands that the bot uses and the simple use cases below(if req
 
 ## Essential Commands
 
-### /set_tiles <sheet_link: str> <process_sheet: bool = True>
+### /upload_tiles <sheet_link: str> <process_sheet: bool = True>
 Sets the tiles for the bingo game using a PUBLIC Google Sheet.
 Provide the FULL URL link to the Google Sheets document containing the tile data.
 settings['items'] will get updated with the new tile URL.
 If process_sheet is True, the sheet will be processed and the settings will be updated.
+Blank rows are skipped. If the link includes a `gid=`, that sheet tab is used, otherwise the first tab.
+
+Normal bingo sheets have the columns: name, description, points (optional).
+Tiles are read left to right, top to bottom onto the 5x5 card: rows 1-5 of the sheet are A1-E1, row 6 is A2, and so on.
+Tiles without a points value are worth `default_tile_points` (see /score config).
 
     Example of Normal Bingo Template is:
     https://docs.google.com/spreadsheets/d/1zkhEsUOME7lRTQ8m5n3puieyKJsG3fcqiiTonQQwWoA/edit?usp=sharing
@@ -50,21 +55,25 @@ Uses the settings.json file to get the tiles(settings['items']).
 
 
 ### /post_bingo_card <for_all_teams: bool = False> <team_name: Optional[str] = None>
-Posts a bingo card image in the corresponding team's Bingo Card Channel.
+Posts a bingo card image in the corresponding team's Bingo Card Channel. Works in every bot mode.
 
     Parameters:
     - for_all_teams: A boolean indicating whether to post the bingo card for all teams or not. Default is False.
     - team_name: The name of the team for which to post the bingo card. Default is None. Only required if NOT for_all_teams
 
-### /mark_tile_completed <team_name: str> <location: str>
-Marks a tile as completed for a specific team and updates the Bingo Card.
-Works for 5x5 bingo style board, requires /image_bounds to properly display within image correctly
+### /mark_specific_tile_completed <team_name: str> <location: str>
+Marks a tile as completed for a specific team, adds the tile's points (plus any line or blackout bonus),
+redraws the Bingo Card, updates #score-board and posts the change in the team's chat channel.
+Works for 5x5 bingo style board, requires /set_image_bounds to properly display within image correctly
 Table Columns and Rows are labeled like Excel, Columns A - E with Rows 1 - 5
-/mark_tile_completed team_name: Team 1 location: A2
+/mark_specific_tile_completed team_name: Team 1 location: A2
 
     Parameters:
     - team_name (str): The name of the team.
     - location (str): The location of the tile in the Bingo Card.
+
+### /unmark_tile_completed <team_name: str> <location: str>
+Unmarks a completed tile, takes back its points (and any line or blackout bonus it was part of) and redraws the Bingo Card.
 
 ### /update_score
 Updates the score in the #score-board channel, 
@@ -153,6 +162,48 @@ Sets the image bounds for each team in the settings.
     - y_bottom_offset: The bottom offset of the image.
     - gutter: The gutter size of the image.
 
+## Scoring Commands
+
+A team's score is its points in normal bingo, and its tile in candyland / chutes and ladders.
+Every change is logged with who made it and why, refreshes #score-board, and is posted in the team's chat channel.
+#score-board ranks the teams and shows how far each is behind the leader.
+
+### /score add <team_name> <points> [reason]
+Adds points. In candyland / chutes and ladders this moves the team forward (no tile channel is created).
+
+### /score remove <team_name> <points> [reason]
+Removes points (never below 0). In candyland / chutes and ladders this moves the team back.
+
+### /score set <team_name> <points> [reason]
+Sets the score. /set_tile does the same and is also logged.
+
+### /score undo <team_name>
+Undoes the team's last score change. Undoing a tile mark also unmarks the tile and removes any bonus it gave.
+
+### /score history <team_name> [count]
+Shows recent score changes (only to you). Undone changes are struck through.
+
+### /score config [default_tile_points] [line_bonus] [blackout_bonus] [approvals_required]
+Shows or changes scoring settings. Changes only affect tiles marked afterwards.
+- default_tile_points: points for tiles with no points value in the sheet (default 1)
+- line_bonus: extra points for each completed row, column or diagonal (default 0 = off)
+- blackout_bonus: extra points for completing all 25 tiles (default 0 = off)
+- approvals_required: how many different moderators must approve a /submit (default 1)
+
+## Submissions
+
+### /submit <proof: image> [tile] [note]
+Players submit a screenshot from the tile's channel. The tile is worked out from the channel,
+or given with `tile` (A1-E5, or the tile number in candyland / chutes and ladders).
+The submission is sent to #submissions (or #bot-commands if there is no #submissions channel) with Approve and Reject buttons.
+Only Bingo Moderators can use the buttons, and they keep working after the bot restarts.
+- Approve: once enough different moderators approve (a player can't approve their own), the tile is marked completed.
+  In normal bingo this adds the points, redraws the Bingo Card and updates #score-board.
+- Reject: asks for a reason, which is sent to the player.
+
+### /pending_submissions
+Lists submissions waiting for review with links to them.
+
 ## Role Related Commands
 
 ### /add_team_role <team_name: str> <members: str>
@@ -213,10 +264,3 @@ Checks if rolling is enabled and displays status.
 ### /toggle_rolling
 Toggles the rolling functionality for the bot based on user interaction with bot response.
 User has option to disable rolling or enable rolling by clicking button on bot's response.
-
-## Future Implementation
-
-### /tile_completed
-NOT IMPLEMENTED YET
-Updates the tile completion status and score in the settings and scoreboard channel.
-could be used to mark a channel completed for Candyland style bingo
