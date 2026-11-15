@@ -101,14 +101,6 @@ CNL_SHORTCUTS = (
     (17, 7)
 )
 
-IGNORED_CATEGORIES = [
-    "welcome",
-    "admin",
-    "bot",
-    "archived",
-    "general"
-]
-
 default_settings_dict = {
     "bot_mode": {"bot_options": ["candyland", "normal", "chutes and ladders"], "current": "candyland"},
     "tiles": {"url": "", "spreadsheet_id": "", "items": {}},
@@ -116,7 +108,7 @@ default_settings_dict = {
     "rerolling": False,
     "total_teams": MAX_TEAMS,
     "teams": {
-        f"Team {i}": {"display_name": "", "current": 0, "prev": None, "reroll": True, "roll_history": [], "tiles_completed": []}
+        f"Team {i}": {"display_name": "", "category_id": None, "current": 0, "prev": None, "reroll": True, "roll_history": [], "tiles_completed": []}
         for i in range(1, MAX_TEAMS + 1)
     },
     "image_bounds": {
@@ -295,15 +287,15 @@ def _reset_all_settings() -> dict:
     Reset every team's progress in settings.json to defaults.
 
     Returns:
-        dict: Team key -> display name it had before the reset, for teams
-        that had a custom display name.
+        dict: Team key -> (display name it had before the reset, stored
+        category ID), for teams that had a custom display name.
     """
     settings = load_settings_json()
     settings["total_teams"] = MAX_TEAMS
     renamed = {}
     for team_key, team in settings["teams"].items():
         if team.get("display_name") and team["display_name"] != team_key:
-            renamed[team_key] = team["display_name"]
+            renamed[team_key] = (team["display_name"], team.get("category_id"))
         team["display_name"] = ""
         team["tiles_completed"] = []
         team["current"] = 0
@@ -380,14 +372,34 @@ def find_team_category(
     guild: discord.Guild, settings: dict, team_key: str
 ) -> Optional[discord.CategoryChannel]:
     """
-    Find a team's category. Categories are named after the team's display name
-    once one is set (/change_team_name), otherwise after the team key.
+    Find a team's category. Uses the category ID stored by /create_team_channels,
+    so renaming the category doesn't matter. Falls back to the category named
+    after the team's display name, or the team key, for categories made before
+    IDs were stored or when the stored one was deleted.
     """
+    category_id = settings["teams"].get(team_key, {}).get("category_id")
+    if category_id:
+        cat = guild.get_channel(int(category_id))
+        if isinstance(cat, discord.CategoryChannel):
+            return cat
     display = get_team_display_name(settings, team_key)
     cat = find_category(guild, display)
     if cat is None and display != team_key:
         cat = find_category(guild, team_key)
     return cat
+
+
+def get_team_key_for_category(settings: dict, category: Optional[discord.CategoryChannel]) -> Optional[str]:
+    """
+    The team a category belongs to: by stored category ID first, then by
+    the category's name matching a team's display name or key.
+    """
+    if category is None:
+        return None
+    for key, team in settings["teams"].items():
+        if team.get("category_id") and int(team["category_id"]) == category.id:
+            return key
+    return get_team_key_by_display_name(settings, category.name)
 
 
 MENTION_RE = re.compile(r"^<@!?(\d+)>$")
@@ -1568,36 +1580,6 @@ async def team_names_autocomplete(
             choices.append(autocomplete_choice(display, team_key))
     return choices[:MAX_AUTOCOMPLETE_CHOICES]
 
-async def change_team_names_autocomplete(
-    interaction: discord.Interaction, current: str
-) -> List[app_commands.Choice[str]]:
-    """
-    Autocompletes team names based on the current input.
-    Shows display_name if set, plus non-ignored Discord categories.
-
-    Args:
-        interaction (discord.Interaction): The interaction object.
-        current (str): The current input string.
-
-    Returns:
-        List[app_commands.Choice[str]]: A list of app_commands.Choice objects representing the autocompleted team names.
-    """
-    settings = load_settings_json()
-    options = []
-    seen = set()
-    for team_key in settings["teams"]:
-        display = get_team_display_name(settings, team_key)
-        if current.lower() in display.lower() or current.lower() in team_key.lower():
-            options.append(autocomplete_choice(display, team_key))
-            seen.add(display)
-            seen.add(team_key)
-    all_categories = [c.name for c in interaction.guild.categories if c.name.lower() not in IGNORED_CATEGORIES]
-    for cat_name in all_categories:
-        if cat_name not in seen and current.lower() in cat_name.lower():
-            options.append(autocomplete_choice(cat_name, cat_name))
-    # Teams come first, so they are kept when there are too many categories.
-    return options[:MAX_AUTOCOMPLETE_CHOICES]
-
 async def process_sheet_autocomplete(
     interaction: discord.Interaction, current: str
 ) -> List[app_commands.Choice[str]]:
@@ -1660,11 +1642,11 @@ async def roll(interaction: discord.Interaction):
     async with _settings_lock:
         settings = load_settings_json()
         # Resolve team from category display name
-        category_name = interaction.channel.category.name
-        team_name = get_team_key_by_display_name(settings, category_name)
+        category = getattr(interaction.channel, "category", None)
+        team_name = get_team_key_for_category(settings, category)
         if not team_name:
             await interaction.followup.send(
-                f"Could not find a team matching category \"{category_name}\""
+                f"Could not find a team for this channel's category \"{category.name if category else 'none'}\""
             )
             return
         display_name = get_team_display_name(settings, team_name)
@@ -1818,11 +1800,11 @@ async def reroll(interaction: discord.Interaction):
     await interaction.response.defer(thinking=True)
     async with _settings_lock:
         settings = load_settings_json()
-        category_name = interaction.channel.category.name
-        team_name = get_team_key_by_display_name(settings, category_name)
+        category = getattr(interaction.channel, "category", None)
+        team_name = get_team_key_for_category(settings, category)
         if not team_name:
             await interaction.followup.send(
-                f"Could not find a team matching category \"{category_name}\""
+                f"Could not find a team for this channel's category \"{category.name if category else 'none'}\""
             )
             return
         display_name = get_team_display_name(settings, team_name)
@@ -2318,11 +2300,11 @@ async def delete_team(interaction: discord.Interaction, team_name: str):
                 await cat.delete()
             logger.info(f"Deleted {num_deleted} Channels")
 
-            # Reset the team's display name so it goes back to its team key.
-            async with _settings_lock:
-                settings = load_settings_json()
+            # Reset the team's display name so it goes back to its team key,
+            # and forget the deleted category.
+            async with edit_settings() as settings:
                 settings["teams"][self.team_name]["display_name"] = ""
-                save_settings_json(settings)
+                settings["teams"][self.team_name]["category_id"] = None
 
             if cat is None:
                 result = f'No category named "{display}" found. No channels deleted.'
@@ -2341,52 +2323,54 @@ async def delete_team(interaction: discord.Interaction, team_name: str):
 
 
 @has_role("Bingo Moderator")
-@app_commands.autocomplete(team_name=change_team_names_autocomplete)
+@app_commands.autocomplete(team_name=team_names_autocomplete)
 @bot.tree.command(name="change_team_name", description=f"Change team display name and category.")
 async def change_team_name(
     interaction: discord.Interaction, team_name: str, new_team_name: str
 ):
     """
-    Changes the display name of a team and updates the corresponding Discord category.
+    Changes the display name of a team and renames its Discord category.
     The internal team key (e.g., "Team 1") remains unchanged for stability.
     The display_name is used in scoreboards, messages, and as the Discord category name.
 
     Parameters:
     - interaction (discord.Interaction): The interaction object representing the command invocation.
-    - team_name (str): The current team key or display name.
+    - team_name (str): The team key (from autocomplete) or current display name.
     - new_team_name (str): The new display name for the team.
 
     Returns:
     None
     """
     await interaction.response.defer(thinking=True)
+    new_team_name = new_team_name.strip()[:100]
     if not new_team_name:
         await interaction.followup.send(f'No "new_team_name" provided, Please try again')
         return
-    async with _settings_lock:
-        settings = load_settings_json()
-        # Resolve the internal team key from the provided name (could be key or display_name)
+    team_cat = None
+    async with edit_settings() as settings:
+        # Autocomplete sends the team key; a typed display name works too.
         team_key = get_team_key_by_display_name(settings, team_name)
-        if not team_key:
-            team_names = list(settings["teams"].keys())
-            await interaction.followup.send(
-                f"Team Name: {team_name} is not found in {team_names}\nPlease Try again"
-            )
-            return
-        old_display = get_team_display_name(settings, team_key)
-        # Find the category by the current display name
-        team_cat = discord.utils.get(interaction.guild.categories, name=old_display)
-        if not team_cat:
-            await interaction.followup.send(f'No Category found for "{old_display}"')
-            return
-        # Update display_name in settings (internal key stays the same)
-        settings["teams"][team_key]["display_name"] = new_team_name
-        save_settings_json(settings)
-    # Update the Discord category name
-    await team_cat.edit(name=new_team_name)
-    await interaction.followup.send(
-        f'Changed Team "{old_display}" ({team_key}) display name to "{new_team_name}"'
-    )
+        if team_key:
+            old_display = get_team_display_name(settings, team_key)
+            team_cat = find_team_category(interaction.guild, settings, team_key)
+            settings["teams"][team_key]["display_name"] = new_team_name
+            if team_cat is not None:
+                # Remember the category so later lookups don't depend on its name.
+                settings["teams"][team_key]["category_id"] = team_cat.id
+    if not team_key:
+        await interaction.followup.send(
+            f"Team Name: {team_name} is not found in {list(settings['teams'].keys())}\nPlease Try again"
+        )
+        return
+    message = f'Changed Team "{old_display}" ({team_key}) display name to "{new_team_name}".'
+    if team_cat is None:
+        message += "\nNo category exists for this team yet; /create_team_channels will use the new name."
+    else:
+        try:
+            await team_cat.edit(name=new_team_name)
+        except discord.HTTPException as e:
+            message += f'\nCould not rename category "{team_cat.name}": {e}'
+    await interaction.followup.send(message)
 
 
 @has_role("Bingo Moderator")
@@ -2497,7 +2481,16 @@ async def create_team_channels(interaction: discord.Interaction, team_name: str)
     spectator_role = discord.utils.get(interaction.guild.roles, name="spectator")
     bingo_bot_role = discord.utils.get(interaction.guild.roles, name="Bingo Bot")
     team_role = discord.utils.get(interaction.guild.roles, name=f"Team {team_number}")
-    cat = await interaction.guild.create_category(name=team_name)
+    existing = find_team_category(interaction.guild, settings, team_name)
+    if existing is not None:
+        await interaction.followup.send(
+            f'"{get_team_display_name(settings, team_name)}" already has a category ("{existing.name}"). '
+            "Use /delete_team first to start fresh."
+        )
+        return
+    cat = await interaction.guild.create_category(name=get_team_display_name(settings, team_name))
+    async with edit_settings() as latest:
+        latest["teams"][team_name]["category_id"] = cat.id
     overwrites_with_spectator = {
         interaction.guild.default_role: discord.PermissionOverwrite(
             read_messages=False, connect=False
@@ -2544,7 +2537,7 @@ async def create_team_channels(interaction: discord.Interaction, team_name: str)
         else:
             description = channel["description"]
             await create_discord_text_channel(interaction, channel_name, description, cat, overwrites)
-    await interaction.followup.send(f'Channels created for "{team_name}"')
+    await interaction.followup.send(f'Channels created for "{get_team_display_name(settings, team_name)}"')
 
 
 @has_role("Bingo Moderator")
@@ -3299,8 +3292,10 @@ async def reset_bingo_settings(interaction: discord.Interaction):
             )
             # Rename team categories back to their default names (Team 1..Team N).
             problems = []
-            for team_key, old_name in renamed.items():
-                cat = discord.utils.get(interaction.guild.categories, name=old_name)
+            for team_key, (old_name, category_id) in renamed.items():
+                cat = interaction.guild.get_channel(int(category_id)) if category_id else None
+                if not isinstance(cat, discord.CategoryChannel):
+                    cat = find_category(interaction.guild, old_name)
                 if not cat:
                     problems.append(f'No category named "{old_name}" for {team_key}')
                     continue
@@ -3916,7 +3911,7 @@ async def submit(
         return
     settings = load_settings_json()
     category = getattr(interaction.channel, "category", None)
-    team_name = get_team_key_by_display_name(settings, category.name) if category else None
+    team_name = get_team_key_for_category(settings, category)
     if not team_name:
         await interaction.response.send_message("Use /submit in one of your team's channels.", ephemeral=True)
         return
